@@ -1,0 +1,20 @@
+{
+    "types": [
+        
+    ],
+  "compilerOptions": {
+    "target": "ES6",
+    "allowJs": true,
+    "moduleResolution": "node",
+    "noEmitOnError": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "npm:*": ["local-types/*"],
+      "*": ["local-types/*"]
+    }
+  },
+  "include": [
+    "app/**/*"
+  ]
+}

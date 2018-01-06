@@ -1,0 +1,846 @@
+/* global requireNode */
+import AGate from '../agate'
+
+class Enums {
+
+}
+
+Enums.SpriteState = new AGate.Enum([
+'Current',
+'Normal',
+'Destroyed',
+'Light',
+'Shadow'
+])
+
+Enums.Direction = new AGate.Enum([
+'North',
+'NorthEast',
+'East',
+'SouthEast',
+'South',
+'SouthWest',
+'West',
+'NorthWest'
+])
+
+Enums.Wall = new AGate.Enum([
+    "RawBrick",
+    "DarkWood",
+    "Interior1",
+    "Interior2",
+    "LightWood",
+    "Victorian",
+    "WoodShack",
+    "VictorianWood",
+    "Dungeon",
+    "Rock",
+    "Cave",
+    "Rock2",
+    "RedBrick",
+    "GreyBrick",
+    "BeigeBrick",
+    "Interior4",
+    "Interior5",
+    "Sewers",
+    "Castle",
+    "Village",
+
+    "SeasideVillageExterior",
+    "SeasideVillageInterior",
+    "Fake",
+    "Dummy", // For unique portals
+    "Panrii",
+    "Dwarf",
+    "RotIronFence",
+    "Trees",
+    "StoneVillage",
+    "DwarfCaves",
+    "DwarfDwellings",
+    "Tulla",
+    "TullaInterior",
+    "Tulla Wall",
+    "VendigrothExterior",
+    "VendigrothInterior",
+    "VendigrothCaves",
+    "GreyCaves",
+    "NewDungeons",
+    "Ruins",
+    "Prison",
+    "Void",
+    "JungleTrees"
+])
+
+Enums.WallType = new AGate.Enum([
+    "Base",
+
+    "LeftCorner",
+
+    "BottomLeftCorner",
+    "BottomRightCorner",
+
+    "TopLeftCorner",
+    "TopRightCorner",
+
+    "UpperEndcap",
+    "LowerEndcap",
+
+    "Window3Left",
+    "Window3A",
+    "Window3Right",
+
+    "Window4Left",
+    "Window4A",
+    "Window4B",
+    "Window4Right",
+
+    "Window5Left",
+    "Window5A",
+    "Window5B",
+    "Window5C",
+    "Window5Right",
+
+    "Doorway3Left",
+    "Doorway3A",
+    "Doorway3Right",
+
+    "Doorway4Left",
+    "Doorway4A",
+    "Doorway4B",
+    "Doorway4Right",
+
+    "Doorway6Left",
+    "Doorway6A",
+    "Doorway6B",
+    "Doorway6C",
+    "Doorway6D",
+    "Doorway6Right",
+
+    "Kitchen3Left",
+    "Kitchen3A",
+    "Kitchen3Right",
+
+    "Kitchen4Left",
+    "Kitchen4A",
+    "Kitchen4B",
+    "Kitchen4Right",
+
+    "Kitchen5Left",
+    "Kitchen5A",
+    "Kitchen5B",
+    "Kitchen5C",
+    "Kitchen5Right"
+])
+
+Enums.WallSide = new AGate.Enum([
+    "Universal", "Left", "Right"
+])
+
+Enums.TileName = new AGate.Enum([
+    // Outdoor flippable tile names start here, at 0
+    "Dirt",
+    "Grass",
+    "RockyGround",
+    "Snow",
+    "DeadGrass1",
+    "BogShore1",
+    "BogShore2",
+    "BogWater",
+    "ShallowWater1",
+    "ShallowWater2",
+    "ShallowWater3",
+    "ShallowWater",
+    "DeepWater",
+    "SolidRock",
+    "SideWalk1",
+    "SideWalk2",
+    "Street1",
+    "OutdoorWoodPlanks",
+    "Desert",
+    "ShallowSand",
+    "DesertIsland",
+    "JungleDirt",
+    "JungleGrass",
+    "SeaWall",
+    "OutdoorSewer",
+    "TarantStreet1",
+    "TarantStreet2",
+    "TorddedDirt",
+    "BlackYall",
+    "VoidDirt",
+    "VoidFog",
+
+    // 31 - Outdoor non-flippable tile names start here, at 100
+    "Test",
+    "Prh",
+    "Docks",
+    "TullaWalkways",
+    "VWK",
+    "Ice",
+
+    // 31 + 6 Indoor flippable tile names start here, at 200
+    "Fl1",
+    "Wod",
+
+    // 31 + 6 + 2 Indoor non-flippable tile names start here, at 300
+    "Dungeon1", // Dn1
+    "WI1",
+    "Dungeon2",
+    "CavernFloor1",
+    "WD1",
+    "SewerWaterFloor",
+    "DarkWoodFloors",
+    "IllegalTiles",
+    "DirtIndoorFloor",
+    "CavernFloor2",
+    "DungeonFloors",
+    "VoidFloors",
+    "JungleDirtInside",
+    "Base"
+])
+
+Enums.EyeCandyLayer = new AGate.Enum([
+    "Foreground", "Background", "Underlay"
+])
+
+Enums.ItemDisplay = new AGate.Enum([
+    "Ground", "Inventory", "Paper", "Schematic"
+])
+
+Enums.PortalType = new AGate.Enum([
+    // Doors
+    "Brick1",
+    "Brick2Interior",
+    "Shack",
+    "Wood1",
+    "Wood1Interior",
+    "Victorian",
+    "Victorian2",
+    "Dungeon1",
+    "Brick1Interior",
+    "Brick2Building",
+    "GreyBlock",
+    "BeigeBlock",
+    "Interior5",
+    "Interior4",
+    "Brick2",
+    "Village",
+    "SeaSideVillageExterior",
+    "SeasideVillageInterior",
+    "ShroudedHillsGate",
+    "PanriiSingleWide",
+    "ElvenHut1",
+    "RotIron",
+    "CavePrison",
+    "StoneVillage",
+    "DwarfDwelling",
+    "TullaExterior",
+    "TullaInterior",
+    "VendigrothExterior",
+    "VendigrothInterior",
+    "Dungeon",
+    "Prison",
+    "Void",
+
+    // Windows
+    "Brick1",
+    "Brick1Interior",
+    "Brick2Interior",
+    "Shack",
+    "Wood1",
+    "Wood1Interior",
+    "Victorian",
+    "VictorianInterior",
+    "Dungeon1",
+    "Brick2Building",
+    "GreyBlock",
+    "BeigeBlock",
+    "Interior5",
+    "Interior4",
+    "Sewer",
+    "Village",
+    "SeaSideVillageExterior",
+    "SeaSideVillageInterior",
+    "CavePrisonBars",
+    "StoneVillage",
+    "DwarvenDwelling",
+    "TullaExterior",
+    "TullaInterior",
+    "Prison"
+])
+
+Enums.MonsterSpecie = new AGate.Enum([
+    "Wolf",
+    "Spider",
+    "Orc",
+    "EarthElemental",
+    "LesserDemon",
+    "LesserSkeleton",
+    "LesserZombie",
+    "LesserMummy",
+    "GreaterDemon",
+    "Bunny",
+    "MechanicalSpider",
+    "Automaton",
+    "LizardMan",
+    "PhantomKnight",
+    "WereRat",
+    "SnakeMan",
+    "Ape",
+    "Bear",
+    "Chicken",
+    "Cougar",
+    "Sheep",
+    "Tiger",
+    "Pig",
+    "Cow",
+    "WillOWisp",
+    "MutantPig",
+    "FireElemental",
+    "WaterElemental",
+    "AirElemental",
+    "DeathKnight",
+    "SpiderQueen",
+    "Werewolf"
+])
+
+Enums.UniqueNpc = new AGate.Enum([
+    "HumanBarbarian",
+    "HumanTownsperson",
+    "HumanVillager",
+    "GnomeVillager",
+    "HumanKing",
+    "DeadGnome",
+    "HumanOldman",
+    "ElvenVillager",
+    "ElvenFemaleVillager",
+    "GnomeVillager2",
+    "GnomeFemaleVillager",
+    "HumanFemaelVillager",
+    "DwarfMaleVillager",
+    "SilverLady",
+    "RobedMale",
+    "HumanPriest",
+    "GnomeFemaleCityDweller",
+    "HumanFemaleCityDweller",
+    "ClockworkDecoy",
+    "Arraya",
+    "Dragon",
+    "Gorwrath",
+    "HellBeast",
+    "Kite",
+    "Krag",
+    "Lycanthrope",
+    "SnakeMan",
+    "Kerghan1",
+    "Kerghan2",
+    "Kerghan3",
+    "Kerghan4",
+    "ShamblerMonster",
+    "GolemMonster",
+    "Familiar",
+    "PhantomKnight1",
+    "PhantomKnight2",
+    "PhantomKnight3",
+    "StillwaterGiant",
+    "NakedHalfling",
+    "VoormanMonster"
+])
+
+Enums.Race = new AGate.Enum([
+    "Human", "Dwarf", "Gnome", "Halfling", "Elf"
+])
+
+Enums.Armor = new AGate.Enum([
+    "Underwear", "Villager", "LeatherArmor", "ChainMail", "PlateMail", "Robe", "PlateClassic", "Barbarian", "CityDweller", "NoArmor"
+])
+
+Enums.Weapon = new AGate.Enum([
+    "Unarmed", "Default", "Dagger", "Sword", "Axe", "Mace", "Pistol", "Longsword", "Bow", "Unknown1", "TechGun", "Unknown2", "Unknown3", "Staff", "Unknown4"
+])
+
+Enums.Animation = new AGate.Enum([
+    "Stand", "Walk", "KickLow", "StealthWalk", "Disassemble", "ConcealFidget",
+    "Run", "FallDown", "GetUp", "KneelDown", "KneelMagicHands", "FallOverFromKneel",
+    "Pickpocket", "Vault", "Throw", "Unknown4", "Unknown5", "Decapitation", "BlownOut",
+    "SeveredLeg", "Attack", "AttackLow", "Unknown6", "Stunned", "Explode", "Special"
+])
+
+Enums.Gender = new AGate.Enum([
+    "Female", "Male", "Both"
+])
+
+Enums.Shield = new AGate.Enum([
+    "NoShield", "Shield"
+])
+
+Enums.Entity = new AGate.Enum([
+'Wall',
+'Portal',
+'Container',
+'Scenery',
+'Projectile',
+'Weapon',
+'Ammo',
+'Armor',
+'Gold',
+'Food',
+'Scroll',
+'Key',
+'Keyring',
+'Written',
+'Generic',
+'Pc',
+'Npc',
+'Trap'
+])
+
+Enums.EntitySource = new AGate.Enum([
+'Mobile',
+'Prototype',
+'Savegame',
+'Character'
+])
+
+Enums.SpellCollege = new AGate.Enum([
+'Conveyance',
+'Divination',
+'Air',
+'Earth',
+'Fire',
+'Water',
+'Force',
+'Mental',
+'Meta',
+'Morph',
+'Nature',
+'NecroEvil',
+'NecroGood',
+'Phantasm',
+'Summoning',
+'Temporal'
+])
+
+Enums.Spell = new AGate.Enum([
+'Disarm',
+'UnlockingCantrip',
+'UnseenForce',
+'SpatialDistortion',
+'Teleportation',
+'SenseAlignment',
+'SeeContents',
+'ReadAura',
+'SenseHidden',
+'DivineMagick',
+'VitalityOfAir',
+'PoisonVapours',
+'CallWinds',
+'BodyOfAir',
+'CallAirElemental',
+'StrengthOfEarth',
+'StoneThrow',
+'WallOfStone',
+'BodyOfStone',
+'CallEarthElemental',
+'AgilityOfFire',
+'WallOfFire',
+'Fireflash',
+'BodyOfFire',
+'CallFireElemental',
+'PurityOfWater',
+'CallFog',
+'SquallOfIce',
+'BodyOfWater',
+'CallWaterElemental',
+'ShieldOfProtection',
+'Jolt',
+'WallOfForce',
+'BoltOfLightning',
+'Disintegrate',
+'Charm',
+'Stun',
+'DrainWill',
+'Nightmare',
+'DominateWill',
+'ResistMagick',
+'DisperseMagick',
+'DweomerShield',
+'BondsOfMagick',
+'ReflectionShield',
+'HardenedHands',
+'Weaken',
+'Shrink',
+'FleshToStone',
+'SpPolymorph',
+'CharmBeast',
+'Entangle',
+'ControlBeast',
+'SuccourBeast',
+'Regenerate',
+'Harm',
+'ConjureSpirit',
+'SummonUndead',
+'CreateUndead',
+'QuenchLife',
+'MinorHealing',
+'HaltPoison',
+'MajorHealing',
+'Sanctuary',
+'Resurrect',
+'Illuminate',
+'Flash',
+'BlurSight',
+'PhantasmalFiend',
+'Invisibility',
+'PlagueOfInsects',
+'OrcishChampion',
+'GuardianOgre',
+'Hellgate',
+'Familiar',
+'Magelock',
+'CongealTime',
+'Hasten',
+'Stasis',
+'TempusFugit'
+])
+
+Enums.Skill = new AGate.Enum([
+'Bow',
+'Dodge',
+'Melee',
+'Throwing',
+'Backstab',
+'Pickpocket',
+'Prowling',
+'SpotTrap',
+'Gambling',
+'Haggle',
+'Heal',
+'Persuasion',
+'Repair',
+'Firearms',
+'Picklock',
+'DisarmTrap'
+])
+
+Enums.Damage = new AGate.Enum([
+'Normal',
+'Poison',
+'Electrical',
+'Fire',
+'Fatigue'
+])
+
+Enums.QuestState = new AGate.Enum([
+'Unknown',
+'Mentioned',
+'Accepted',
+'Achieved',
+'Completed',
+'Other',
+'Botched'
+])
+
+Enums.SocialClass = new AGate.Enum([
+'Noble',
+'Priest',
+'Wizard',
+'Technologist',
+'Shopkeeper',
+'Guard',
+'CityDweller',
+'Villager',
+'Beggar',
+'Thief',
+'Bandit'
+])
+
+Enums.EffectCause = new AGate.Enum([
+'Race',
+'Background',
+'Class',
+'Bless',
+'Curse',
+'Item',
+'Spell',
+'Injury',
+'Tech',
+'Gender'
+])
+
+Enums.Armor = new AGate.Enum([
+'Underwear',
+'Villager',
+'Leather',
+'ChainMail',
+'PlateMail',
+'Robe',
+'PlateClassic',
+'Barbarian',
+'CityDweller'
+])
+
+Enums.ArmorCoverage = new AGate.Enum([
+'Torso',
+'Shield',
+'Helmet',
+'Gauntlets',
+'Boots',
+'Ring',
+'Medallion'
+])
+
+Enums.Container = new AGate.Enum([
+'JunkPile',
+'Chest',
+'Barrel',
+'Bag',
+'Box',
+'Furniture',
+'Bookstand',
+'Misc'
+])
+
+Enums.ContainerState = new AGate.Enum([
+'Unlocked',
+'Locked',
+'UnlockedPermanently'
+])
+
+Enums.Item = new AGate.Enum([
+'Weapon',
+'Ammo',
+'Armor',
+'Gold',
+'Food',
+'Scroll',
+'Key',
+'KeyRing',
+'Written',
+'Generic'
+])
+
+Enums.Gender = new AGate.Enum([
+'Male',
+'Female'
+])
+
+Enums.Shield = new AGate.Enum([
+'ShieldNone',
+'ShieldAttached'
+])
+
+Enums.Race = new AGate.Enum([
+'Human',
+'Dwarf',
+'Elf',
+'HalfElf',
+'Gnome',
+'Halfing',
+'HalfOrc',
+'HalfOgre',
+'DarkElf',
+'Ogre',
+'Orc',
+
+'Undead',
+'Animal',
+'Monster'
+])
+
+Enums.Animation = new AGate.Enum([
+'Stand',
+'Walk',
+'KickLow',
+'StealthWalk',
+'Disassemble',
+'ConcealFidget',
+'Run',
+'FallDown',
+'GetUp',
+'KneelDown',
+'KneelMagicHands',
+'FallOverFromKneel',
+'Pickpocket',
+'Vault',
+'Throw',
+'Unknown4',
+'Unknown5',
+'Decapitation',
+'BlownOut',
+'SeveredLeg',
+'Attack',
+'AttackLow',
+'Unknown6',
+'Stunned',
+'Explode',
+'Special'
+])
+
+Enums.HitChart = new AGate.Enum([
+'Cutting',
+'Crushing',
+'Impaling',
+'Electrical',
+'Fire'
+])
+
+Enums.MissChart = new AGate.Enum([
+'Bladed',
+'Bludgeon',
+'Handled',
+'Guns',
+'Bows',
+'Hands',
+'Explosive',
+'Fire',
+'Electrical'
+])
+
+Enums.BodyType = new AGate.Enum([
+'Biped',
+'Quadruped',
+'Amorphous',
+'Insect',
+'Snake',
+'Avian'
+])
+
+Enums.Reaction = new AGate.Enum([
+'Love',
+'Amiable',
+'Courteous',
+'Neutral',
+'Suspicious',
+'Dislike',
+'Hatred'
+])
+
+Enums.Stat = new AGate.Enum([
+'Strength',
+'Dexterity',
+'Constitution',
+'Beauty',
+'Intelligence',
+'Perception',
+'Willpower',
+'Charisma',
+'CarryWeight',
+'DamageBonus',
+'ArmorClassAdjustment',
+'Speed',
+'HealRate',
+'PoisonRecoveryRate',
+'ReactionModifier',
+'MaxFollowers',
+'MagicTechAptitude',
+'Level',
+'ExperiencePoints',
+'Alignment',
+'FatePoints',
+'UnspentPoints',
+'MagicPoints',
+'TechPoints',
+'PoisonLevel',
+'Age',
+'Gender',
+'Race'
+])
+
+Enums.Monster = new AGate.Enum([
+'Wolf',
+'Spider',
+'Ord',
+'EarthElemental',
+'LesserDemon',
+'LesserSkeleton',
+'LesserZombie',
+'LesserMummy',
+'GreaterDemon',
+'Bunny',
+'MechSpider',
+'Automaton',
+'LizardMan',
+'PhantomKnight',
+'WereRat',
+'SnakeMan',
+'Ape',
+'Bear',
+'Chicken',
+'Cougar',
+'Sheep',
+'Tiger',
+'Pig',
+'Cow',
+'Wisp',
+'MutantPig',
+'FireElemental',
+'WaterElemental',
+'AirElemental',
+'DeathKnight',
+'SpiderQueen',
+'Werewolf'
+])
+
+Enums.Scenery = new AGate.Enum([
+'Projectile',
+'TreeLarge',
+'TreeMedium',
+'TreeSmall',
+'TreeDead',
+'Plant',
+'MetalSmall',
+'MetalMedium',
+'MetalLarge',
+'StoneSmall',
+'StoneMedium',
+'StoneLarge',
+'WoodenSmall',
+'WoodenMedium',
+'WoodenLarge',
+'MiscSmall',
+'MiscMedium',
+'MiscLarge',
+'MachineLarge',
+'MachineMedium',
+'TeleportFacade',
+'LightSource',
+'Bed'
+])
+
+Enums.Written = new AGate.Enum([
+'Book',
+'Note',
+'Newspaper',
+'Telegram',
+'Image',
+'Schematic',
+'Plague'
+])
+
+Enums.Weapon = new AGate.Enum([
+'Unarmed',
+'Default',
+'Dagger',
+'Sword',
+'Axe',
+'Mace',
+'Pistol',
+'Longsword',
+'Bow',
+'Unknown1',
+'TechGun',
+'Unknown2',
+'Unknown3',
+'Staff',
+'Unknown4'
+])
+
+Enums.Ammo = new AGate.Enum([
+'Arrows',
+'Bullets',
+'Charges',
+'Fuel'
+])
+
+export default Enums
