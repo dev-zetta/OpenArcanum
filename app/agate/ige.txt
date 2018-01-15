@@ -1,0 +1,243 @@
+//import IgeBase from '../libs/ige/core/IgeBase';
+import {$ige, $time, $textures, IgeClass, IgeTexture, IgeEngine, IgeEntity, IgeEventingClass, IgeScene2d, IgeViewport, IgeUiButton} from '../libs/ige/ige'
+
+var ige = new IgeEngine();
+
+class Rotator extends IgeEntity {
+    constructor(speed) {
+        super();
+        this._classId = 'Rotator';
+
+        if (speed !== undefined) {
+            this._rSpeed = speed;
+        } else {
+            this._rSpeed = 0;
+        }
+    }
+
+    /**
+     * Called every frame by the engine when this entity is mounted to the scenegraph.
+     * @param ctx The canvas context to render to.
+     */
+    tick(ctx) {
+        // Rotate this entity by 0.1 degrees.
+        this.rotateBy(0, 0, (this._rSpeed * $time._tickDelta) * Math.PI / 180);
+
+        // Call the IgeEntity (super-class) tick() method
+        super.tick(ctx);
+    }
+}
+
+class Textures0 extends IgeEventingClass {
+    constructor() {
+        super();
+
+        // Define a textures object that will hold all the textures unique to this route
+        var textures = {};
+
+        textures.fairy = new IgeTexture('assets/textures/sprites/fairy.png');
+        textures.simpleBox = new IgeTexture('assets/textures/sprites/fairy.png'); //new IgeTexture(simpleBoxSmartTexture);
+
+        // Notice how we didn't create an appCore module for this texture? This is still a valid way to do things
+        // but should be phased out ASAP in favour of declaring an appCore module for each smart texture
+        textures.button = new IgeTexture(/*'assets/textures/smartTextures/igeButton.js'*/);
+
+        // Add the route's textures to the engine
+        $textures.addGroup(textures);
+
+        // Define an on destroy that will unload our textures we use in this route when
+        // the route is navigated away from
+        this.on('destroy', function () {
+            alert('test')
+            $textures.removeGroup(textures);
+        });
+    }
+}
+
+class Game0 {
+    constructor() {
+    	// Determine the environment we are executing in
+    	this.isServer = (typeof(module) !== 'undefined' && typeof(module.exports) !== 'undefined' && typeof window === 'undefined');
+    	this.isClient = !this.isServer;
+
+    	this.scene = { obj: [] };
+    	this.audio = {};
+    }
+}
+
+let $game = new Game0();
+
+class Scene0 extends IgeEventingClass {
+    constructor() {
+        super();
+    }
+
+    addGraph(options) {
+        // Create the root scene on which all other objects
+        // will branch from in the scenegraph
+        $game.scene.mainScene = new IgeScene2d()
+            .id('mainScene');
+
+        // Create the main viewport and set the scene
+        // it will "look" at as the new mainScene we just
+        // created above
+        $game.scene.vp1 = new IgeViewport()
+            .id('vp1')
+            .autoSize(true)
+            .scene($game.scene.mainScene)
+            .drawBounds(false)
+            .mount(ige);
+
+
+        $game.scene.sceneBase = new IgeScene2d()
+            .id('sceneBase')
+            .mount($game.scene.mainScene);
+
+        $game.scene.backScene = new IgeScene2d()
+            .id('backScene')
+            .layer(0)
+            .mount($game.scene.sceneBase);
+
+        $game.scene.uiScene = new IgeScene2d()
+            .id('uiScene')
+            .layer(1)
+            .ignoreCamera(true)
+            .mount($game.scene.sceneBase);
+
+        // Create an entity and mount it to the scene
+        $game.scene.obj[0] = new Rotator(0.1)
+            .id('fairy1')
+            .depth(1)
+            .width(100)
+            .height(100)
+            .texture($textures.get('fairy'))
+            .translateTo(0, 0, 0)
+            .mount($game.scene.sceneBase);
+
+        // Create a second rotator entity and mount
+        // it to the first one at 0, 50 relative to the
+        // parent
+        $game.scene.obj[1] = new Rotator(0.1)
+            .id('fairy2')
+            .depth(1)
+            .width(50)
+            .height(50)
+            .texture($textures.get('fairy'))
+            .translateTo(0, 50, 0)
+            .mount($game.scene.obj[0]);
+
+        // Create a third rotator entity and mount
+        // it to the first on at 0, -50 relative to the
+        // parent, but assign it a smart texture!
+        $game.scene.obj[2] = new Rotator(0.1)
+            .id('simpleBox')
+            .depth(1)
+            .width(50)
+            .height(50)
+            .texture($textures.get('simpleBox'))
+            .translateTo(0, -50, 0)
+            .mount($game.scene.obj[0]);
+
+
+
+        $game.scene.helloButton = new IgeUiButton()
+            .id('helloButton')
+            .texture($textures.get('button'))
+            .width(120)
+            .height(40)
+            .middle(-100)
+            .data('ui', {
+                border: '#ffffff',
+                text: {
+                    value: 'HELLO'
+                }
+            })
+            .mount($game.scene.uiScene);
+
+        $game.scene.helloButton._mouseOver = function () {
+            var ui = this.data('ui');
+            ui.fill = {
+                color: 'rgba(0, 174, 255, 0.2)'
+            };
+        };
+        $game.scene.helloButton._mouseOut = function () {
+            var ui = this.data('ui');
+            delete ui.fill;
+        };
+        $game.scene.helloButton._mouseUp = function () {
+            moduleSelf.$controller.hello();
+        };
+
+        $game.scene.fullscreenButton = new IgeUiButton()
+            .id('fullscreen')
+            .texture($textures.get('button'))
+            .width(100)
+            .height(30)
+            .right(10)
+            .top(10)
+            .data('ui', {
+                border: '#ffffff',
+                text: {
+                    value: 'FULLSCREEN'
+                }
+            })
+            .mount($game.scene.uiScene);
+
+        $game.scene.fullscreenButton._mouseOver = function () {
+            var ui = this.data('ui');
+            ui.fill = {
+                color: 'rgba(0, 174, 255, 0.2)'
+            };
+        };
+
+        $game.scene.fullscreenButton._mouseOut = function () {
+            var ui = this.data('ui');
+            delete ui.fill;
+        };
+
+        $game.scene.fullscreenButton._mouseUp = function () {
+            moduleSelf.$controller.fullscreen();
+        };
+    }
+
+    removeGraph() {
+        var i;
+
+        if ($ige.engine.$('sceneBase')) {
+            $ige.engine.$('sceneBase').destroy();
+
+            // Clear any references
+            for (i in $game.scene) {
+                if ($game.scene.hasOwnProperty(i)) {
+                    if (!$game.scene[i].alive()) {
+                        delete $game.scene[i];
+                    }
+                }
+
+            }
+        }
+
+        if (ige.$('mainScene')) {
+            ige.$('mainScene').destroy();
+
+            // Clear any references
+            for (i in $game.scene) {
+                if ($game.scene.hasOwnProperty(i)) {
+                    if (!$game.scene[i].alive()) {
+                        delete $game.scene[i];
+                    }
+                }
+
+            }
+        }
+    }
+}
+
+
+class Client0 extends IgeEventingClass {
+    constructor() {
+        super();
+
+    }
+}
+ 

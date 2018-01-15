@@ -1,5 +1,5 @@
 import Component from '@ember/component';
-import Engine from '../agate/shared/engine';
+import { Engine } from '../agate/shared/Engine';
 
 export default Component.extend({
     classNames: ['game-render'],
@@ -13,7 +13,7 @@ export default Component.extend({
         this._super(...arguments)
 
         let canvas = document.getElementById("render2d")
-        this.engine_ = new Engine(canvas)
+        this._engine = new Engine(canvas)
     },
 
     actions: {

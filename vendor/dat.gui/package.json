@@ -1,0 +1,109 @@
+{
+  "_from": "dat.gui",
+  "_id": "dat.gui@0.6.5",
+  "_inBundle": false,
+  "_integrity": "sha512-5+Q+ujHtHMtdqiR2nC2/jLAHUASHKKlWVNefj3goBj0rJB5vfOscRChBrmrxe9i4p66VfbGEK/cHt2tT8Ox9Ag==",
+  "_location": "/dat.gui",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "dat.gui",
+    "name": "dat.gui",
+    "escapedName": "dat.gui",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/dat.gui/-/dat.gui-0.6.5.tgz",
+  "_shasum": "97f384287790d1adc00f9c7ee3fa53f39e75cfe7",
+  "_spec": "dat.gui",
+  "_where": "/media/maxli/Data/dev/OpenArcanum",
+  "author": {
+    "name": "Data Arts Team, Google"
+  },
+  "browserify": {
+    "transform": [
+      [
+        "babelify",
+        {
+          "presets": [
+            "es2015"
+          ]
+        }
+      ],
+      [
+        "stringify",
+        {
+          "extensions": [
+            ".html"
+          ]
+        }
+      ],
+      [
+        "sassify"
+      ]
+    ]
+  },
+  "bugs": {
+    "url": "https://github.com/dataarts/dat.gui/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "babel-preset-es2015": "^6.14.0",
+    "babelify": "^7.3.0",
+    "stringify": "^5.1.0"
+  },
+  "deprecated": false,
+  "description": "A lightweight graphical user interface for changing variables in JavaScript.",
+  "devDependencies": {
+    "babel-core": "^6.14.0",
+    "babel-loader": "^6.2.5",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-preset-stage-0": "^6.5.0"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "eslintConfig": {
+    "extends": "airbnb-base",
+    "rules": {
+      "comma-dangle": 0,
+      "func-names": 0,
+      "no-alert": 0,
+      "no-console": 1,
+      "no-use-before-define": 0,
+      "prefer-rest-params": 0,
+      "prefer-template": 0,
+      "no-mixed-operators": 0,
+      "no-undef": 0,
+      "no-underscore-dangle": 0,
+      "prefer-arrow-callback": 0,
+      "space-before-function-paren": 0,
+      "global-require": 0,
+      "object-shorthand": 0,
+      "max-len": 0,
+      "no-param-reassign": 0,
+      "consistent-return": 0,
+      "no-restricted-syntax": 0,
+      "no-bitwise": 0,
+      "no-plusplus": 0
+    }
+  },
+  "homepage": "https://github.com/dataarts/dat.gui#readme",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "name": "dat.gui",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dataarts/dat.gui.git"
+  },
+  "scripts": {
+
+  },
+  "version": "0.6.5"
+}

@@ -1,7 +1,7 @@
 /* global requireNode */
 
 //import Engine from './shared/engine'
-import Utils from './shared/utils'
+import { Utils } from './shared/Utils'
 
 class AGate {
     static getDataPath(subDir = '') {

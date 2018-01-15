@@ -5,17 +5,35 @@ module.exports = {
     sourceType: 'module'
   },
   plugins: [
-    'ember'
+    'ember',
+    'require-path-exists'
   ],
   extends: [
-    'eslint:recommended', 
+    'eslint:recommended',
     'plugin:ember/recommended'
   ],
   env: {
     browser: true
   },
-  rules: {
-  },
+  "rules": {
+    "no-unused-vars": "off",
+    "no-console": "off",
+    "no-mixed-spaces-and-tabs": "off",
+    "require-path-exists/notEmpty": 2,
+    "require-path-exists/tooManyArguments": 2,
+    "require-path-exists/exists": [ 2, {
+      "extensions": [
+        "",
+        ".jsx",
+        ".es.js",
+        ".jsx",
+        ".json5",
+        ".es",
+        ".es6",
+        ".coffee"
+      ]
+    }]
+},
   overrides: [
     // node files
     {
