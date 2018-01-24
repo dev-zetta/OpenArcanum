@@ -1,132 +1,173 @@
-import AGate from '../agate'
-import {GfxTypes, GfxPathBuilder} from '../shared/assets'
-import Enums from '../shared/enums'
+import AGate from '../agate';
+import {GfxTypes, GfxPathBuilder} from '../shared/assets';
+import Enums from '../shared/enums';
 
-import Phaser from '../libs/phaser'
+import Phaser from '../libs/phaser';
 
 export class Sprite {
 
-    constructor(client) {
-        this.client = client
+  constructor(client) {
+    this.client = client;
+  }
+
+  load(data) {
+    var dataPath = AGate.getDataPath('Gfx/2D');
+
+    var path = '';
+    if (AGate.Utils.isObject(data)) {
+      let builder = new GfxPathBuilder(data);
+      path = builder.toPath();
+
+      Object.assign(this, data);
+
+      //this.flipped = data.flipped;
+      this.frame = AGate.Utils.isUndefined(data.frame) ? 0 : data.frame;
+      this.type = GfxTypes.get(data.type);
+    } else {
+      path = data;
     }
 
-    load(data) {
-        var dataUrl = AGate.getDataUrl('Gfx/2D')
-        var dataPath = AGate.getDataPath('Gfx/2D')
+    this.path = path;
 
-        var path = ''
-        if (AGate.Utils.isObject(data)) {
-            let builder = new GfxPathBuilder(data)
-            path = builder.toPath()
+    let variant = 0; //AGate.Utils.isUndefined(data.variant) ? 0 : data.variant
 
-            this.flipped = data.flipped
-            this.frame = AGate.Utils.isUndefined(data.frame) ? 0 : data.frame
-            this.type = data.type
-        } else {
-            path = data
-        }
+    this.selectedVariant = variant;
 
-        this.path = path
-
-        let variant = 0 //AGate.Utils.isUndefined(data.variant) ? 0 : data.variant
-
-        this.selectedVariant = variant
-        this.currentStage = AGate.Utils.isUndefined(data.stage) ? 'North' : data.stage
-
-        if (this.type == 'Tile') {
-
-            return
-        }
-
-        let meta = AGate.Utils.loadJson(`${dataPath}/${this.path}/Meta.json`)
-        Object.assign(this, meta);
-
-        /*
-        "frameRate": 14,
-        "stageCount": 8,
-        "stageLength": 10,
-        "triggerFrame": 7,
-        "versionCount": 4
-        */
-
-        /*if (AGate.Utils.isNumber(this.currentStage)) {
-            this.currentStage = 'North'; // HACK
-        }*/
-
-        this.variants = []
-        this.stages = []
-
-        let stageDirs = AGate.Utils.findDirs(`${dataPath}/${this.path}/${variant}/`)
-
-        let self = this
-        stageDirs.forEach(function(dir) {
-            let stageName = AGate.Utils.getLastDir(dir)
-            let path = `${self.path}/${variant}/${stageName}`
-
-            //AGate.Utils.logError(`${dir}/Sprite.${AGate.Const.Sprite.DefaultExt}`)
-
-            let urlPath = `${dataUrl}/${path}`
-            //if (AGate.Utils.isFileExist(`${urlPath}/Stage.json`))
-
-            self.client.scene.loadAsset(path, 'atlas', {texture: `${urlPath}/Sprite.${AGate.Const.Sprite.DefaultExt}`, data: `${urlPath}/Stage.json`})
-
-            self.stages.push(stageName)
-        })
+    switch (this.type) {
+      case GfxTypes.Tile:
+        this.currentStage = 'North';
+        return;
+      case GfxTypes.Portal:
+      case GfxTypes.Wall:
+        this.currentStage =  data.stage;
+        break;
+      default:
+        this.currentStage = AGate.Utils.isUndefined(data.stage) ? 'North' : data.stage;
+        break;
     }
 
-    addToScene(target, x, y, z = 0) {
-        var currentPath = `${this.path}/${this.selectedVariant}`
-        var key, frame
+    let meta = this.client.engine.assetLoader.loadJsonFile(`${dataPath}/${this.path}/Meta.json`);
+    Object.assign(this, meta);
 
-        switch (this.type) {
-            case 'Tile':
-                key = 'tiles'
-                frame = `${currentPath}/${this.currentStage}/Sprite.gif`
-                break;
-            case 'Wall':
-            case 'Portal':
-                key = `${currentPath}/North`
-                frame = `${key}/${this.frame}`
-                break;
-            default:
-                key = `${currentPath}/${this.currentStage}`
-                frame = `${key}/${this.frame}`
-                break;
-        }
+    /*
+    "frameRate": 14,
+    "stageCount": 8,
+    "stageLength": 10,
+    "triggerFrame": 7,
+    "versionCount": 4
+    */
 
-        this.sprite = target.scene.addIsoSprite(x, y, z, key, frame, target); // target.create(x, y, currentStagePath, `${currentStagePath}/${this.frame}`)
+    this.variants = [];
+    this.stages = [];
 
-        //this.sprite.frameName =
-        this.sprite.checkWorldBounds = false
-        this.sprite.autoCull = true
-        this.sprite.setInteractive();
+    let stageDirs = AGate.Utils.findDirs(`${dataPath}/${this.path}/${variant}/`);
 
-        if (this.flipped) {
-            this.sprite.originX = 0.5
-            this.sprite.originY = 0.5
-            this.sprite.scaleX *= -1
-        }
+    stageDirs.forEach((dir) => {
+      let stageName = AGate.Utils.getLastDir(dir);
+      let key = `${this.path}/${variant}/${stageName}`;
 
+      //AGate.Utils.logError(`${dir}/Sprite.${AGate.Const.Sprite.DefaultExt}`)
 
-        //this.sprite.flipX = this.flipped
+      //let urlPath = `${dataUrl}/${path}`
+      //if (AGate.Utils.isFileExist(`${urlPath}/Stage.json`))
 
-        //if (this.sprite.flipY)
-        //AGate.Utils.logError(this.sprite.frameName)
+      this.client.scene.loadAsset(key, 'atlas', {
+        texture: `${dir}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
+        data: `${dir}/Stage.json`,
+        flippedX: this.flipped
+      });
 
-        /*for (let stageIndex = 0; stageIndex < this.stages.length; stageIndex++) {
-            let stageName = this.stages[stageIndex]
-            let stagePath = `${this.path}/${this.selectedVariant}/${stageName}`
+      this.stages.push(stageName);
+    });
+  }
 
-            // create animation
-            let frames = this.client.scene.anims.generateFrameNames(stagePath, { prefix: `${stagePath}/`, end: this.stageLength - 1 })
-            this.client.scene.anims.create({ key: stagePath, frames: frames, repeat: -1 })
+  addToScene(target, x, y, z = 0, offset = null) {
+    var currentPath = `${this.path}/${this.selectedVariant}`;
+    var key, frame;
 
-            // load animation
-            this.sprite.anims.load(stagePath)
-        }*/
+    switch (this.type) {
+      case GfxTypes.Tile:
+        key = 'tiles';
+        frame = `${currentPath}/${this.currentStage}/Sprite.gif`;
+        break;
+      case GfxTypes.Wall:
+        key = `${currentPath}/North`;
+        frame = `${key}/${this.frame}`;
+        break;
+      case GfxTypes.Portal:
+        key = `${currentPath}/North`;
+        frame = `${key}/0`;
+        break;
+      default:
+        key = `${currentPath}/${this.currentStage}`;
+        frame = `${key}/${this.frame}`;
+        break;
+    }
+
+    if (this.flipped && this.type != GfxTypes.Tile) {
+      frame += `/Flipped`;
+    }
+
+    this.sprite = target.scene.addIsoSprite(x, y, z, key, frame, target, offset);
+    this.sprite.data = this;
+    this.offset = offset;
+
+    switch (this.type) {
+      case GfxTypes.Wall:
+      case GfxTypes.Portal:
+        this.sprite.alpha = 0.5;
+        break;
 
     }
 
+    //let delta = this.sprite.frame.delta;
 
+    /*if (delta) {
+      this.sprite.x -= delta.x;
+      this.sprite.y -= delta.y;
+    }*/
+
+    /*if (offset != null) {
+
+      this.sprite.x = this.sprite.x + offset.x;
+      this.sprite.y = this.sprite.y + offset.y;
+    }*/
+
+    //this.sprite.checkWorldBounds = false
+    //this.sprite.autoCull = true
+    this.sprite.setInteractive();
+
+    //this.sprite.originY = 1.0;
+
+    if (this.flipped && this.type !== GfxTypes.Facade) {
+      //this.sprite.originX = 0.5;
+
+
+      //this.sprite.scaleX *= -1;
+      this.sprite.flipX = true;
+    }
+
+    if (this.stageLength > 1 && this.type !== GfxTypes.Facade) {
+      for (let stageIndex = 0; stageIndex < this.stages.length; stageIndex++) {
+        let stageName = this.stages[stageIndex];
+        let stagePath = `${this.path}/${this.selectedVariant}/${stageName}`;
+
+        // create animation
+        let frames = target.scene.anims.generateFrameNames(stagePath,
+          {prefix: `${stagePath}/`, end: this.stageLength - 1});
+
+        target.scene.anims.create(
+          {key: stagePath, frames: frames, frameRate: this.frameRate, repeat: -1});
+
+        // load animation
+        //this.sprite.anims.play(stagePath);
+      }
+    }
+
+  }
+
+  setData(data) {
+    this.data = data;
+  }
 
 }

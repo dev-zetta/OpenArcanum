@@ -1,50 +1,55 @@
-import AGate from '../agate'
-import { Client } from '../client/Client'
-import { GameMap } from './GameMap'
+import AGate from '../agate';
+import {Client} from '../client/Client';
+import {GameMap} from './GameMap';
+import {AssetLoader} from './assets';
+import {WorkerPool} from './WorkerPool';
 
-export class Engine  {
-    constructor(canvas) {
-        //super()
-        this.map = new GameMap(this)
-        this.client = new Client(this, canvas)
+export class Engine {
 
-        /*$ige.route('app', {
-            controller: Client0,
-            sceneGraph: Scene0,
-            textures: Textures0
-        });
+  constructor(canvas) {
+    //super()
+    this.workerPool = new WorkerPool(this);
+    this.assetLoader = new AssetLoader(this);
+    this.map = new GameMap(this);
+    this.client = new Client(this, canvas);
 
-        // Create the HTML canvas
-        ige.createFrontBuffer(canvas, true);
+    /*$ige.route('app', {
+        controller: Client0,
+        sceneGraph: Scene0,
+        textures: Textures0
+    });
 
-        // Start the engine
-        ige.start(function (success) {
-            // Check if the engine started successfully
-            if (success) {
-                //ige.addComponent(IgeEditorComponent);
-                //ige.editor.showStats();
+    // Create the HTML canvas
+    ige.createFrontBuffer(canvas, true);
 
-                // Navigate to the app's main route
-                $ige.go('app');
-            }
-        });*/
-    }
+    // Start the engine
+    ige.start(function (success) {
+        // Check if the engine started successfully
+        if (success) {
+            //ige.addComponent(IgeEditorComponent);
+            //ige.editor.showStats();
 
-    update() {
-        this.map.update()
-    }
+            // Navigate to the app's main route
+            $ige.go('app');
+        }
+    });*/
+  }
 
-    load() {
-        let path = AGate.getDataPath('map')
-        this.map.load(path)
-    }
+  update() {
+    this.map.update();
+  }
 
-    onMapLoading(map) {
-        this.client.onMapLoading(map)
-    }
+  load() {
+    let path = AGate.getDataPath('map');
+    this.map.load(path);
+  }
 
-    onMapLoaded(map) {
-        this.client.onMapLoaded(map)
-    }
+  onMapLoading(map) {
+    this.client.onMapLoading(map);
+  }
+
+  onMapLoaded(map) {
+    this.client.onMapLoaded(map);
+  }
 
 }

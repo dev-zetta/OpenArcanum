@@ -49,7 +49,7 @@ import { IsoPhysics } from './IsoPhysics';
 export class Isometric {
     constructor(scene, parent, isometricType = Isometric.ISOMETRIC) {
         this.scene = scene;
-        this.scene.physics.system = new IsoPhysics(this.scene.physics);
+        //this.scene.physics.system = new IsoPhysics(this.scene.physics);
 
         this.projector = new Projector(this.scene, isometricType);
         //  Add an instance of Isometric.Projector to scene.iso if it doesn't exist already

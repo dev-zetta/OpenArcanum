@@ -1,4 +1,5 @@
 import { Cube } from './Cube';
+import { Math } from './Math';
 
 /**
  * Octree Constructor

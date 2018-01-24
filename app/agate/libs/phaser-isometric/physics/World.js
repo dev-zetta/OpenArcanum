@@ -5,8 +5,8 @@ import { Cube } from '../Cube';
 import { Octree } from '../Octree';
 import { Quadtree } from '../Quadtree';
 import { Set } from '../Set';
+import { Math } from '../Math';
 import { Body } from './Body';
-
 
 /**
  * IsoArcade Physics constructor.

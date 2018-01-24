@@ -1,198 +1,342 @@
-import AGate from '../agate'
-import Phaser from '../libs/phaser'
+import AGate from '../agate';
+import Phaser from '../libs/phaser';
 
-import { Isometric } from '../libs/phaser-isometric/Isometric'
-import { Point3 } from '../libs/phaser-isometric/Point3'
-import { IsoSprite } from '../libs/phaser-isometric/IsoSprite'
-import { Location, Sector } from '../shared/GameMap'
+import {Isometric} from '../libs/phaser-isometric/Isometric';
+import {Point3} from '../libs/phaser-isometric/Point3';
+import {IsoSprite} from '../libs/phaser-isometric/IsoSprite';
+import {Sector} from '../shared/Sector';
 
 const dat = AGate.requireNode('dat.gui');
 
 export class Scene extends Phaser.Scene {
-    constructor(client) {
-        super({ key: 'default' })
-        this.client = client
-        this.game = client.game
-        this.loadedAssets = {}
-        this.renderToTexture = true
+  constructor(client) {
+    super({key: 'default'});
+    this.client = client;
+    this.engine = client.engine;
+    this.game = client.game;
+    //this.renderToTexture = true
 
-        this.datGui = new dat.GUI();
+    this.customLoader = true;
+  }
 
-        this.datGui.add(this, 'renderToTexture')
+  addDatGui(object, parent, depth = 0) {
+    if (AGate.Utils.isNil(parent)) {
+      if (!AGate.Utils.isNil(this.datGui))
+        this.datGui.destroy();
+
+      this.datGui = new dat.GUI();
     }
 
-    loadAsset(key, type, options) {
-      if (this.loadedAssets.hasOwnProperty(key)) {
-          return true
+    //this.datGui.add(this, 'renderToTexture')
+    parent = parent || this.datGui;
+
+    for (let key in object) {
+      if (key.charAt(0) === '_')
+        continue;
+
+      let value = object[key];
+      if (AGate.Utils.isNil(value))
+        continue;
+
+      if (AGate.Utils.isObjectLike(value)) {
+        if (depth == 0) {
+          let folder = parent.addFolder(key);
+          this.addDatGui(value, folder, depth + 1);
+        }
+      } else if (AGate.Utils.isArray(value)) {
+
+      } else {
+        if (!AGate.Utils.isFunction(value))
+          parent.add(object, key);
       }
+    }
 
-      let data = AGate.Utils.merge(options, { 'key': key })
+  }
 
-      this.load[type].call(this.load, /*data*/ key, options.texture, options. data)
-      this.loadedAssets[key] = type
+  /**
+   * Adds asset to the loader
+   * @param key
+   * @param type
+   * @param options
+   * @returns {boolean}
+   */
+  loadAsset(key, type, options) {
+    if (this.engine.assetLoader.hasAsset(key)) {
+      return true;
+    }
+
+    let data = AGate.Utils.merge(options, {'key': key, 'type': type});
+
+    if (this.customLoader) {
+
+    } else {
+      this.load[type].call(this.load, data);
+    }
+
+    this.engine.assetLoader.preload(data);
+  }
+
+  /**
+   * Starts loading of scene assets for given map
+   * @param map
+   */
+  startLoader(map) {
+    if (this.customLoader) {
+      var textures = this.sys.textures;
+
+      this.engine.assetLoader.start((err, descriptor, image, data) => {
+        if (err)
+          return;
+
+        switch (descriptor.type) {
+          case 'atlas':
+            let texture = textures.addAtlas(descriptor.key, image, data);
+            let frames = data['frames'];
+
+            for (let key in frames) {
+              let frameInfo = frames[key];
+              let delta = frameInfo.delta;
+              let frame = texture.get(key);
+
+              if (!AGate.Utils.isUndefined(delta)) {
+                //console.log(delta)
+                //frame.delta = delta;
+                frame.x = -delta.x;
+                frame.y = -delta.y;
+
+                //if (descriptor.flippedX) {
+                  let coord = frameInfo.frame;
+
+                  let flipped = texture.add(`${key}/Flipped`, 0, coord.x, coord.y, coord.w, coord.h);
+
+                  flipped.x = -(coord.w - delta.x);
+                  flipped.y = -delta.y;
+               // }
+
+              } else {
+                if (descriptor.flippedX) {
+                  console.log(`${key}/Flipped2222`)
+                  texture.add(`${key}/Flipped`, 0, frame.x, frame.y, frame.width, frame.height);
+                }
+              }
+            }
+
+            break;
+        }
+
+      }, () => {
+        this.client.onMapLoaded(map);
+        map.isLoaded = true;
+      });
+
+    } else {
+      this.load.on('complete', () => {
+        this.client.onMapLoaded(map);
+        map.isLoaded = true;
+      });
+
+      this.load.start();
+    }
+
+  }
+
+  /**
+   * Adds isometric sprite to scene
+   * @param x
+   * @param y
+   * @param z
+   * @param key
+   * @param frame
+   * @param group
+   * @returns {IsoSprite}
+   */
+  addIsoSprite(x, y, z, key, frame, group, offset = null) {
+    let textures = this.sys.textures;
+    let texture = textures.get(key);
+    let frameData = texture.get(frame);
+
+    if (!offset) {
+      offset = {x: 0, y: 0};
+    }
+
+    if (frameData.delta) {
+     // offset.x = offset.x - (frameData.delta.x);
+      //offset.y = offset.y - (frameData.delta.y);
+    }
+
+    let delta = this.iso.unprojectAbsolute(offset);
+    //console.log(offset, delta)
+
+    x += delta.x;
+    y += delta.y;
+
+    let sprite = new IsoSprite(this, x, y, z, key, frame); // new Phaser.GameObjects.Sprite(this, x, y, key, frame);
+
+    //this.physics.world.enableBody(sprite);
+
+    //this.add.displayList.add(sprite);
+    //this.add.updateList.add(sprite);
+
+    group.add(sprite, true);
+    return sprite;
   }
 
   update(time, delta) {
-      var pos = this.input.activePointer.positionToCamera(this.cameras.main)
+    var pos = this.input.activePointer.positionToCamera(this.cameras.main);
 
-      // Update the cursor position.
-      // It's important to understand that screen-to-isometric projection means you have to specify a z position manually, as this cannot be easily
-      // determined from the 2D pointer position without extra trickery. By default, the z position is 0 if not set.
-      this.iso.unproject(pos, this.cursorPos);
+    // Update the cursor position.
+    // It's important to understand that screen-to-isometric projection means you have to specify a z position manually, as this cannot be easily
+    // determined from the 2D pointer position without extra trickery. By default, the z position is 0 if not set.
+    this.iso.unproject(pos, this.cursorPos);
 
-      this.client.engine.update()
+    this.client.engine.update();
 
-      /*if (!AGate.Utils.isUndefined(this.player)) {
-          //this.player.body.setZeroVelocity()
+    /*if (!AGate.Utils.isUndefined(this.player)) {
+        //this.player.body.setZeroVelocity()
 
-          if (this.cursorKeys.up.isDown)
-          {
-              this.player.body.moveUp(300)
-          }
-          else if (this.cursorKeys.down.isDown)
-          {
-              this.player.body.moveDown(300);
-          }
+        if (this.cursorKeys.up.isDown)
+        {
+            this.player.body.moveUp(300)
+        }
+        else if (this.cursorKeys.down.isDown)
+        {
+            this.player.body.moveDown(300);
+        }
 
-          if (this.cursorKeys.left.isDown)
-          {
-              this.player.body.velocity.x = -300;
-          }
-          else if (this.cursorKeys.right.isDown)
-          {
-              this.player.body.moveRight(300);
-          }
-      }*/
+        if (this.cursorKeys.left.isDown)
+        {
+            this.player.body.velocity.x = -300;
+        }
+        else if (this.cursorKeys.right.isDown)
+        {
+            this.player.body.moveRight(300);
+        }
+    }*/
 
-      if (!AGate.Utils.isUndefined(this.cameraControls)) {
-          this.cameraControls.update(delta)
-      }
+    if (!AGate.Utils.isUndefined(this.cameraControls)) {
+      this.cameraControls.update(delta);
+    }
 
-      if (!AGate.Utils.isUndefined(this.text)) {
-          let cam = this.cameras.main
-          let cur = this.input.activePointer;
+    if (!AGate.Utils.isUndefined(this.text)) {
+      let cam = this.cameras.main;
+      let cur = this.input.activePointer;
 
-          this.text.setText([
-              `Cam: ${cam.scrollX}:${cam.scrollY}`,
-              `Cur: ${cur.x}:${cur.y}`,
-              `Pos: ${pos.x}:${pos.y}`,
-              `Tile: ${this.cursorPos.x}:${this.cursorPos.y}`
+      this.text.setText([
+        `Cam: ${cam.scrollX}:${cam.scrollY}`,
+        `Cur: ${cur.x}:${cur.y}`,
+        `Pos: ${pos.x}:${pos.y}`,
+        `Tile: ${this.cursorPos.x}:${this.cursorPos.y}`,
 
-              //`FPS: ${this.time.fps}`
-          ])
-      }
+        //`FPS: ${this.time.fps}`
+      ]);
+    }
   }
 
   render() {
-      this.debug.cameraInfo(this.game.camera, 32, 32);
-      //this.game.debug.spriteCoords(this.player, 32, 500);
+    this.debug.cameraInfo(this.game.camera, 32, 32);
+    //this.game.debug.spriteCoords(this.player, 32, 500);
   }
 
   preload() {
-      AGate.Utils.logError("Preloading client...")
-      this.cursorKeys = this.game.input.keyboard.createCursorKeys()
+    AGate.Utils.logError('Preloading client...');
+    this.cursorKeys = this.game.input.keyboard.createCursorKeys();
 
-      var controlConfig = {
-          camera: this.cameras.main,
-          left: this.cursorKeys.left,
-          right: this.cursorKeys.right,
-          up: this.cursorKeys.up,
-          down: this.cursorKeys.down,
-          zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
-          zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-          acceleration: 0.06,
-          drag: 0.0005,
-          maxSpeed: 1.0
-      };
+    var controlConfig = {
+      camera: this.cameras.main,
+      left: this.cursorKeys.left,
+      right: this.cursorKeys.right,
+      up: this.cursorKeys.up,
+      down: this.cursorKeys.down,
+      zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+      zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+      acceleration: 0.06,
+      drag: 0.0005,
+      maxSpeed: 1.0,
+    };
 
-      this.cameraControls = this.cameras.addSmoothedKeyControl(controlConfig)
+    this.cameraControls = new Phaser.Cameras.Controls.Smoothed(controlConfig);
 
-      this.load.image('pointer','assets/pointer.png')
+    this.load.image('pointer', 'assets/pointer.png');
 
-      //this.scene.loadAsset('tile', 'image', {texture: 'assets/tile.png'});
+    //this.scene.loadAsset('tile', 'image', {texture: 'assets/tile.png'});
 
-      //this.game.physics.startSystem(Phaser.Physics.P2JS);
+    //this.game.physics.startSystem(Phaser.Physics.P2JS);
 
-      this.client.onScenePreloaded(this)
-  }
-
-
-  addIsoSprite(x, y, z, key, frame, group) {
-      var sprite = new IsoSprite(this, x, y, z, key, frame);
-
-      //this.physics.world.enableBody(sprite);
-
-      //this.add.displayList.add(sprite);
-      //this.add.updateList.add(sprite);
-
-      group.add(sprite, true);
-      return sprite;
+    this.client.onScenePreloaded(this);
   }
 
   create() {
-      AGate.Utils.logError("Creating client...")
-      // This is used to set a game canvas-based offset for the 0, 0, 0 isometric coordinate - by default
-      // this point would be at screen coordinates 0, 0 (top left) which is usually undesirable.
+    AGate.Utils.logError('Creating client...');
+    // This is used to set a game canvas-based offset for the 0, 0, 0 isometric coordinate - by default
+    // this point would be at screen coordinates 0, 0 (top left) which is usually undesirable.
 
-      this.text = this.add.text(0, 0, 'Phaser')
+    this.text = this.add.text(0, 0, 'Phaser');
 
-      this.isoGroup = this.add.group();
+    this.isoGroup = this.add.group();
 
-      this.cursorPos = new Point3();
+    this.cursorPos = new Point3();
 
-      this.isometric = new Isometric(this, Isometric.ISOMETRIC);
-      //this.game.iso.anchor.setTo(0.5, 0.2);
+    this.isometric = new Isometric(this, Isometric.ISOMETRIC);
 
-      //this.spawnTiles();
+    //this.spawnTiles();
 
-      this.input.events.on('GAME_OBJECT_DOWN_EVENT', function (event) {
-          event.gameObject.setTint(Math.random() * 16000000);
+    this.input.on('gameobjectdown', (pointer, gameObject) => {
+      //console.log(gameObject);
+      this.addDatGui(gameObject.data);
+      gameObject.setTint(Math.random() * 16000000);
+
+      gameObject.tween = this.tweens.add({
+        targets: gameObject,
+        props: {
+          isoZ: 30.0,
+        },
+        ease: 'Quad.easeInOut',
+        duration: 1000,
+        repeat: -1,
+        repeatDelay: 1000,
+        yoyo: true,
+        onUpdate: (data) => {
+          gameObject._project();
+        },
       });
+
+      gameObject.tween.play();
+    });
 
   }
 
   onMapLoading(map) {
-      AGate.Utils.logError('Scene: onMapLoading')
+    AGate.Utils.logError('Scene: onMapLoading');
 
-      var dataUrl = AGate.getDataUrl('Gfx/2D')
-      this.loadAsset('tiles', 'atlas', {texture: `${dataUrl}/Tile/tiles.png`, data: `${dataUrl}/Tile/tiles.json`})
+    var dataUrl = AGate.getDataPath('Gfx/2D');
+    this.loadAsset('tiles', 'atlas', {
+      texture: `${dataUrl}/Tile/tiles.png`,
+      data: `${dataUrl}/Tile/tiles.json`,
+    });
 
-      this.load.events.on('LOADER_COMPLETE_EVENT', () => {
-          this.client.onMapLoaded(map)
-          map.isLoaded = true
-      })
-
-      this.load.start()
+    this.startLoader(map);
   }
 
   onMapLoaded(map) {
-      AGate.Utils.logError('Scene: onMapLoaded')
+    AGate.Utils.logError('Scene: onMapLoaded');
 
-      //let center = new Location((map.width * Sector.Width) / 2,  (map.height * Sector.Height) / 2).worldToScreen()
-      let center = this.iso.projectXY({x: (map.width * Sector.Width) / 2, y: (map.height * Sector.Height) / 2})
-      this.player = this.add.sprite(center.x, center.y, 'pointer')
-      this.player.setDepth(1)
+    //let center = new Location((map.width * Sector.Width) / 2,  (map.height * Sector.Height) / 2).worldToScreen()
+    let center = this.iso.projectXY(
+      {x: (map.width * Sector.Width) / 2, y: (map.height * Sector.Height) / 2});
+    this.player = this.add.sprite(center.x, center.y, 'pointer');
+    this.player.setDepth(1);
 
-      //this.text = this.add.text(center.x, center.y, 'Phaser')
-      //this.text.setDepth(1)
+    //this.text = this.add.text(center.x, center.y, 'Phaser')
+    //this.text.setDepth(1)
 
-      let cam = this.cameras.main
-      //cam.setSize(800, 800)
-      //cam.setViewport(-50000, -50000, 100000, 100000)
-      cam.scrollX = center.x + 100
-      cam.scrollY = center.y + 100
-      //this.game.physics.p2.enable(this.player)
+    let cam = this.cameras.main;
+    //cam.setSize(800, 800)
+    //cam.setViewport(-50000, -50000, 100000, 100000)
+    cam.scrollX = center.x + 100;
+    cam.scrollY = center.y + 100;
+    //this.game.physics.p2.enable(this.player)
 
-      //cam.follow(this.player, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1)
+    //cam.follow(this.player, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1)
   }
 
-  spawnTiles(){
-      var tile;
-      for (var xx = 0; xx < 64; xx++) {
-          for (var yy = 0; yy < 64; yy++) {
-              tile = this.addIsoSprite(xx * 38, yy * 38, 0, 'tile', 0, this.isoGroup);
-              tile.anchor.x = 0.5;
-          }
-      }
-  }
 }

@@ -2,7 +2,7 @@ import { Phaser } from '../Phaser';
 import { Isometric } from '../Isometric';
 import { Point3 } from '../Point3';
 import { Cube } from '../Cube';
-
+import { Math } from '../Math';
 
 /**
  * @class Body
@@ -371,13 +371,13 @@ export class Body {
          * @property {number} _sx - Internal cache var.
          * @private
          */
-        this._sx = sprite.scale.x;
+        this._sx = sprite.scaleX;
 
         /**
          * @property {number} _sy - Internal cache var.
          * @private
          */
-        this._sy = sprite.scale.y;
+        this._sy = sprite.scaleY;
 
         /**
          * @property {number} _dx - Internal cache var.
@@ -421,8 +421,8 @@ export class Body {
      */
     updateBounds() {
 
-        const asx = Math.abs(this.sprite.scale.x);
-        const asy = Math.abs(this.sprite.scale.y);
+        const asx = Math.abs(this.sprite.scaleX);
+        const asy = Math.abs(this.sprite.scaleY);
 
         if (asx !== this._sx || asy !== this._sy) {
             this.widthX = Math.ceil(this.sprite.width * 0.5);
@@ -482,9 +482,9 @@ export class Body {
         this.updateBounds();
 
         //  Working out how to incorporate anchors into this was... fun.
-        this.position.x = this.sprite.isoX + ((this.widthX * -this.sprite.anchor.x) + this.widthX * 0.5) + this.offset.x;
-        this.position.y = this.sprite.isoY + ((this.widthY * this.sprite.anchor.x) - this.widthY * 0.5) + this.offset.y;
-        this.position.z = this.sprite.isoZ - (Math.abs(this.sprite.height) * (1 - this.sprite.anchor.y)) + (Math.abs(this.sprite.width * 0.5)) + this.offset.z;
+        this.position.x = this.sprite.isoX + ((this.widthX * -this.sprite.originX) + this.widthX * 0.5) + this.offset.x;
+        this.position.y = this.sprite.isoY + ((this.widthY * this.sprite.originX) - this.widthY * 0.5) + this.offset.y;
+        this.position.z = this.sprite.isoZ - (Math.abs(this.sprite.height) * (1 - this.sprite.originY)) + (Math.abs(this.sprite.width * 0.5)) + this.offset.z;
 
 
         this.rotation = this.sprite.angle;
@@ -728,9 +728,9 @@ export class Body {
         this.angularVelocity = 0;
         this.angularAcceleration = 0;
 
-        this.position.x = x + ((this.widthX * -this.sprite.anchor.x) + this.widthX * 0.5) + this.offset.x;
-        this.position.y = y + ((this.widthY * this.sprite.anchor.x) - this.widthY * 0.5) + this.offset.y;
-        this.position.z = z - (Math.abs(this.sprite.height) * (1 - this.sprite.anchor.y)) + (Math.abs(this.sprite.width * 0.5)) + this.offset.z;
+        this.position.x = x + ((this.widthX * -this.sprite.originX) + this.widthX * 0.5) + this.offset.x;
+        this.position.y = y + ((this.widthY * this.sprite.originX) - this.widthY * 0.5) + this.offset.y;
+        this.position.z = z - (Math.abs(this.sprite.height) * (1 - this.sprite.originY)) + (Math.abs(this.sprite.width * 0.5)) + this.offset.z;
 
         this.prev.x = this.position.x;
         this.prev.y = this.position.y;
@@ -739,8 +739,8 @@ export class Body {
         this.rotation = this.sprite.angle;
         this.preRotation = this.rotation;
 
-        this._sx = this.sprite.scale.x;
-        this._sy = this.sprite.scale.y;
+        this._sx = this.sprite.scaleX;
+        this._sy = this.sprite.scaleY;
 
         this.center.setTo(this.position.x + this.halfWidthX, this.position.y + this.halfWidthY, this.position.z + this.halfHeight);
 

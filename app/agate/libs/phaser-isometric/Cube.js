@@ -1,4 +1,5 @@
 import { Point3 } from './Point3';
+import { Math } from './Math';
 
 /**
  * @class Cube

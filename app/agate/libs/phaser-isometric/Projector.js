@@ -1,6 +1,7 @@
 import { Phaser } from './Phaser';
 import { Point3 } from './Point3';
 import { Isometric } from './Isometric';
+import { Math } from './Math';
 
 /**
  * @class Projector
@@ -38,13 +39,13 @@ export class Projector {
          * @property {number} projectionAngle - The angle of projection in radians.
          * @default
          */
-        this.projectionAngle = projectionAngle || Isometric.CLASSIC;
+        this.projectionAngle = 26.565;  //projectionAngle || Isometric.CLASSIC;
 
         /**
          * @property {Phaser.Geom.Point} anchor - The x and y offset multipliers as a ratio of the game world size.
          * @default
          */
-        this.anchor = new Phaser.Geom.Point(0.5, 0);
+        this.anchor = new Phaser.Geom.Point(0.5, 0.5);
     }
 
     /**
@@ -114,6 +115,31 @@ export class Projector {
         return out;
     }
 
+  /**
+   * Use reverse axonometric projection to transform a 2D Point coordinate to a 3D Point3 coordinate. If given the coordinates will be set into the object, otherwise a brand new Point3 object will be created and returned.
+   * @method Projector#unproject
+   * @param {Point} point - The Point to project from.
+   * @param {Point3} out - The Point3 to project to.
+   * @param {number} [z] - Specified z-plane to project to.
+   * @return {Point3} The transformed Point3.
+   */
+  unprojectAbsolute(point, out, z) {
+    if (typeof out === "undefined") {
+      out = new Point3();
+    }
+
+    z = z || 0;
+
+    const x = point.x - (this.scene.cameras.main.width * this.anchor.x);
+    const y = point.y - (this.scene.cameras.main.height * this.anchor.y) + z;
+
+    out.x = x / (2 * this._transform[0]) + y / (2 * this._transform[1]);
+    out.y = -(x / (2 * this._transform[0])) + y / (2 * this._transform[1]);
+    out.z = z;
+
+    return out;
+  }
+
     /**
      * Perform a simple depth sort on all IsoSprites in the passed group. This function is fast and will accurately sort items on a single z-plane, but breaks down when items are above/below one another in certain configurations.
      *
@@ -129,7 +155,7 @@ export class Projector {
      * Routine adapted from this tutorial: http://mazebert.com/2013/04/18/isometric-depth-sorting/
      *
      * @method Projector#topologicalSort
-     * @param {Phaser.Group|array} group - A group or array of IsoSprites to sort.
+     * @param {Phaser.GameObjects.Group|array} group - A group or array of IsoSprites to sort.
      * @param {number} [padding] - The amount of extra tolerance in the depth sorting; larger values reduce flickering when objects collide, but also introduce inaccuracy when objects are close. Defaults to 1.5.
      * @param {string} [prop] - The property to store the depth information on. If not specified, it will default to 'isoDepth'.
      */
@@ -137,8 +163,8 @@ export class Projector {
         let children;
         let isGroup;
 
-        if (group instanceof Phaser.Group) {
-            children = group.children;
+        if (group instanceof Phaser.GameObjects.Group) {
+            children = group.getChildren();
             isGroup = true;
         }
         else if (group.length) {
@@ -152,9 +178,6 @@ export class Projector {
 
         if (typeof padding === "undefined") {
             padding = 1.5;
-        }
-        else {
-            padding = padding;
         }
 
         let a;
@@ -208,8 +231,12 @@ export class Projector {
             visitNode(children[i]);
         }
 
+      for (i = 0; i < len; i++) {
+          children[i].setDepth(children[i].depth);
+      }
+
         if (isGroup) {
-            group.sort(prop);
+            //group.sort(prop);
         }
     }
 
@@ -228,7 +255,15 @@ export class Projector {
         }
 
         this._projectionAngle = value;
+// 1.1071487177940904 (2) [0.8944271909999159, 0.44721359549995804]
 
-        this._transform = [1.0, 0.5]; //[Math.cos(this._projectionAngle), Math.sin(this._projectionAngle)];
+
+      //this._transform = [Math.sin(this._projectionAngle), Math.cos(this._projectionAngle)];
+
+      //console.log(this._projectionAngle,  this._transform)
+
+        //this._transform = [Math.cos(this._projectionAngle * Math.PI / 180), Math.sin(this._projectionAngle * Math.PI / 180)];
+
+      this._transform = [0.975, 0.5];
     }
 }

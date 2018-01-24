@@ -1,3 +1,5 @@
+import { Math } from './Math';
+
 /**
 * @author       Timo Hausmann
 * @author       Richard Davey <rich@photonstorm.com>
