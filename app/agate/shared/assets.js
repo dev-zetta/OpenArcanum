@@ -31,6 +31,8 @@ export class GfxPathBuilder {
   build(data) {
     let base = `${data.type}/`;
 
+    //console.log(data.type);
+
     switch (GfxTypes.get(data.type)) {
       case GfxTypes.Tile:
         base += `${data.start.category}/${data.end.category}/${data.start.version}/${data.end.version}`;
@@ -77,6 +79,7 @@ const fs = AGate.requireNode('fs');
 const util = AGate.requireNode('util');
 const mime = AGate.requireNode('mime-types');
 const loadJsonFile = requireNode('load-json-file');
+const find = requireNode('find');
 
 export class AssetLoader {
   constructor(engine) {
@@ -96,28 +99,36 @@ export class AssetLoader {
     this.loadedAssets[descriptor.key] = null;
   }
 
-  start(onAssetLoaded, onAllLoaded) {
-    var loaded = 0;
-    for (let i = 0; i < this.preloadAssets.length; i++) {
-      let descriptor = this.preloadAssets[i];
+  async start(onAssetLoaded) {
+    //return new Promise(resolve => {
+      var loaded = 0;
+      for (let i = 0; i < this.preloadAssets.length; i++) {
+        let descriptor = this.preloadAssets[i];
 
-      if (descriptor == null)
-        continue;
+        if (descriptor == null)
+          continue;
 
-      this.loadAsset(descriptor, (err, descriptor, image, data) => {
-        onAssetLoaded(err, descriptor, image, data);
+        let result = await this.loadAsset(descriptor);
+        if (!result) {
+          continue;
+        }
+        onAssetLoaded(descriptor);
 
         this.loadedAssets[descriptor.key] = descriptor;
         loaded++;
 
+        this.preloadAssets[i] = null;
+
         if (loaded == this.preloadAssets.length) {
           this.preloadAssets.clear();
-          onAllLoaded();
+          //resolve(loaded);
         }
-      });
 
-      this.preloadAssets[i] = null;
-    }
+
+      }
+    //});
+
+    return true; //Promise.resolve(loaded);
   }
 
   stringToBlob(string, contentType = '', sliceSize = 512) {
@@ -140,13 +151,24 @@ export class AssetLoader {
     return blob;
   }
 
-  loadFileToBlob(src) {
-    var data = fs.readFileSync(src).toString('binary');
-    var blob = this.stringToBlob(data);
-    return blob;
+  async loadFileToBlob(src) {
+    return new Promise(resolve => {
+      fs.readFile(src, undefined, (err, data) => {
+        if(err){
+          AGate.Utils.logError(`Unable to load file: ${src}`);
+          resolve(null);
+        } else {
+          let blob = this.stringToBlob(data.toString('binary'));
+          resolve(blob);
+        }
+
+
+      });
+
+    });
   }
 
-  loadFileToBlobUrl(src) {
+  async loadFileToBlobUrl(src) {
     //var data = fs.readFileSync(src).toString("base64")
     //return util.format("data:%s;base64,%s", mime.lookup(src), data)
 
@@ -154,12 +176,17 @@ export class AssetLoader {
     return URL.createObjectURL(blob);
   }
 
-  loadFileToDataUrl(src) {
-    var data = fs.readFileSync(src).toString('base64');
-    return util.format('data:%s;base64,%s', mime.lookup(src), data);
+  async loadFileToDataUrl(src) {
+    return new Promise(resolve => {
+      fs.readFile(src, 'base64', (err, data) => {
+        let result = util.format('data:%s;base64,%s', mime.lookup(src), data.toString('binary'));
+        resolve(result);
+      });
+
+    });
   }
 
-  createAndLoadImage(src, callback) {
+  async createAndLoadImage(src) {
     if (AGate.Utils.isUndefined(createImageBitmap)) {
       let image = new Image();
 
@@ -195,47 +222,87 @@ export class AssetLoader {
       return image;
     } else {
       //console.log('Fast loading...')
-      var blob = this.loadFileToBlob(src);
-      createImageBitmap(blob).then(function(response) {
-        callback(false, response);
+      let blob = await this.loadFileToBlob(src);
+      if (!blob) {
+        AGate.Utils.logError(`Unable to load image: ${src}`);
+        return new Image();
+      }
+
+
+      return await createImageBitmap(blob);
+    }
+  }
+
+  async loadTextFile(path) {
+    return new Promise(resolve => {
+      fs.readFile(path, 'utf8', (err, data) => {
+        resolve(data);
       });
+    });
+  }
+
+  async saveTextFile(path, data) {
+    return new Promise(resolve => {
+      fs.writeFile(path, data, 'utf8', (err, data) => {
+        resolve(data);
+      });
+    });
+  }
+
+  async loadJsonFile(filePath) {
+    try {
+      return await loadJsonFile(filePath);
+
+    } catch (err) {
+      AGate.Utils.logError(err.message);
+      return null;
     }
   }
 
-  loadTextFile(path, callback) {
-    return fs.readFile(path, 'utf8', callback);
-  }
+  async loadAsset(descriptor) {
+    let result;
 
-  loadJsonFile(filePath, onLoad) {
-    if (Utils.isFunction(onLoad)) {
-      return loadJsonFile(filePath).then(onLoad);
-    } else {
-      return loadJsonFile.sync(filePath);
-    }
-  }
-
-  loadAsset(descriptor, callback) {
     switch (descriptor.type) {
       case 'atlas':
-        this.createAndLoadImage(descriptor.texture, (err, image) => {
-          if (err) {
-            console.log(`Unable to load file: ${descriptor.texture}`);
-            callback(true);
-            return;
-          }
+        switch (descriptor.output) {
+          case 'base64':
+            descriptor.image = await this.loadFileToDataUrl(descriptor.texture);
+            break;
+          default:
+            descriptor.image = await this.createAndLoadImage(descriptor.texture);
+            break
+        }
 
-          this.loadJsonFile(descriptor.data, (data) => {
-            if (AGate.Utils.isUndefined(data)) {
-              console.log(`Unable to load file: ${descriptor.data}`);
-              callback(true);
-              return;
-            }
+        if (!descriptor.image) {
+          AGate.Utils.logError(`Unable to load file: ${descriptor.texture}`);
+          return false; //Promise.resolve(false);
+        }
 
-            callback(false, descriptor, image, data);
-          });
-        });
+        descriptor.meta = await this.loadJsonFile(descriptor.data);
+
+        if (AGate.Utils.isUndefined(descriptor.meta)) {
+          AGate.Utils.logError(`Unable to load file: ${descriptor.data}`);
+          return false; //Promise.resolve(false);
+        }
 
         break;
     }
+
+    return true; //Promise.resolve(true);
+  }
+
+  async findFiles(dir, ext) {
+    let regExp = new RegExp(`\.${ext}`, 'i');
+    return new Promise(resolve => {
+      let list = find.fileSync(regExp, dir);
+      resolve(list);
+    });
+  }
+
+  async findDirs(dir, pattern, callback) {
+    return new Promise(resolve => {
+      let list = find.dirSync(pattern, dir);
+      resolve(list);
+    });
   }
 }

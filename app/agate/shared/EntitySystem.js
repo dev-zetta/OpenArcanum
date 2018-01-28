@@ -51,11 +51,14 @@ class DebugSystem extends ECS.System {
 }
 
 export class EntitySystem extends ECS {
-  constructor(engine) {
+  constructor(map) {
     super();
     //this.ecs = new ECS()
-    this.addSystem(new RenderingSystem(engine, this));
+
+    this.map = map;
+    this.addSystem(new RenderingSystem(map.engine, this));
     this.addSystem(new DebugSystem());
+
 
     this.entityMap = {};
   }
@@ -64,14 +67,15 @@ export class EntitySystem extends ECS {
     super.update();
   }
 
-  newEntity(components) {
+  async newEntity(components) {
     let baseComponent = components['Base'];
     let id = components.id;
 
-    var entity = new Entity();
-    entity.updateComponents(components);
+    var entity = new Entity(this.map);
+    await entity.loadFromData(components);
 
     this.entityMap[id] = entity;
+
     return entity;
   }
 

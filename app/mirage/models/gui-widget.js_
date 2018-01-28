@@ -1,0 +1,9 @@
+import { Model } from 'ember-cli-mirage';
+import DS from 'ember-data';
+import { computed } from '@ember/object';
+
+// https://andycrum.github.io/ember-data-model-maker/
+
+export default Model.extend({
+  components: DS.hasMany('gui-widget')
+});

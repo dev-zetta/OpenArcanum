@@ -1,7 +1,0 @@
-@import url("/media/maxli/Data/dev/OpenArcanum/electron-out/project/ember/assets/theme.css");
-@import url("theme.css");
-#game-topbar {
-  background: url('/media/maxli/Data/dev/OpenArcanum/data/gui/inttop5.png') no-repeat; }
-  #game-topbar .square-btn {
-    width: 40px;
-    height: 40px; }

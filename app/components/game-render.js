@@ -1,22 +1,43 @@
 import Component from '@ember/component';
-import { Engine } from '../agate/shared/Engine';
+import {Engine} from '../agate/shared/Engine';
+import {Manager} from '../agate/client/Gui';
 
 export default Component.extend({
-    classNames: ['game-render'],
-    value: '',
+  classNames: ['game-render'],
+  store: Ember.inject.service(),
+  shouldRender: false,
 
-    init() {
-      this._super(...arguments)
-    },
+  init() {
+    this._super(...arguments);
+  },
 
-    didInsertElement() {
-        this._super(...arguments)
+  getManager() {
+    return this._engine.guiManager;
+  },
 
-        let canvas = document.getElementById("render2d")
-        this._engine = new Engine(canvas)
-    },
+  didInsertElement() {
+    this._super(...arguments);
 
-    actions: {
+    this._engine = Engine.instance;
 
-    }
+    let canvas = document.getElementById('render2d');
+
+    this._engine.createClient(canvas).then(() => {
+      this.get('store').query('gui-widget', {
+        include: 'components',
+        filter: {
+          type: 'window'
+        }
+      }).then((data) => {
+        this.set('widgets', data);
+        this.getManager().setMouseSprite('cursor');
+      });
+    });
+  },
+
+  mouseMove(event) {
+    //this.getManager().onMouseMove(event);
+  },
+
+  actions: {},
 });

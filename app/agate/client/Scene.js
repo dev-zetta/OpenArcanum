@@ -19,7 +19,13 @@ export class Scene extends Phaser.Scene {
     this.customLoader = true;
   }
 
-  addDatGui(object, parent, depth = 0) {
+  /**
+   *
+   * @param object
+   * @param parent
+   * @param maxDepth
+   */
+  addDatGui(object, parent, maxDepth = 3) {
     if (AGate.Utils.isNil(parent)) {
       if (!AGate.Utils.isNil(this.datGui))
         this.datGui.destroy();
@@ -30,6 +36,8 @@ export class Scene extends Phaser.Scene {
     //this.datGui.add(this, 'renderToTexture')
     parent = parent || this.datGui;
 
+    parent.open();
+
     for (let key in object) {
       if (key.charAt(0) === '_')
         continue;
@@ -39,9 +47,9 @@ export class Scene extends Phaser.Scene {
         continue;
 
       if (AGate.Utils.isObjectLike(value)) {
-        if (depth == 0) {
+        if (maxDepth > 0) {
           let folder = parent.addFolder(key);
-          this.addDatGui(value, folder, depth + 1);
+          this.addDatGui(value, folder, maxDepth - 1);
         }
       } else if (AGate.Utils.isArray(value)) {
 
@@ -50,7 +58,6 @@ export class Scene extends Phaser.Scene {
           parent.add(object, key);
       }
     }
-
   }
 
   /**
@@ -80,18 +87,15 @@ export class Scene extends Phaser.Scene {
    * Starts loading of scene assets for given map
    * @param map
    */
-  startLoader(map) {
+  async startLoader(map) {
     if (this.customLoader) {
       var textures = this.sys.textures;
 
-      this.engine.assetLoader.start((err, descriptor, image, data) => {
-        if (err)
-          return;
-
+      var result = await this.engine.assetLoader.start((descriptor) => {
         switch (descriptor.type) {
           case 'atlas':
-            let texture = textures.addAtlas(descriptor.key, image, data);
-            let frames = data['frames'];
+            let texture = textures.addAtlas(descriptor.key, descriptor.image, descriptor.meta);
+            let frames = descriptor.meta['frames'];
 
             for (let key in frames) {
               let frameInfo = frames[key];
@@ -123,11 +127,10 @@ export class Scene extends Phaser.Scene {
 
             break;
         }
-
-      }, () => {
-        this.client.onMapLoaded(map);
-        map.isLoaded = true;
       });
+
+      this.client.onMapLoaded(map);
+      map.isLoaded = true;
 
     } else {
       this.load.on('complete', () => {
@@ -181,6 +184,19 @@ export class Scene extends Phaser.Scene {
     return sprite;
   }
 
+  /**
+   *
+   * @param group
+   */
+  sortGroup(group) {
+    this.iso.topologicalSort(group);
+  }
+
+  /**
+   *
+   * @param time
+   * @param delta
+   */
   update(time, delta) {
     var pos = this.input.activePointer.positionToCamera(this.cameras.main);
 
@@ -232,11 +248,17 @@ export class Scene extends Phaser.Scene {
     }
   }
 
+  /**
+   *
+   */
   render() {
     this.debug.cameraInfo(this.game.camera, 32, 32);
     //this.game.debug.spriteCoords(this.player, 32, 500);
   }
 
+  /**
+   *
+   */
   preload() {
     AGate.Utils.logError('Preloading client...');
     this.cursorKeys = this.game.input.keyboard.createCursorKeys();
@@ -256,15 +278,18 @@ export class Scene extends Phaser.Scene {
 
     this.cameraControls = new Phaser.Cameras.Controls.Smoothed(controlConfig);
 
-    this.load.image('pointer', 'assets/pointer.png');
+    //this.load.image('pointer', 'assets/pointer.png');
 
     //this.scene.loadAsset('tile', 'image', {texture: 'assets/tile.png'});
 
     //this.game.physics.startSystem(Phaser.Physics.P2JS);
 
-    this.client.onScenePreloaded(this);
+    this.engine.onPreloaded();
   }
 
+  /**
+   *
+   */
   create() {
     AGate.Utils.logError('Creating client...');
     // This is used to set a game canvas-based offset for the 0, 0, 0 isometric coordinate - by default
@@ -282,7 +307,19 @@ export class Scene extends Phaser.Scene {
 
     this.input.on('gameobjectdown', (pointer, gameObject) => {
       //console.log(gameObject);
-      this.addDatGui(gameObject.data);
+
+      if (gameObject.data) {
+        let sprite = gameObject.data;
+
+        if (sprite.data) {
+          this.addDatGui(sprite.data.components);
+        } else {
+          this.addDatGui(sprite);
+        }
+
+      }
+
+
       gameObject.setTint(Math.random() * 16000000);
 
       gameObject.tween = this.tweens.add({
@@ -301,10 +338,15 @@ export class Scene extends Phaser.Scene {
       });
 
       gameObject.tween.play();
+
     });
 
   }
 
+  /**
+   *
+   * @param map
+   */
   onMapLoading(map) {
     AGate.Utils.logError('Scene: onMapLoading');
 
@@ -317,6 +359,10 @@ export class Scene extends Phaser.Scene {
     this.startLoader(map);
   }
 
+  /**
+   *
+   * @param map
+   */
   onMapLoaded(map) {
     AGate.Utils.logError('Scene: onMapLoaded');
 

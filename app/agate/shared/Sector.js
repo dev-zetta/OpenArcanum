@@ -18,10 +18,11 @@ export class Sector {
     this.engine = map.engine;
   }
 
-  load(path, x, y) {
+  async load(path, x, y) {
     AGate.Utils.logError(`Loading sector: ${path}`);
 
-    let data = this.engine.assetLoader.loadJsonFile(`${path}/Sector.json`);
+    let data = await this.engine.assetLoader.loadJsonFile(`${path}/Sector.json`);
+    AGate.Utils.logError(`...Loaded`);
 
     this.x = x;
     this.y = y;
@@ -29,68 +30,32 @@ export class Sector {
     this.lights = data.lights;
     this.roofs = data.roofs;
 
-    this.tiles.forEach((col, colIndex, array1) => {
-      col.forEach((row, rowIndex, array1) => {
-        row.location = new Location(x * Sector.Width + rowIndex, y *
-          Sector.Height + colIndex);
+    for (let ty = 0; ty < Sector.Height; ty++) {
+      for (let tx = 0; tx < Sector.Width; tx++) {
+
+        let tile = this.tiles[ty][tx];
+
+        tile.location = new Location(x * Sector.Width + ty, y *
+          Sector.Height + tx);
 
         if (this.engine.client) {
-          row.sprite = new Sprite(this.engine.client);
+          tile.sprite = new Sprite(this.engine.client);
 
-          row.sprite.load(row);
-          row.type = GfxTypes.get(row.type);
-        }
-      });
-    });
-
-    this.loadEntities(path);
-  }
-
-  loadEntities(path) {
-    let entityTypes = AGate.Utils.findDirs(`${path}/`);
-    this.entities = [];
-
-    entityTypes.forEach((entityDir, iIndex, array1) => {
-
-      let entityFiles = AGate.Utils.findFiles(`${entityDir}/`, '.json');
-
-      entityFiles.forEach((entityFile, iIndex, array1) => {
-        this.entities.push(
-          this.loadEntity(entityFile),
-        );
-      });
-    });
-  }
-
-  loadEntity(path) {
-    AGate.Utils.logError(`Loading entity: ${path}`);
-
-    let data = this.engine.assetLoader.loadJsonFile(`${path}`);
-    let entity = this.map.entitySystem.newEntity(data);
-
-    if (this.engine.client) {
-      let visualComponent = entity.components['Visual'];
-      if (visualComponent) {
-        let visualClasses = visualComponent.classes;
-
-        for (let className in visualClasses) {
-          let visualClass = visualClasses[className];
-
-          let sprite = new Sprite(this.engine.client);
-
-          sprite.load(visualClass);
-          visualClass.sprite = sprite;
+          await tile.sprite.load(tile);
+          tile.type = GfxTypes.get(tile.type);
         }
       }
     }
 
-    return entity;
+    this.entities = [];
+    await this.map.loadEntities(path, this.entities);
   }
 
   placeToScene(target) {
+
+    // Add tiles
     this.tileGroup = new Phaser.GameObjects.Group(target.scene);
     target.add(this.tileGroup);
-
 
     for (let y = 0; y < Sector.Height; y++) {
       var dy = y * 40;
@@ -123,6 +88,7 @@ export class Sector {
       });
     });*/
 
+    // Add static objects
     this.staticGroup = new Phaser.GameObjects.Group(target.scene);
     target.add(this.staticGroup);
 
@@ -132,79 +98,11 @@ export class Sector {
 
       this.tiles[position.y][position.x].entities.push(entity);
 
-      let visualComponent = entity.components['Visual'];
-      if (visualComponent) {
-        let visualClass = visualComponent.classes['Current'];
-
-        let offset = baseComponent.offset;
-        let sprite = visualClass.sprite;
-        let y = (position.x * 40);
-        let x = (position.y * 40);
-
-        //if (sprite.type == 'Portal')
-          //console.log(sprite.currentStage)
-
-        if (sprite.type === GfxTypes.Wall) {
-          switch (sprite.currentStage) // Counter clockwise
-          {
-            case 'NorthEast':
-              // South east, indoor (Up right)
-              x -= 20; //(Sector.TileWidth / 2) - 1
-              y -= 60; //(Sector.TileHeight / 2)
-              break;
-            case 'SouthEast':
-              // South west, outdoor
-              x -= 20;
-              y -= 20;
-              break;
-            case 'SouthWest':
-              // South east, outdoor (Down left)
-              x -= 20;
-              y += 20;
-              break;
-
-            case 'NorthWest':
-              // South west, indoor (Up left)
-              x -= 60; //(Sector.TileWidth / 2) + 1
-              y -= 20; //(Sector.TileHeight / 2)
-              break;
-          }
-        } else if (sprite.type === GfxTypes.Portal) {
-          switch (sprite.side) // Counter clockwise
-          {
-            case 1:
-              // South east, indoor (Up right)
-              x -= 20; //(Sector.TileWidth / 2) - 1
-              y -= 60; //(Sector.TileHeight / 2)
-              break;
-            case 3:
-              // South west, outdoor
-              x -= 20;
-              y -= 20;
-              break;
-            case 5:
-              // South east, outdoor (Down left)
-              x -= 20;
-              y += 20;
-              break;
-
-            case 7:
-              // South west, indoor (Up left)
-              x -= 60; //(Sector.TileWidth / 2) + 1
-              y -= 20; //(Sector.TileHeight / 2)
-              break;
-          }
-        } else {
-          //offset.y += 10;
-          offset.y -= 20;
-        }
-
-        sprite.addToScene(this.staticGroup, x, y, 0 /*position.y / 64 + position.x*/, offset);
-        sprite.setData(entity);
-      }
+      entity.placeToScene(this.staticGroup);
     });
 
-    this.engine.client.scene.iso.topologicalSort(this.staticGroup)
+    // Sort objects
+    target.scene.sortGroup(this.staticGroup);
   }
 
   update() {

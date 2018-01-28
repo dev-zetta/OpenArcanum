@@ -4,14 +4,14 @@ const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 
 module.exports = function(defaults) {
   let app = new EmberApp(defaults, {
-      liveReload: false,
-    outputPaths: {
+    /*outputPaths: {
         app: {
             css: {
-                'theme': 'assets/theme.css'
+                'theme': 'assets/theme.css'//,
+                //'gui-images': 'assets/gui-images.css'
             }
         }
-    },
+    },*/
     babel: {
         //debug: true
     },

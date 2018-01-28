@@ -10,7 +10,8 @@ export class Sprite {
     this.client = client;
   }
 
-  load(data) {
+  async load(data) {
+    let assetLoader = this.client.engine.assetLoader;
     var dataPath = AGate.getDataPath('Gfx/2D');
 
     var path = '';
@@ -46,7 +47,10 @@ export class Sprite {
         break;
     }
 
-    let meta = this.client.engine.assetLoader.loadJsonFile(`${dataPath}/${this.path}/Meta.json`);
+    let meta = await assetLoader.loadJsonFile(`${dataPath}/${this.path}/Meta.json`);
+    if (!meta)
+      return;
+
     Object.assign(this, meta);
 
     /*
@@ -60,7 +64,7 @@ export class Sprite {
     this.variants = [];
     this.stages = [];
 
-    let stageDirs = AGate.Utils.findDirs(`${dataPath}/${this.path}/${variant}/`);
+    let stageDirs = await assetLoader.findDirs(`${dataPath}/${this.path}/${variant}/`);
 
     stageDirs.forEach((dir) => {
       let stageName = AGate.Utils.getLastDir(dir);
@@ -115,7 +119,7 @@ export class Sprite {
     switch (this.type) {
       case GfxTypes.Wall:
       case GfxTypes.Portal:
-        this.sprite.alpha = 0.5;
+        //this.sprite.alpha = 0.5;
         break;
 
     }
@@ -143,8 +147,8 @@ export class Sprite {
       //this.sprite.originX = 0.5;
 
 
-      //this.sprite.scaleX *= -1;
-      this.sprite.flipX = true;
+      this.sprite.scaleX *= -1;
+      //this.sprite.flipX = true;
     }
 
     if (this.stageLength > 1 && this.type !== GfxTypes.Facade) {
@@ -160,7 +164,7 @@ export class Sprite {
           {key: stagePath, frames: frames, frameRate: this.frameRate, repeat: -1});
 
         // load animation
-        //this.sprite.anims.play(stagePath);
+        this.sprite.anims.play(stagePath);
       }
     }
 

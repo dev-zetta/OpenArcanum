@@ -46,10 +46,6 @@ export class Client {
     return this._canvas;
   }
 
-  onScenePreloaded() {
-    this.engine.load();
-  }
-
   onMapLoading(map) {
     this.scene.onMapLoading(map);
   }

@@ -1,48 +1,71 @@
-@import url("/media/maxli/Data/dev/OpenArcanum/electron-out/project/ember/assets/theme.css");
 @import url("theme.css");
+@import url("gui-images.css");
+@import url("pod-styles.css");
 
 @function remote-image-url($name) {
-    @return unquote("url('/media/maxli/Data/dev/OpenArcanum/data/gui/" + $name + "')");
+  @return unquote("url('/media/maxli/Data/dev/OpenArcanum/data/gui/" + $name + "')");
+}
+
+* {
+  cursor: none !important;
+}
+
+figure#mouse-pointer {
+  position: absolute;
+  display: block;
+  z-index: 999;
+  margin-top: 2px;
+  margin-left: 2px;
+  pointer-events: none;
 }
 
 html, body {
-    overflow: hidden;
-    width   : 100%;
-    height  : 100%;
-    margin  : 0;
-    padding : 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 html {
-    min-height: 100%;/* make sure it is at least as tall as the viewport */
-    position:relative;
+  min-height: 100%; /* make sure it is at least as tall as the viewport */
+  position: relative;
 }
 
 #gui {
-    z-index: 999;
-    background-color: transparent;
-    height  : 100%;
-    height: 100vh;
-    position: absolute;
+  z-index: 99;
+  background-color: transparent;
+  width: 100%;
+  height: 100vh;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  user-select: none;
+  pointer-events: none;
 }
-
-#game-topbar {
-    background: remote-image-url('inttop5.png') no-repeat;
-    pointer-events: auto;
-    .square-btn {
-			width: 40px;
-      height: 40px;
-    }
-}
-
 .game-render {
-    width: 100%;
-    height: 100vh;
-    position: absolute;
+  width: 100%;
+  height: 100vh;
+  position: absolute;
+  pointer-events: auto;
 }
 
 #render2d {
-    background: #666;
-    width: 100%;
-    height: 100%;
+  background: #666;
+  width: 100%;
+  height: 100%;
+}
+
+.gui-widget {
+  /*border: 1px solid #fff;*/
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  pointer-events: auto;
+}
+
+.gui-window {
+
 }
