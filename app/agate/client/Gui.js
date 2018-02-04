@@ -1,249 +1,65 @@
 import AGate from '../agate';
+import {Sprite} from './GuiSprite';
 
-let Components = {
-  "topWin": {
-    "type": "window",
-    "sprite": "IntTop",
-    "align": "top-center",
-
-    "components": {
-      "characterBtn": {
-        "type": "button",
-        "position": [4, 2],
-        "sprite": "CharBut",
-      },
-      "logbookBtn": {
-        "type": "button",
-        "position": [42, 2],
-        "sprite": "LogBut",
-      },
-      "mapBtn": {
-        "type": "button",
-        "position": [78, 2],
-        "sprite": "TMapBut", /* WMapBut */
-      },
-      "inventoryBtn": {
-        "type": "button",
-        "position": [116, 2],
-        "sprite": "InvnBut",
-      },
-      "fateBtn": {
-        "type": "button",
-        "position": [154, 6],
-        "sprite": "tinybutt",
-      },
-      "fatePoints": {
-        "type": "text",
-        "position": [190, 18]
-      },
-
-
-      "plugBtn1": {
-        "type": "slot-button",
-        "position": [281, 3],
-        "sprite": "SPPlugged1",
-      },
-      "plugBtn2": {
-        "type": "slot-button",
-        "type": "button",
-        "position": [331, 3],
-        "sprite": "SPPlugged1",
-      },
-      "plugBtn3": {
-        "type": "slot-button",
-        "position": [381, 3],
-        "sprite": "SPPlugged1",
-      },
-      "plugBtn4": {
-        "type": "slot-button",
-        "position": [431, 3],
-        "sprite": "SPPlugged1",
-      },
-      "plugBtn5": {
-        "type": "slot-button",
-        "position": [481, 3],
-        "sprite": "SPPlugged1",
-      },
-
-
-      "sleepBtn": {
-        "type": "button",
-        "position": [602, 6],
-        "sprite": "tinybutt",
-      },
-      "timeProgress": {
-        "type": "gauge",
-        "position": [648, 6]
-      }
-
-    }
-  }, /* topWin */
-
-  "bottomWin": {
-    "type": "window",
-    "sprite": "IntBotom",
-    "align": "bottom-center",
-
-    "components": {
-      "healthBar": {
-        "type": "gauge",
-        "position": [14, 31],
-        "size": [26, 88],
-      },
-      "healthPoints": {
-        "type": "text",
-        "position": [15, 137]
-      },
-      "goldIcon": {
-        "type": "icon",
-        "position": [61, 68],
-      },
-      "goldNumber": {
-        "type": "text",
-        "position": [98, 68]
-      },
-      "combatBtn": {
-        "type": "button",
-        "position": [86, 16],
-        "sprite": "CombatButton"
-      },
-      "lastSlot1": {
-        "type": "slot-button",
-        "position": [66, 104]
-      },
-      "lastSlot2": {
-        "type": "slot-button",
-        "position": [110, 104]
-      },
-      "spellBtn2": {
-        "type": "button",
-        "position": [166, 6],
-        "sprite": "charSpellsSkills"
-      },
-
-      "hotSlot0": {
-        "type": "slot-button",
-        "position": [194, 4],
-        "sprite": "HKSlt0"
-      },
-      "hotSlot1": {
-        "type": "slot-button",
-        "position": [238, 4],
-        "sprite": "HKSlt1"
-      },
-      "hotSlot2": {
-        "type": "slot-button",
-        "position": [276, 4],
-        "sprite": "HKSlt2"
-      },
-      "hotSlot3": {
-        "type": "slot-button",
-        "position": [316, 4],
-        "sprite": "HKSlt3"
-      },
-      "hotSlot4": {
-        "type": "slot-button",
-        "position": [354, 4],
-        "sprite": "HKSlt4"
-      },
-
-      "hotSlot5": {
-        "type": "slot-button",
-        "position": [418, 4],
-        "sprite": "HKSlt5"
-      },
-      "hotSlot6": {
-        "type": "slot-button",
-        "position": [456, 4],
-        "sprite": "HKSlt6"
-      },
-      "hotSlot7": {
-        "type": "slot-button",
-        "position": [496, 4],
-        "sprite": "HKSlt7"
-      },
-      "hotSlot8": {
-        "type": "slot-button",
-        "position": [534, 4],
-        "sprite": "HKSlt8"
-      },
-      "hotSlot9": {
-        "type": "slot-button",
-        "position": [574, 4],
-        "sprite": "HKSlt9"
-      },
-
-
-
-      "skillsBtn": {
-        "type": "button",
-        "position": [694, 14],
-        "sprite": "SkillsButton"
-      },
-      "spellBtn": {
-        "type": "button",
-        "position": [648, 52],
-        "sprite": "SpellsButton"
-      },
-      "schemaBtn": {
-        "type": "button",
-        "position": [694, 98],
-        "sprite": "SchematicsButton"
-      },
-
-      "fatigueBar": {
-        "type": "gauge",
-        "position": [756, 31],
-        "size": [28, 88],
-      },
-      "fatiguePoints": {
-        "type": "text",
-        "position": [756, 138],
-      }
-
-    }
-  } /* bottomWin */
-
-};
-
-class Sprite {
-  constructor(key, json) {
-    this.frames = [];
-
-    let jsonFrames = json['frames'];
-    for (let key in jsonFrames) {
-      let jsonFrame = jsonFrames[key]['frame'];
-
-      this.frames.push({
-        left: jsonFrame.x,
-        top: jsonFrame.y,
-        width: jsonFrame.w,
-        height: jsonFrame.h
-      })
-
-    }
-
-    this.className = AGate.Utils.kebabCase(key);
-  }
-
-  getFrame(index = 0) {
-    return this.frames[index];
-  }
-
-  hasFrame(index) {
-    return index < this.frames.length;
-  }
-
-}
+const find = AGate.requireNode('find');
 
 class Manager {
   constructor(engine) {
     this.engine = engine;
-    this.sprites = {};
+    this.sprites = new Map();
+
+    this.widgets = new Map();
+  }
+
+  static loadComponents() {
+    let regExp = new RegExp(`\..js`, 'i');
+    let list = find.fileSync(regExp, '/media/maxli/Data/dev/OpenArcanum/app/agate/client/gui' /*`${__dirname}/gui/`*/);
+
+    let resolve = {};
+    let result = {};
+
+    list.forEach((path) => {
+      let widget = require(path).widget;
+
+      let dotPos = path.lastIndexOf(".");
+      let slashPos = path.lastIndexOf("/");
+      let key = path.substring(slashPos + 1, dotPos);
+
+      if (widget.parent) {
+        resolve[key] = widget;
+      } else {
+        result[key] = widget;
+      }
+
+    });
+
+    for (let key in resolve) {
+      let widget = resolve[key];
+
+      result[widget.parent]['components'][key] = widget;
+    }
+
+    return result;
   }
 
   async loadAssets() {
+    await this.generateAssets();
+
+    let assetPath = '/media/maxli/Data/dev/OpenArcanum/public/assets';
+
     let assetLoader = this.engine.assetLoader;
+
+    let guiMeta = await assetLoader.loadJsonFile(`${assetPath}/gui-images.json`);
+
+    for (let key in guiMeta) {
+      let imageMeta = guiMeta[key];
+
+      let sprite = new Sprite(key, imageMeta);
+
+      this.sprites.set(key, sprite);
+    }
+
+    /*let assetLoader = this.engine.assetLoader;
     let guiPath = AGate.getDataPath('Interface');
 
     let files = await assetLoader.findFiles(guiPath, '.json');
@@ -259,14 +75,18 @@ class Manager {
       let sprite = new Sprite(key, json);
 
       this.sprites[key] = sprite;
-    }
+    }*/
   }
 
   async generateAssets() {
-    let targetCss = '/media/maxli/Data/dev/OpenArcanum/public/gui-images.css';
+    let targetPath = '/media/maxli/Data/dev/OpenArcanum/public/assets';
+    let targetCss = `${targetPath}/gui-images.css`;
+
+    if (AGate.Utils.isFileExist(targetCss))
+      return;
 
     let assetLoader = this.engine.assetLoader;
-    let guiPath = AGate.getDataPath('Interface');
+    let guiPath = '/media/maxli/Data/dev/ArcanumAlive/Data/converted/Interface/'; //AGate.getDataPath('Interface');
 
     let files = await assetLoader.findFiles(guiPath, '.json');
 
@@ -278,37 +98,97 @@ class Manager {
 
       let slashPos = jsonFile.lastIndexOf("/");
       let key = jsonFile.substring(slashPos + 1, dotPos);
-      key = AGate.Utils.kebabCase(key);
 
       assetLoader.preload({'key': key, 'type': 'atlas', 'texture': imageFile, 'data': jsonFile, 'output': 'base64'});
     }
 
+    var json = {};
     var css = "";
+
     await assetLoader.start((descriptor) => {
-      //let sprite = {};
-      //sprite.image.descriptor
-      //let frames = descriptor.meta['frames'];
+      // generate css
+      let className = AGate.Utils.kebabCase(descriptor.key);
+      css += `.${className} {background-image: url('${descriptor.image}');}\n`;
 
-      css += `.${key} {background-image: url('${descriptor.image}');}\n`;
+      // generate json
+      let frames = [];
+      let jsonFrames = descriptor.meta['frames'];
+      for (let key in jsonFrames) {
+        let jsonFrame = jsonFrames[key]['frame'];
 
-      this.sprites[key] = descriptor;
+        let index = key.substr(key.lastIndexOf('/') + 1);
+
+        frames[index] = {
+          left: jsonFrame.x,
+          top: jsonFrame.y,
+          width: jsonFrame.w,
+          height: jsonFrame.h
+        };
+      }
+
+
+      json[descriptor.key] = frames
     });
 
-    if (!AGate.Utils.isFileExist(targetCss))
     await assetLoader.saveTextFile(targetCss, css);
+
+    await assetLoader.saveJsonFile(`${targetPath}/gui-images.json`, json);
   }
 
   getSprite(key) {
     //key = AGate.Utils.kebabCase(key);
-    return this.sprites[key];
+    return this.sprites.get(key);
+  }
+
+  getWidgets() {
+    return this.widgets;
+  }
+
+  addWidget(widget) {
+    this.widgets.set(widget.get('widget.id'), widget);
+  }
+
+  findWidget(id, children = null) {
+    if (!children)
+      children = this.widgets;
+
+    let widget = children.get(id);
+    if (widget)
+      return widget;
+
+    for (let [key, value] of children) {
+      let widget = this.findWidget(id, value.children);
+      if (widget)
+        return widget;
+    }
+
+    return null;
+  }
+
+  bringWindowTop(window) {
+
+    if (this.currentWindow)
+      this.currentWindow.bringToBack();
+
+    window.bringToFront();
+
+    this.currentWindow = window;
+  }
+
+  getRootWidget() {
+    return this.rootWidget;
+  }
+
+  setRootWidget(widget) {
+    this.rootWidget = widget;
   }
 
   getMouseElement() {
     if (!this.mouseElement) {
       this.mouseElement = $('#mouse-pointer');
-      $(window).on('mousemove', (event) => {
+     /* $(window).on('mousemove', (event) => {
         this.onMouseMove(event);
-      });
+      });*/
     }
 
     return this.mouseElement;
@@ -333,21 +213,44 @@ class Manager {
 
     let element = this.getMouseElement();
 
-    element.addClass(sprite.className);
-    element.css({
-      'width': `${frame.width}px`,
-      'height': `${frame.height}px`,
-    });
-
     if (this.prevMouseClass)
       element.removeClass();
+
+
+    element.addClass(sprite.className);
+    /*element.css({
+      'width': `${frame.width}px`,
+      'height': `${frame.height}px`,
+    });*/
+
+    console.log(element.css('background-image'))
+    this.getRootWidget().getElement().css('cursor',
+      element.css('background-image') + ', auto'
+    );
 
     this.prevMouseClass = sprite.className;
   }
 
+  static objectToJson(object) {
+    return JSON.stringify(object, (key, value) => {
+      if (typeof(value) === 'function') {
+        return '@' + value.toString();
+      }
+      return value;
+    });
+  }
+
+  static jsonToObject(json) {
+    return JSON.parse(json, (key, value) => {
+      if (key === "") return value;
+
+      if (typeof value === 'string' && value.startsWith('@')) {
+        return AGate.Utils.stringToFunction(value.substr(1));
+      }
+      return value;
+    });
+  }
 
 }
-
-Manager.Components = Components;
 
 export { Manager };

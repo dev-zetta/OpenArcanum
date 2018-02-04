@@ -11,6 +11,7 @@ import Gameover from './states/gameover'
 
 import {AssetServer} from '../server/AssetServer';
 import {Scene} from './Scene';
+import {Manager} from './Gui';
 
 export class Client {
   constructor(engine, canvas) {
@@ -20,10 +21,21 @@ export class Client {
     this._canvas = canvas;
     this.assetServer = new AssetServer();
     this.assetServer.start(AGate.getDataPath());
+    this.guiManager = new Manager(engine);
+
+    /*game.state.add('boot', new Boot())
+    game.state.add('game', new Game())
+    game.state.add('menu', new Menu())
+    game.state.add('preloader', new Preloader())
+    game.state.add('gameover', new Gameover())*/
+  }
+
+  async create() {
+    await this.guiManager.loadAssets();
 
     let self = this;
     this.game = new Phaser.Game({
-      parent: canvas,
+      parent: this._canvas,
       renderer: Phaser.WEBGL,
       transparent: true,
       //antialias: true,
@@ -34,12 +46,6 @@ export class Client {
     this.scene = new Scene(this);
     this.game.scene.add('default', this.scene);
     this.game.scene.start('default');
-
-    /*game.state.add('boot', new Boot())
-    game.state.add('game', new Game())
-    game.state.add('menu', new Menu())
-    game.state.add('preloader', new Preloader())
-    game.state.add('gameover', new Gameover())*/
   }
 
   get canvas() {

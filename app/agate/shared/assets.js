@@ -78,25 +78,26 @@ export class GfxPathBuilder {
 const fs = AGate.requireNode('fs');
 const util = AGate.requireNode('util');
 const mime = AGate.requireNode('mime-types');
-const loadJsonFile = requireNode('load-json-file');
-const find = requireNode('find');
+const loadJsonFile = AGate.requireNode('load-json-file');
+const writeJsonFile = AGate.requireNode('write-json-file');
+const find = AGate.requireNode('find');
 
 export class AssetLoader {
   constructor(engine) {
     this.engine = engine;
-    this.loadedAssets = {};
+    this.loadedAssets = new Map();
     this.preloadAssets = [];
 
     this.useBlobs = false;
   }
 
   hasAsset(key) {
-    return this.loadedAssets.hasOwnProperty(key);
+    return this.loadedAssets.has(key);
   }
 
   preload(descriptor) {
     this.preloadAssets.push(descriptor);
-    this.loadedAssets[descriptor.key] = null;
+    this.loadedAssets.set(descriptor.key, null);
   }
 
   async start(onAssetLoaded) {
@@ -114,7 +115,7 @@ export class AssetLoader {
         }
         onAssetLoaded(descriptor);
 
-        this.loadedAssets[descriptor.key] = descriptor;
+        this.loadedAssets.set(descriptor.key, descriptor);
         loaded++;
 
         this.preloadAssets[i] = null;
@@ -259,6 +260,16 @@ export class AssetLoader {
     }
   }
 
+  async saveJsonFile(filePath, object) {
+    try {
+      return await writeJsonFile(filePath, object);
+
+    } catch (err) {
+      AGate.Utils.logError(err.message);
+      return null;
+    }
+  }
+
   async loadAsset(descriptor) {
     let result;
 
@@ -299,7 +310,7 @@ export class AssetLoader {
     });
   }
 
-  async findDirs(dir, pattern, callback) {
+  async findDirs(dir, pattern) {
     return new Promise(resolve => {
       let list = find.dirSync(pattern, dir);
       resolve(list);

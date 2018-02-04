@@ -39,7 +39,8 @@ app.on('ready', () => {
     title: "OpenArcanum",
     webPreferences: {
         nodeIntegration: true,
-        webSecurity: false
+        webSecurity: false,
+        experimentalFeatures: true
     }
 
   });

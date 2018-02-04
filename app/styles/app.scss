@@ -1,13 +1,16 @@
 @import url("theme.css");
 @import url("gui-images.css");
 @import url("pod-styles.css");
+@import url("fonts.css");
 
 @function remote-image-url($name) {
   @return unquote("url('/media/maxli/Data/dev/OpenArcanum/data/gui/" + $name + "')");
 }
 
 * {
-  cursor: none !important;
+  font-family: Georgia;
+  color: #fff;
+  text-shadow: #e0e0e0 1px 1px 0;
 }
 
 figure#mouse-pointer {
@@ -44,7 +47,9 @@ html {
   bottom: 0;
   user-select: none;
   pointer-events: none;
+  -webkit-transform: translateZ(0);
 }
+
 .game-render {
   width: 100%;
   height: 100vh;
@@ -64,8 +69,46 @@ html {
   width: 50px;
   height: 50px;
   pointer-events: auto;
+  //background-repeat: no-repeat;
+  //background-clip: content-box;
+  //background-position: left center;
+  z-index:0;
 }
 
 .gui-window {
+  border: 1px solid #2c2c2c;
+  box-shadow: 0px 0px 10px 4px rgba(255,187,0,0.62);
 
+  //clip-path: polygon(5% 0%, 95% 0%, 100% 5%, 100% 95%, 95% 100%, 5% 100%, 0% 95%, 0% 5%);
+  -webkit-transform: translateZ(0); /* Bugfix for chrome https://github.com/marceljuenemann/angular-drag-and-drop-lists/issues/256 */
+}
+
+.gui-text {
+  pointer-events: none;
+}
+
+.item {
+  margin: 5px;
+  z-index: 1;
+}
+
+.item.muuri-item-hidden {
+  z-index: 0;
+}
+.item.muuri-item-releasing {
+  z-index: 2;
+}
+.item.muuri-item-dragging {
+  z-index: 3;
+}
+
+.item-content {
+  position: relative;
+}
+
+.item.muuri-item-dragging .item-content {
+  background: blue;
+}
+.item.muuri-item-releasing .item-content {
+  background: blueViolet;
 }

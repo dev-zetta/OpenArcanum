@@ -11,7 +11,7 @@ export default function(server) {
 
   function componentToWidget(key, component, parent) {
 
-    let widget = Object.assign({'id': key, 'componentName': `gui-${component.type}` }, component);
+    let widget = Object.assign({'id': key, /*'componentName': `gui-${component.type}`*/ }, component);
     widget.parent = parent;
 
     if (widget.position)
@@ -19,6 +19,14 @@ export default function(server) {
 
     if (widget.size)
       widget.size = {'width': widget.size[0], 'height': widget.size[1]};
+
+    if (widget.events) {
+      widget.events = Manager.objectToJson(widget.events);
+    }
+
+    if (widget.listeners) {
+      widget.listeners = Manager.objectToJson(widget.listeners);
+    }
 
     let components = widget.components;
     widget.components = null;
@@ -42,8 +50,9 @@ export default function(server) {
     return instance;
   }
 
-  for (let key in Manager.Components) {
-    let component = Manager.Components[key];
+  let components = Manager.loadComponents();
+  for (let key in components) {
+    let component = components[key];
 
     let instance = componentToWidget(key, component, null);
 

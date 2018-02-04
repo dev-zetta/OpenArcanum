@@ -28,7 +28,31 @@ export default function() {
     return schema.authors.all();
   });*/
 
+  function parseFilterQueryParams(queryParams) {
+    let filterQueryParams = {};
+    for (var key in queryParams) {
+      if (key.startsWith('filter')) {
+        let field = key.slice(7, key.indexOf(']'));
+        filterQueryParams[field] = queryParams[key];
+      }
+    }
+    return filterQueryParams;
+  }
+
   this.get('/gui-widgets', (schema, request) => {
-    return schema.guiWidgets.where({type: 'window'});
+    let filter = parseFilterQueryParams(request.queryParams);
+    return schema.guiWidgets.where(filter);
   });
+
+
+  this.get('/gui-widgets/:id', ({ guiWidgets }, request) => {
+    let id = request.params.id;
+
+    return guiWidgets.find(id); // users in the second case
+  });
+
+
+  /*this.get('/gui-widgets');*/
+
+
 }

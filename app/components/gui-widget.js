@@ -1,25 +1,263 @@
 import Component from '@ember/component';
 import {Engine} from '../agate/shared/Engine';
+import {Manager} from '../agate/client/Gui';
+import AGate from '../agate/agate';
 
 export default Component.extend({
+  store: Ember.inject.service(),
   classNames: ['gui-widget'],
-  //attributeBindings: ['draggable'],
-  //draggable: 'true',
+  attributeBindings: ['draggable'],
+  draggable: 'false',
+  visible: true,
 
   init() {
     this._super(...arguments);
+    this.children = new Map();
+    this.cachedWidgets = new Map();
   },
 
   getElement() {
-    return this.$();
+    if (!this.jElement)
+      this.jElement = this.$();
+
+    return this.jElement;
+  },
+
+  getParent() {
+    return this.parentView;
+    //return this.get('widget.parent');
+  },
+
+  getChildren() {
+    return this.children;
+   // return this.get('widget.components');
+  },
+
+  getWidget(id) {
+    let widget = this.cachedWidgets.get(id);
+
+    if (widget)
+      return widget;
+
+    widget = this.getManager().findWidget(id);
+
+    this.cachedWidgets.set(id, widget);
+    return widget;
+  },
+
+  addChild(child) {
+    let id = child.getId();
+    this.children.set(id, child);
+  },
+
+  getChild(id) {
+    return this.getManager().findWidget(id, this.children);
+  },
+
+  emitEvent(name, ...args) {
+    this.getEngine().events.emit(`ui.${name}`, ...args);
+  },
+
+  listenEvent(name, listener) {
+    this.getEngine().events.on(`ui.${name}`, listener);
+  },
+
+  listenEventOnce(name, listener) {
+    this.getEngine().events.once(`ui.${name}`, listener);
+  },
+
+  emitOwnEvent(name, ...args) {
+    let events = this.get('widget.events');
+    if(!events)
+      return false;
+
+    let method = events[name];
+    if (!AGate.Utils.isFunction(method))
+      return false;
+
+      method.call(this, ...args);
+  },
+
+  getEngine() {
+    return Engine.instance;
+  },
+
+  getClient() {
+    return this.getEngine().client;
   },
 
   getManager() {
-    return Engine.instance.guiManager;
+    return this.getEngine().client.guiManager;
   },
 
+  getId() {
+    return this.get('widget.id');
+  },
+
+  isVisible() {
+    return this.getElement().is(':visible');
+  },
+
+  setVisibility(visible) {
+    if (visible)
+      this.getElement().fadeIn();
+    else this.getElement().fadeOut();
+
+    this.set('widget.visible', visible);
+  },
+
+  toggleVisibility() {
+    this.setVisibility(!this.get('widget.visible'));
+  },
+
+  getPosition() {
+    return this.get('widget.position');
+  },
+
+  setPosition(left, top) {
+    this.set('widget.position', {left: left, top: top});
+
+    this.setStyle({left: `${left}px`, top: `${top}px`});
+  },
+
+  getSize() {
+    return this.get('widget.size');
+  },
+
+  setSize(width, height) {
+    let element = this.getElement();
+
+    if (element) {
+      this.set('widget.size', {width: width, height: height});
+
+      this.setStyle({width: `${width}px`, height: `${height}px`});
+
+      element.outerWidth(`${width}px`);
+      element.outerHeight(`${height}px`);
+
+    } else {
+      // Called before DirInsertElement
+      this._super(...arguments);
+    }
+  },
+
+  setStyle(style) {
+    let element = this.getElement();
+
+    if (AGate.Utils.isString(style))
+      element.attr("style", element.attr("style") + "; " + style);
+    else element.css(style);
+  },
+
+  getSprite() {
+    return this.get('widget.sprite');
+  },
+
+  getSpriteByKey(key) {
+    let guiManager = this.getManager();
+
+    let sprite = guiManager.getSprite(key);
+    return sprite;
+  },
+
+  startAnimation(name, options = {}, onFinish = null) {
+    let sprite = this.getSprite();
+    let keyframes = [];
+
+    /*sprite.frames.forEach((frame, index) => {
+      keyframes[index] = {
+        backgroundPosition: `-${frame.left}px 0px`
+      };
+    });*/
+
+    let timing = {
+      duration: AGate.Utils.isNumber(options.duration) ? options.duration : 1000,
+      iterations: (options.repeat < 0) ? Infinity : AGate.Utils.isNumber(options.repeat) ? options.repeat : 1,
+      //
+      //playbackRate: 100
+    };
+
+    switch (name){
+      case 'glow': {
+        keyframes.push({
+          boxShadow: `0px 0px 10px 4px rgba(255,187,0,0.62)`
+        });
+
+        keyframes.push({
+          boxShadow: `0px 0px 20px 8px rgba(0,187,0,0.62)`
+        });
+
+        keyframes.push({
+          boxShadow: `0px 0px 10px 4px rgba(255,187,0,0.62)`
+        });
+
+        timing.easing = `ease-in-out`;
+        break;
+      }
+      case 'background': {
+        let frame = sprite.getLastFrame();
+        keyframes.push({
+          backgroundPositionX: `-${frame.left + frame.width}px`
+        });
+        timing.easing = `steps(${sprite.getFrameCount()})`;
+        break;
+      }
+      case 'show-in': {
+        keyframes.push({
+          scale: '0.0 0.0',
+          opacity: 0.0,
+          display: 'none',
+          transform: 'translateY(-100%)'
+        });
+
+        keyframes.push({
+          scale: '1.0 1.0',
+          opacity: 1.0,
+          display: 'block',
+          transform: 'translateY(0%)'
+        });
+
+        timing.easing = 'ease-in-out';
+        timing.fill = 'both';
+        break;
+      }
+      case 'show-out': {
+        keyframes.push({
+          scale: '1.0 1.0',
+          opacity: 1.0,
+          display: 'block',
+          transform: 'translateY(0%)'
+        });
+
+        keyframes.push({
+          scale: '0.0 0.0',
+          opacity: 0.0,
+          display: 'none',
+          transform: 'translateY(-50%)'
+        });
+
+        timing.easing = 'ease-in-out';
+        timing.fill = 'both';
+        break;
+      }
+
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/Element/animate
+    let anim = this.get('element').animate(keyframes, timing);
+    if (onFinish)
+      anim.onfinish = onFinish;
+
+    return anim;
+  },
+
+  /**
+   *
+   * @param index
+   * @returns {boolean}
+   */
   changeFrame(index) {
-    let sprite = this.get('sprite');
+    let sprite = this.getSprite();
     if (!sprite)
       return false;
 
@@ -28,35 +266,75 @@ export default Component.extend({
 
     let frame = sprite.getFrame(index);
 
-
     let element = this.getElement();
-
     element.css('background-position', `-${frame.left}px -${frame.top}px`);
 
     return true;
   },
 
+  /**
+   *
+   */
   didReceiveAttrs() {
     this._super(...arguments);
-    const profile = this.get('data');
+
+    /*const profile = this.get('data');
     if (typeof profile === 'string') {
       this.set('profile', JSON.parse(profile));
     } else {
       this.set('profile', profile);
+    }*/
+
+    let events = this.get('widget.events');
+    if (events && AGate.Utils.isString(events)) {
+      events = Manager.jsonToObject(events);
+      this.set('widget.events', events);
+    }
+
+    let listeners = this.get('widget.listeners');
+    if (listeners && AGate.Utils.isString(listeners)) {
+      listeners = Manager.jsonToObject(listeners);
+
+      this.set('widget.listeners', listeners);
+    }
+
+    for (let name in listeners) {
+      let listener = listeners[name];
+      this.listenEvent(name, (...args) => {listener.call(this, ...args);});
     }
   },
 
+  /**
+   *
+   */
   didUpdateAttrs() {
     this._super(...arguments);
   },
 
+  /**
+   *
+   */
   didInsertElement() {
     this._super(...arguments);
+
+    // is it root widget?
+    let parent = this.getParent();
+    if (!parent.parentView) {
+      let manager = this.getManager();
+      manager.addWidget(this);
+    }
+
+    // add everything except game-render
+    if (parent && parent.parentView) {
+      parent.addChild(this);
+    }
+
     let element = this.getElement();
 
     // Set specific class
     let componentName = this.get('widget.componentName');
-    element.addClass(componentName);
+    if (componentName)
+      element.addClass(componentName);
 
     // Generate CSS style
     let style = {};
@@ -67,75 +345,127 @@ export default Component.extend({
       style['left'] = `${position.left}px`;
     }
 
+    // Set alignment
     let align = this.get('widget.align');
-
     if (align) {
-      switch (align) {
-        case 'top-center':
-          style['top'] = '0';
-          style['left'] = '50%';
-          style['margin-left'] = function() {return -$(this).outerWidth()/2};
-          break;
-        case 'bottom-center':
-          style['bottom'] = '0';
-          style['left'] = '50%';
+      align = align.split('-');
 
+      switch (align[0]) {
+        case 'left':
+          style['left'] = '0';
+          style['right'] = 'auto';
+          break;
+        case 'right':
+          style['right'] = '0';
+          style['left'] = 'auto';
+          break;
+        case 'center':
+          style['left'] = '50%';
           style['margin-left'] = function() {return -$(this).outerWidth()/2};
           break;
       }
+
+      switch (align[align.length > 1 ? 1 : 0]) {
+        case 'top':
+          style['top'] = '0';
+          break;
+        case 'bottom':
+          style['bottom'] = '0';
+          break;
+        case 'center':
+          style['top'] = '50%';
+          style['margin-top'] = function() {return -$(this).outerHeight()/2};
+          break;
+      }
     }
+
+    // Set background sprite
+    let size = this.get('widget.size');
 
     let spriteKey = this.get('widget.sprite');
     if (spriteKey) {
-      let guiManager = this.getManager();
 
-      let sprite = guiManager.getSprite(spriteKey);
+      let sprite = this.getSpriteByKey(spriteKey);
       if (sprite) {
-        this.set('sprite', sprite);
+        this.set('widget.sprite', sprite);
 
         element.addClass(sprite.className);
 
-        let frame = sprite.getFrame();
-        element.outerWidth(`${frame.width}px`);
-        element.outerHeight(`${frame.height}px`);
+        if (!size) {
+          let frame = sprite.getFrame();
+          this.setSize(frame.width, frame.height);
+        }
+
       } else {
         console.log(spriteKey);
       }
-    } else {
-      let size = this.get('widget.size');
-
-      if (size) {
-        element.width(`${size.width}px`);
-        element.height(`${size.height}px`);
-      }
     }
 
-    element.css(style);
+    // set size
+    if (size) {
+      this.setSize(size.width, size.height);
+    }
+
+    // set visibility
+    let visible = this.get('widget.visible');
+    if (!AGate.Utils.isUndefined(visible)) {
+      //style['visibility'] = visible ? 'visible' : 'hidden';
+      this.setVisibility(visible);
+    }
+
+    this.setStyle(style);
+
+    // Set user-defined style
+    let rawStyle = this.get('widget.style');
+    if (rawStyle) {
+      this.setStyle(rawStyle);
+    }
+
+    // add user-defined classes
+    let prototype = this.get('widget.prototype');
+    if (prototype) {
+      element.addClass(prototype);
+    }
+
+  },
+
+  didDestroyElement() {
 
   },
 
   didRender() {
     this._super(...arguments);
-    //this.$('.item-list').scrollTop(this.$('.selected-item').position.top);
+
+    let animation = this.get('widget.animation');
+    if (animation)
+     this.startAnimation('background', animation);
+
   },
 
   willDestroyElement() {
     this._super(...arguments);
     this.$().off('animationend');
-    //this.$('input.date').myDatepickerLib().destroy();
+
+  },
+
+  dragStart(e) {
+    e.preventDefault();
+    return false;
   },
 
   dragOver() {
     return false;
   },
 
-  drop(event) {
-    let id = event.dataTransfer.getData('text/data');
-    this.get('action')(id);
+  drop(e) {
+    //let id = event.dataTransfer.getData('text/data');
+    //this.get('action')(id);
   },
 
   click() {
-
+    this.startAnimation('glow', {
+      'duration': 1000,
+    });
   },
 
   actions: {

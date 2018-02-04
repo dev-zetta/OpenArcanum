@@ -9,6 +9,7 @@ import {Sector} from '../shared/Sector';
 const dat = AGate.requireNode('dat.gui');
 
 export class Scene extends Phaser.Scene {
+
   constructor(client) {
     super({key: 'default'});
     this.client = client;
@@ -233,15 +234,16 @@ export class Scene extends Phaser.Scene {
       this.cameraControls.update(delta);
     }
 
-    if (!AGate.Utils.isUndefined(this.text)) {
+    this.debugText = this.client.guiManager.findWidget('debugText');
+    if (this.debugText) {
       let cam = this.cameras.main;
       let cur = this.input.activePointer;
 
-      this.text.setText([
+      this.debugText.setValue([
         `Cam: ${cam.scrollX}:${cam.scrollY}`,
         `Cur: ${cur.x}:${cur.y}`,
         `Pos: ${pos.x}:${pos.y}`,
-        `Tile: ${this.cursorPos.x}:${this.cursorPos.y}`,
+        `Tile: ${Math.floor(this.cursorPos.x)}:${Math.floor(this.cursorPos.y)}`,
 
         //`FPS: ${this.time.fps}`
       ]);
@@ -278,8 +280,6 @@ export class Scene extends Phaser.Scene {
 
     this.cameraControls = new Phaser.Cameras.Controls.Smoothed(controlConfig);
 
-    //this.load.image('pointer', 'assets/pointer.png');
-
     //this.scene.loadAsset('tile', 'image', {texture: 'assets/tile.png'});
 
     //this.game.physics.startSystem(Phaser.Physics.P2JS);
@@ -295,7 +295,7 @@ export class Scene extends Phaser.Scene {
     // This is used to set a game canvas-based offset for the 0, 0, 0 isometric coordinate - by default
     // this point would be at screen coordinates 0, 0 (top left) which is usually undesirable.
 
-    this.text = this.add.text(0, 0, 'Phaser');
+    //this.text = this.add.text(0, 0, 'Phaser');
 
     this.isoGroup = this.add.group();
 
@@ -316,9 +316,7 @@ export class Scene extends Phaser.Scene {
         } else {
           this.addDatGui(sprite);
         }
-
       }
-
 
       gameObject.setTint(Math.random() * 16000000);
 

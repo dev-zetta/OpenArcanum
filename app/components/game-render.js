@@ -11,8 +11,12 @@ export default Component.extend({
     this._super(...arguments);
   },
 
+  getElement() {
+    return this.$();
+  },
+
   getManager() {
-    return this._engine.guiManager;
+    return this._engine.client.guiManager;
   },
 
   didInsertElement() {
@@ -26,11 +30,16 @@ export default Component.extend({
       this.get('store').query('gui-widget', {
         include: 'components',
         filter: {
-          type: 'window'
+          type: 'window',
+          visible: true
+          //id: ['topWin', 'middleWin', 'bottomWin']
         }
       }).then((data) => {
+        let manager = this.getManager();
+        manager.setRootWidget(this);
+        manager.setMouseSprite('cursor');
+
         this.set('widgets', data);
-        this.getManager().setMouseSprite('cursor');
       });
     });
   },

@@ -3,16 +3,17 @@ import {Client} from '../client/Client';
 import {GameMap} from './GameMap';
 import {AssetLoader} from './assets';
 import {WorkerPool} from './WorkerPool';
-import {Manager} from '../client/Gui';
+import {EventEmitter} from './EventEmitter';
 
 export class Engine {
 
   constructor() {
-    //super()
+    //super();
+
+    this.events = new EventEmitter();
     this.workerPool = new WorkerPool(this);
     this.assetLoader = new AssetLoader(this);
     this.map = new GameMap(this);
-    this.guiManager = new Manager(this);
 
     /*$ige.route('app', {
         controller: Client0,
@@ -37,9 +38,9 @@ export class Engine {
   }
 
   async createClient(canvas) {
-    await this.guiManager.loadAssets();
-
     this.client = new Client(this, canvas);
+
+    await this.client.create();
   }
 
   update() {
@@ -48,7 +49,7 @@ export class Engine {
 
   load() {
     let path = AGate.getDataPath('map2');
-    this.map.load(path);
+    //this.map.load(path);
   }
 
   onPreloaded() {

@@ -12,7 +12,9 @@ export default GuiWidget.extend({
   /**
    *
    */
-  click() {
+  click(e) {
+    this.emitOwnEvent('onClick');
+
     let action = this.get('onClick');
     if (action !== null) {
       let promise = (action)(this.get('value'));
