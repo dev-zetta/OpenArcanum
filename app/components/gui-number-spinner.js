@@ -3,28 +3,11 @@ import GuiWidget from './gui-widget';
 export default GuiWidget.extend({
 
   getAdvancedPosition(x, y) {
-   // let pos = this.getPosition();
-    return {left: /*pos.left +*/ x, top: /*pos.top +*/ y};
+    let pos = this.getPosition();
+    return [ x,  y];
   },
 
-  createModelsForChildren(definition) {
-    let id = this.getId();
 
-    let widgets = [];
-    for (let key in definition) {
-      let widget = {
-        'id': `${id}:${key}`,
-        'type': 'gui-widget',
-        'attributes': definition[key]
-      };
-
-      widgets.push(widget);
-    }
-
-    this.get('store').pushPayload('gui-widget', {
-      data: widgets
-    });
-  },
 
   didReceiveAttrs() {
     this._super(...arguments);
@@ -38,7 +21,7 @@ export default GuiWidget.extend({
         position: this.getAdvancedPosition(0, 0),
         events: {
           onClick(event) {
-
+            alert('test');
           }
         }
       },

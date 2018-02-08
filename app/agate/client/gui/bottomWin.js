@@ -8,7 +8,8 @@ exports.widget = {
   components: {
     'healthBarBg': {
       type: 'image',
-      position: [14, 31],
+      position: [13.5, 31],
+      size: [28, 90],
       sprite: 'CLRVIAL'
     },
 
@@ -17,10 +18,16 @@ exports.widget = {
       position: [15, 24],
       size: [28, 96],
       sprite: 'REDVIAL',
-      orientation: 'vertical',
+
       value: 100,
-      max: 100,
-      min: 0,
+
+      options: {
+        placeholder: 'healthPoints',
+        orientation: 'vertical',
+
+        max: 100,
+        min: 0,
+      },
 
       animation: {
         duration: 1000,
@@ -128,35 +135,42 @@ exports.widget = {
 
     'skillsBtn': {
       type: 'button',
-      position: [694, 14],
+      position: [693, 15],
       sprite: 'SkillsButton',
     },
     'spellBtn': {
       type: 'button',
-      position: [648, 52],
+      position: [649, 53],
       sprite: 'SpellsButton',
     },
     'schemaBtn': {
       type: 'button',
-      position: [694, 98],
+      position: [693, 98],
       sprite: 'SchematicsButton',
     },
+
     'fatigueBarBg': {
       type: 'image',
-      position: [754, 24],
-      sprite: 'CLRVIAL',
+      position: [753.5, 31],
+      size: [28, 90],
+      sprite: 'CLRVIAL'
     },
 
     'fatigueBar': {
       type: 'gauge',
-      position: [754, 24],
+      position: [755, 24],
       size: [28, 96],
       sprite: 'BLUVIAL',
 
-      orientation: 'vertical',
       value: 100,
-      max: 100,
-      min: 0,
+
+      options: {
+        placeholder: 'fatiguePoints',
+        orientation: 'vertical',
+
+        max: 100,
+        min: 0,
+      },
 
       animation: {
         duration: 1000,
@@ -177,66 +191,53 @@ exports.widget = {
     },
 
     'xpPipes': {
-      type: 'window',
+      type: 'group',
       position: [211, 37],
-      components: {
-        'xp1': {
-          type: 'icon',
-          position: [0, 0],
-          sprite: 'XPPip1',
-        },
-        'xp2': {
-          type: 'icon',
-          position: [38, 0],
-          sprite: 'XPPip2',
-        },
-        'xp3': {
-          type: 'icon',
-          position: [76, 0],
-          sprite: 'XPPip3',
-        },
-        'xp4': {
-          type: 'icon',
-          position: [116, 0],
-          sprite: 'XPPip4',
-        },
-        'xp5': {
-          type: 'icon',
-          position: [154, 0],
-          sprite: 'XPPip5',
-        },
-        'xp6': {
-          type: 'icon',
-          position: [192, 0],
-          sprite: 'XPPip6',
-        },
-        'xp7': {
-          type: 'icon',
-          position: [230, 0],
-          sprite: 'XPPip7',
-        },
-        'xp8': {
-          type: 'icon',
-          position: [268, 0],
-          sprite: 'XPPip8',
-        },
-        'xp9': {
-          type: 'icon',
-          position: [306, 0],
-          sprite: 'XPPip9',
-        },
-        'xp10': {
-          type: 'icon',
-          position: [344, 0],
-          sprite: 'XPPip10',
-        },
+      events: {
+        created() {
+          let items = [0, 38, 76, 116, 154, 192, 230, 268, 306, 344];
+
+          for (let i = 0; i < items.length; i++) {
+            let item = items[i];
+
+            let model = this.createChild({
+              id: `xp${i}`,
+              type: 'icon',
+              position: [item, 0],
+              sprite: `XPPip${i + 1}`
+
+            });
+          }
+
+        }
       },
     },
 
     'apBar': {
-      type: 'image',
+      type: 'group',
       position: [226, -30],
       sprite: 'APBar',
+      events: {
+        created() {
+          let x = 22;
+
+          for (let i = 0; i < 20; i++) {
+            let model = this.createChild({
+              id: `ap${i}`,
+              type: 'icon',
+              position: [x, 10],
+              sprite: `APGreen`
+
+            });
+
+            if (i % 5 == 4)
+              x += 19;
+            else x += 13;
+          }
+
+        }
+      }
+
     },
 
   },

@@ -129,6 +129,8 @@ export class Entity extends ECS.Entity {
       sprite.addToScene(target, x, y, 0 /*position.y / 64 + position.x*/,
         offset);
       sprite.setData(this);
+
+      sprite.setBlendMode();
     }
   }
 

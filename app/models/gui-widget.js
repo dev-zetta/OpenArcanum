@@ -29,10 +29,14 @@ export default Model.extend({
   events: attr(),
   listeners: attr(),
 
-  orientation: attr('string'),
+  options: attr(),
+
+  /*orientation: attr('string'),
   value: attr(),
+  placeholder: attr(),
+
   max: attr(),
-  min: attr(),
+  min: attr(),*/
 
   parent: belongsTo('gui-widget', { inverse: 'components' }),
   components: hasMany('gui-widget', { inverse: 'parent' })

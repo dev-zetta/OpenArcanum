@@ -29,32 +29,29 @@ export default GuiDraggable.extend({
     this.getElement().css('z-index', '0');
   },
 
-  show() {
-    // this.getIzi().iziModal('open', {
-    //   transitionIn: 'bounceInDown',
-    //   transitionOut: 'bounceOutDown'
-    // });
-  },
+  show(animation = 'show-in') {
+    if (this.isVisible())
+      return;
 
-  hide() {
-  //   this.getIzi().iziModal('close', {
-  //     transitionIn: 'bounceInDown',
-  //     transitionOut: 'bounceOutDown'
-  //   });
-  },
-
-  toggle() {
-    let visible = this.get('visible');
-    this.startAnimation(visible ? 'show-out' : 'show-in', {}, () => {
-      this.set('visible', !visible);
+    this.startAnimation(animation, {}, () => {
+      this.setVisibility(true);
     });
+  },
 
+  hide(animation = 'show-out') {
+    if (!this.isVisible())
+      return;
 
+    this.startAnimation(animation, {}, () => {
+      this.setVisibility(false);
+    });
+  },
 
-    // this.getIzi().iziModal('toggle', {
-    //   transitionIn: 'bounceInDown',
-    //   transitionOut: 'bounceOutDown'
-    // });
+  toggle(animation = ['show-in', 'show-out']) {
+    let visible = this.isVisible();
+    this.startAnimation(visible ? animation[1] : animation[0], {}, () => {
+      this.setVisibility(!visible);
+    });
   },
 
   click() {

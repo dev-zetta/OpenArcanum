@@ -4,20 +4,25 @@ import AGate from '../agate/agate';
 
 export default GuiWidget.extend({
 
+
+  didRender() {
+    this._super(...arguments);
+  },
+
   getMin() {
-    return this.get('widget.min');
+    return this.get('widget.options.min');
   },
 
   getMax() {
-    return this.get('widget.max');
+    return this.get('widget.options.max');
+  },
+
+  getOrientation() {
+    return this.get('widget.options.orientation');
   },
 
   getValue() {
     this.get('widget.value');
-  },
-
-  getOrientation() {
-    return this.get('widget.orientation');
   },
 
   setValue(value) {
@@ -59,8 +64,16 @@ export default GuiWidget.extend({
       }
     }
 
-    let element = this.getElement();
-    element.css(style);
+    this.setStyle(style);
+
+    let placeholder = this.get('widget.options.placeholder');
+    if (placeholder) {
+      placeholder = this.getWidget(placeholder);
+      if (placeholder)
+        placeholder.setValue(value);
+
+    }
+
   },
 
   click() {

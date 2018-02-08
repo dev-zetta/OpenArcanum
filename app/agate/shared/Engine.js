@@ -49,7 +49,7 @@ export class Engine {
 
   load() {
     let path = AGate.getDataPath('map2');
-    //this.map.load(path);
+    this.map.load(path);
   }
 
   onPreloaded() {

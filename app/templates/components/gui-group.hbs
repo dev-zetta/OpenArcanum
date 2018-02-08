@@ -1,0 +1,5 @@
+{{yield}}
+
+{{#each widget.components as |child|}}
+  {{component child.componentName widget=child}}
+{{/each}}

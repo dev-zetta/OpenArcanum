@@ -14,11 +14,11 @@ export default function(server) {
     let widget = Object.assign({'id': key, /*'componentName': `gui-${component.type}`*/ }, component);
     widget.parent = parent;
 
-    if (widget.position)
+    /*if (widget.position)
       widget.position = {'left': widget.position[0], 'top': widget.position[1]};
 
     if (widget.size)
-      widget.size = {'width': widget.size[0], 'height': widget.size[1]};
+      widget.size = {'width': widget.size[0], 'height': widget.size[1]};*/
 
     if (widget.events) {
       widget.events = Manager.objectToJson(widget.events);

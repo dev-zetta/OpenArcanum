@@ -174,4 +174,34 @@ export class Sprite {
     this.data = data;
   }
 
+  setBlendMode(mode) {
+    this.sprite.setBlendMode(Phaser.BlendModes.ADD);
+  }
+
+  //  Canvas and WebGL:
+
+  // NORMAL
+  // ADD
+  // MULTIPLY
+  // SCREEN
+
+  //  Canvas only:
+
+  // OVERLAY
+  // DARKEN
+  // LIGHTEN
+  // COLOR_DODGE
+  // COLOR_BURN
+  // HARD_LIGHT
+  // SOFT_LIGHT
+  // DIFFERENCE
+  // EXCLUSION
+  // HUE
+  // SATURATION
+  // COLOR
+  // LUMINOSITY
+
+  // image.setBlendMode(Phaser.BlendModes.OVERLAY);
+
+
 }

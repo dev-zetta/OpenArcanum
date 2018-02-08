@@ -13,7 +13,7 @@ export default GuiWidget.extend({
    *
    */
   click(e) {
-    this.emitOwnEvent('onClick');
+    this.emitOwnEvent('click');
 
     let action = this.get('onClick');
     if (action !== null) {

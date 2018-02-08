@@ -3,7 +3,7 @@ exports.widget = {
   type: 'inventory',
   sprite: 'PDoll',
   align: "left-center",
-  visible: true,
+  visible: false,
 
   components: {
     'lens': {

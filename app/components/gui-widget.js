@@ -54,6 +54,38 @@ export default Component.extend({
     return this.getManager().findWidget(id, this.children);
   },
 
+  createChildModel(definition) {
+    let store = this.get('store');
+
+    definition = Object.assign({parent: this.get('widget')}, definition)
+    store.createRecord('gui-widget', definition);
+
+    let model = store.peekRecord('gui-widget', definition.id);
+    return model;
+  },
+
+  createModelsForChildren(definition) {
+    let id = this.getId();
+
+    for (let key in definition) {
+      let widget = Object.assign({
+        'id': `${id}:${key}`,
+      }, definition[key]);
+
+      let model = this.createChildModel(widget);
+
+      this.set(key, model);
+    }
+  },
+
+  createChild(definition) {
+    let model = this.createChildModel(definition);
+
+    this.get('widget.components').pushObject(model);
+    return model;
+  },
+
+
   emitEvent(name, ...args) {
     this.getEngine().events.emit(`ui.${name}`, ...args);
   },
@@ -95,13 +127,15 @@ export default Component.extend({
   },
 
   isVisible() {
-    return this.getElement().is(':visible');
+    return this.get('widget.visible'); //his.getElement().is(':visible');
   },
 
-  setVisibility(visible) {
-    if (visible)
-      this.getElement().fadeIn();
-    else this.getElement().fadeOut();
+  setVisibility(visible, fade = false) {
+    if (fade) {
+      if (visible)
+        this.getElement().fadeIn();
+      else this.getElement().fadeOut();
+    }
 
     this.set('widget.visible', visible);
   },
@@ -151,6 +185,31 @@ export default Component.extend({
 
   getSprite() {
     return this.get('widget.sprite');
+  },
+
+  setSprite(key) {
+    let element = this.getElement();
+
+    let sprite = this.getSpriteByKey(key);
+    if (AGate.Utils.isUndefined(sprite)) {
+      AGate.Utils.logError(sprite);
+      return false;
+    }
+
+    let previous = this.getSprite();
+    if (AGate.Utils.isObjectLike(previous)) {
+      element.removeClass(previous.className);
+    }
+
+    element.addClass(sprite.className);
+
+    let size = this.getSize();
+    if (!size) {
+      let frame = sprite.getFrame();
+      this.setSize(frame.width, frame.height);
+    }
+
+    this.set('widget.sprite', sprite);
   },
 
   getSpriteByKey(key) {
@@ -285,14 +344,26 @@ export default Component.extend({
       this.set('profile', profile);
     }*/
 
+    let position = this.get('widget.position');
+    if (AGate.Utils.isArray(position)) {
+      position = {'left': position[0], 'top': position[1]};
+      this.set('widget.position', position);
+    }
+
+    let size = this.get('widget.size');
+    if (AGate.Utils.isArray(size)) {
+      size = {'width': size[0], 'height': size[1]};
+      this.set('widget.size', size);
+    }
+
     let events = this.get('widget.events');
-    if (events && AGate.Utils.isString(events)) {
+    if (AGate.Utils.isString(events)) {
       events = Manager.jsonToObject(events);
       this.set('widget.events', events);
     }
 
     let listeners = this.get('widget.listeners');
-    if (listeners && AGate.Utils.isString(listeners)) {
+    if (AGate.Utils.isString(listeners)) {
       listeners = Manager.jsonToObject(listeners);
 
       this.set('widget.listeners', listeners);
@@ -384,21 +455,7 @@ export default Component.extend({
 
     let spriteKey = this.get('widget.sprite');
     if (spriteKey) {
-
-      let sprite = this.getSpriteByKey(spriteKey);
-      if (sprite) {
-        this.set('widget.sprite', sprite);
-
-        element.addClass(sprite.className);
-
-        if (!size) {
-          let frame = sprite.getFrame();
-          this.setSize(frame.width, frame.height);
-        }
-
-      } else {
-        console.log(spriteKey);
-      }
+      this.setSprite(spriteKey);
     }
 
     // set size
@@ -427,6 +484,7 @@ export default Component.extend({
       element.addClass(prototype);
     }
 
+    this.emitOwnEvent('created');
   },
 
   didDestroyElement() {
