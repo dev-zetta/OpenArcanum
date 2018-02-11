@@ -104,23 +104,22 @@ export class Scene extends Phaser.Scene {
               let frame = texture.get(key);
 
               if (!AGate.Utils.isUndefined(delta)) {
-                //console.log(delta)
-                //frame.delta = delta;
-                frame.x = -delta.x;
-                frame.y = -delta.y;
+                //delta = this.iso.unprojectAbsolute(delta);
+
+                frame.centerX = delta.x;
+                frame.centerY = delta.y;
 
                 //if (descriptor.flippedX) {
                   let coord = frameInfo.frame;
 
                   let flipped = texture.add(`${key}/Flipped`, 0, coord.x, coord.y, coord.w, coord.h);
 
-                  flipped.x = -(coord.w - delta.x);
-                  flipped.y = -delta.y;
+                  flipped.centerX = (coord.w - delta.x);
+                  flipped.centerY = delta.y;
                // }
 
               } else {
                 if (descriptor.flippedX) {
-                  console.log(`${key}/Flipped2222`)
                   texture.add(`${key}/Flipped`, 0, frame.x, frame.y, frame.width, frame.height);
                 }
               }
@@ -155,7 +154,7 @@ export class Scene extends Phaser.Scene {
    * @returns {IsoSprite}
    */
   addIsoSprite(x, y, z, key, frame, group, offset = null) {
-    let textures = this.sys.textures;
+    /*let textures = this.sys.textures;
     let texture = textures.get(key);
     let frameData = texture.get(frame);
 
@@ -166,15 +165,20 @@ export class Scene extends Phaser.Scene {
     if (frameData.delta) {
      // offset.x = offset.x - (frameData.delta.x);
       //offset.y = offset.y - (frameData.delta.y);
-    }
+    }*/
 
-    let delta = this.iso.unprojectAbsolute(offset);
-    //console.log(offset, delta)
+    /*if (offset) {
+      offset = this.iso.unprojectAbsolute(offset);
 
-    x += delta.x;
-    y += delta.y;
+      x += offset.y;
+      y += offset.x;
+    }*/
 
-    let sprite = new IsoSprite(this, x, y, z, key, frame); // new Phaser.GameObjects.Sprite(this, x, y, key, frame);
+    let sprite = new IsoSprite(this, x, y, z, key, frame, offset);
+
+    //sprite.displayOriginX = delta.x;
+    //sprite.displayOriginY = delta.y;
+
 
     //this.physics.world.enableBody(sprite);
 
@@ -189,8 +193,8 @@ export class Scene extends Phaser.Scene {
    *
    * @param group
    */
-  sortGroup(group) {
-    this.iso.topologicalSort(group);
+  sortGroups(groups) {
+    this.iso.topologicalSort(groups);
   }
 
   /**
@@ -200,10 +204,6 @@ export class Scene extends Phaser.Scene {
    */
   update(time, delta) {
     var pos = this.input.activePointer.positionToCamera(this.cameras.main);
-
-    // Update the cursor position.
-    // It's important to understand that screen-to-isometric projection means you have to specify a z position manually, as this cannot be easily
-    // determined from the 2D pointer position without extra trickery. By default, the z position is 0 if not set.
     this.iso.unproject(pos, this.cursorPos);
 
     this.client.engine.update();
@@ -234,19 +234,21 @@ export class Scene extends Phaser.Scene {
       this.cameraControls.update(delta);
     }
 
-    this.debugText = this.client.guiManager.findWidget('debugText');
+
     if (this.debugText) {
       let cam = this.cameras.main;
       let cur = this.input.activePointer;
 
       this.debugText.setValue([
-        `Cam: ${cam.scrollX}:${cam.scrollY}`,
-        `Cur: ${cur.x}:${cur.y}`,
-        `Pos: ${pos.x}:${pos.y}`,
-        `Tile: ${Math.floor(this.cursorPos.x)}:${Math.floor(this.cursorPos.y)}`,
+        //`Cam: ${cam.scrollX}:${cam.scrollY}`,
+        //`Cur: ${cur.x}:${cur.y}`,
+        //`Pos: ${pos.x}:${pos.y}`,
+        `Tile: ${Math.floor(this.cursorPos.x / 40)}:${Math.floor(this.cursorPos.y / 40)}`,
 
         //`FPS: ${this.time.fps}`
       ]);
+    } else {
+      this.debugText = this.client.guiManager.findWidget('debugText');
     }
   }
 
@@ -320,7 +322,7 @@ export class Scene extends Phaser.Scene {
 
       gameObject.setTint(Math.random() * 16000000);
 
-      gameObject.tween = this.tweens.add({
+      /*gameObject.tween = this.tweens.add({
         targets: gameObject,
         props: {
           isoZ: 30.0,
@@ -335,9 +337,12 @@ export class Scene extends Phaser.Scene {
         },
       });
 
-      gameObject.tween.play();
+      gameObject.tween.play();*/
 
     });
+
+    this.lights.enable();
+    this.lights.setAmbientColor(0xffffff);
 
   }
 
@@ -367,8 +372,9 @@ export class Scene extends Phaser.Scene {
     //let center = new Location((map.width * Sector.Width) / 2,  (map.height * Sector.Height) / 2).worldToScreen()
     let center = this.iso.projectXY(
       {x: (map.width * Sector.Width) / 2, y: (map.height * Sector.Height) / 2});
-    this.player = this.add.sprite(center.x, center.y, 'pointer');
-    this.player.setDepth(1);
+
+    //this.player = this.add.sprite(center.x, center.y, 'pointer');
+    //this.player.setDepth(1);
 
     //this.text = this.add.text(center.x, center.y, 'Phaser')
     //this.text.setDepth(1)
@@ -376,8 +382,8 @@ export class Scene extends Phaser.Scene {
     let cam = this.cameras.main;
     //cam.setSize(800, 800)
     //cam.setViewport(-50000, -50000, 100000, 100000)
-    cam.scrollX = center.x + 100;
-    cam.scrollY = center.y + 100;
+    //cam.scrollX = center.x + 100;
+    //cam.scrollY = center.y + 100;
     //this.game.physics.p2.enable(this.player)
 
     //cam.follow(this.player, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1)

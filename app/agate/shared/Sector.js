@@ -64,13 +64,17 @@ export class Sector {
         let tile = this.tiles[y][x];
 
         if (tile.type === GfxTypes.Tile /*|| tile.type === 'Facade'*/) {
-          let offset = {x: -39, y: -39};
+          let offset = {x: 0, y: 0};
           tile.sprite.addToScene(this.tileGroup, dy, dx, 0, offset);
         } else {
           tile.sprite.addToScene(this.tileGroup, dy, dx);
         }
 
+
         tile.sprite.setData(tile);
+        let child = tile.sprite.sprite;
+
+        //child.depth = 100000; //(64 * 64 * 40) - (child._isoPosition.y * 64 + child._isoPosition.x);
 
         /*if ((x % 2 == 0) || (y % 2 == 0)) {
           tile.sprite.sprite.setTint(0xaaaaaa);
@@ -102,7 +106,7 @@ export class Sector {
     });
 
     // Sort objects
-    target.scene.sortGroup(this.staticGroup);
+    //target.scene.sortGroup(this.staticGroup);
   }
 
   update() {
@@ -126,7 +130,19 @@ export class Sector {
                 //self.add.tween(tile).to({ isoZ: 0 }, 200, Phaser.Easing.Quadratic.InOut, true);
             }
         });
+
+
+      for (let y = 0; y < Sector.Height; y++) {
+        for (let x = 0; x < Sector.Width; x++) {
+          let tile = this.tiles[y][x];
+
+          //tile.sprite.sprite.debug();
+        }
+      }
     }
+
+
+
   }
 
 }

@@ -52,8 +52,8 @@ export class Isometric {
         //this.scene.physics.system = new IsoPhysics(this.scene.physics);
 
         this.projector = new Projector(this.scene, isometricType);
-        //  Add an instance of Isometric.Projector to scene.iso if it doesn't exist already
-        this.scene.iso = this.scene.iso || this.projector;
+
+        this.scene.iso = this.projector;
     }
 }
 

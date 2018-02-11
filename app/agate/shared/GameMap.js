@@ -5,6 +5,7 @@ import {EntitySystem} from './EntitySystem';
 import {Sprite} from '../client/Sprite';
 import {Location} from './Location';
 import {Sector} from './Sector';
+import {Light} from '../client/Light';
 
 export class GameMap {
 
@@ -77,15 +78,23 @@ export class GameMap {
   }
 
   placeToScene(target) {
+    //console.log(Phaser.GameObjects);
+
     AGate.Utils.logError(`Placing to scene: ${this.path}`);
 
     this.rootGroup = target.add.group();
     this.rootGroup.autoCull = true;
 
+    let sortGroups = [];
+
     for (let col = 0; col < this.height; col++) {
       for (let row = 0; row < this.width; row++) {
-        if (row == 1 && col == 1)
-          this.sectors[col][row].placeToScene(this.rootGroup);
+        let sector = this.sectors[col][row];
+
+        if (row == 1 && col == 1) {
+          sector.placeToScene(this.rootGroup);
+          sortGroups.push(sector.staticGroup);
+        }
       }
     }
 
@@ -97,8 +106,9 @@ export class GameMap {
       entity.placeToScene(this.mobileGroup);
     });
 
-    this.engine.client.scene.sortGroup(this.mobileGroup);
+    sortGroups.push(this.mobileGroup);
 
+    this.engine.client.scene.sortGroups(sortGroups);
   }
 
   update() {

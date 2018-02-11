@@ -119,7 +119,7 @@ export class Sprite {
     switch (this.type) {
       case GfxTypes.Wall:
       case GfxTypes.Portal:
-        //this.sprite.alpha = 0.5;
+        this.sprite.alpha = 0.7;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 .5;
         break;
 
     }
@@ -147,8 +147,8 @@ export class Sprite {
       //this.sprite.originX = 0.5;
 
 
-      this.sprite.scaleX *= -1;
-      //this.sprite.flipX = true;
+      //this.sprite.scaleX *= -1;
+      this.sprite.flipX = true;
     }
 
     if (this.stageLength > 1 && this.type !== GfxTypes.Facade) {
@@ -164,9 +164,11 @@ export class Sprite {
           {key: stagePath, frames: frames, frameRate: this.frameRate, repeat: -1});
 
         // load animation
-        this.sprite.anims.play(stagePath);
+        this.sprite.anims.load(stagePath);
       }
     }
+
+    //this.sprite.setPipeline('Light2D');
 
   }
 
@@ -176,6 +178,10 @@ export class Sprite {
 
   setBlendMode(mode) {
     this.sprite.setBlendMode(Phaser.BlendModes.ADD);
+  }
+
+  setTint(color) {
+    this.sprite.setTint(color);
   }
 
   //  Canvas and WebGL:

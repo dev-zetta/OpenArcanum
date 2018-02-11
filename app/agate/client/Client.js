@@ -36,7 +36,7 @@ export class Client {
     let self = this;
     this.game = new Phaser.Game({
       parent: this._canvas,
-      renderer: Phaser.WEBGL,
+      renderType: Phaser.CANVAS,
       transparent: true,
       //antialias: true,
       multiTexture: false,

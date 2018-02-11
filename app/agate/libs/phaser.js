@@ -6,7 +6,7 @@ window.Phaser = requireNode('phaser-ce/build/custom/phaser-split')
 */
 
 window.WEBGL_RENDERER = true
-window.CANVAS_RENDERER = false
+window.CANVAS_RENDERER = true
 
 var Phaser = requireNode('phaser')
 
