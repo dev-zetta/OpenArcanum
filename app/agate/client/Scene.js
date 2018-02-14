@@ -342,7 +342,7 @@ export class Scene extends Phaser.Scene {
     });
 
     this.lights.enable();
-    this.lights.setAmbientColor(0xffffff);
+    this.lights.setAmbientColor(0x666666);
 
   }
 

@@ -157,14 +157,13 @@ export class Entity extends ECS.Entity {
 
         if (lightComponent.color) {
           let color = Utils.stringToColor(lightComponent.color);
-          //console.log(color)
-          sprite.setTint(color);
+          //sprite.setTint(color);
+
+          this.light = new Light();
+          this.light.addToScene(target.scene, sprite.sprite.x, sprite.sprite.y, color);
         }
 
-       // console.log(sprite.sprite.x, sprite.sprite.y)
 
-        //this.light = new Light();
-        //this.light.addToScene(target.scene, sprite.sprite.x, sprite.sprite.y);
       }
 
 

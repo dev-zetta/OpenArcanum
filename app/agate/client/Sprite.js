@@ -124,21 +124,6 @@ export class Sprite {
 
     }
 
-    //let delta = this.sprite.frame.delta;
-
-    /*if (delta) {
-      this.sprite.x -= delta.x;
-      this.sprite.y -= delta.y;
-    }*/
-
-    /*if (offset != null) {
-
-      this.sprite.x = this.sprite.x + offset.x;
-      this.sprite.y = this.sprite.y + offset.y;
-    }*/
-
-    //this.sprite.checkWorldBounds = false
-    //this.sprite.autoCull = true
     this.sprite.setInteractive();
 
     //this.sprite.originY = 1.0;
@@ -168,6 +153,7 @@ export class Sprite {
       }
     }
 
+    //if (this.type == GfxTypes.Tile)
     //this.sprite.setPipeline('Light2D');
 
   }

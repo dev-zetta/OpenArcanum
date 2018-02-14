@@ -17,7 +17,7 @@ import {Math} from './Math';
 
 export class Projector {
   constructor(scene, projectionAngle) {
-
+    console.log(Phaser);
     /**
      * @property {Phaser.Game} game - The current game object.
      */
@@ -64,13 +64,13 @@ export class Projector {
 
     this._projectionAngle = value;
 
-    this._transform = [Math.cos(this._projectionAngle), Math.sin(this._projectionAngle)];
+    //this._transform = [Math.cos(this._projectionAngle), Math.sin(this._projectionAngle)];
 
     //console.log(this._projectionAngle,  this._transform)
 
     //this._transform = [Math.cos(this._projectionAngle * Math.PI / 180), Math.sin(this._projectionAngle * Math.PI / 180)];
 
-    //this._transform = [0.975, 0.5];
+    this._transform = [0.975, 0.5];
   }
 
   /**
@@ -275,7 +275,7 @@ export class Projector {
 
         //child.depth = child.depth; //children[i][prop];
 
-        child.debug();
+        //child.debug();
       }
     }
 

@@ -5,10 +5,12 @@ export class Light {
 
   }
 
-  addToScene(scene, x, y) {
+  addToScene(scene, x, y, color) {
     this.scene = scene;
 
-    this.scene.lights.addLight(x, y, 100.0, 0xff0000);
+    this.instance = this.scene.lights.addLight(x, y, 40.0);
+
+    this.instance.setColor(color);
   }
 
 }
