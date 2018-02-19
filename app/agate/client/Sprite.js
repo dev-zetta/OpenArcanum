@@ -10,11 +10,15 @@ export class Sprite {
     this.client = client;
   }
 
+  get stageLength() {
+    return this.sprite.texture.frameTotal;
+  }
+
   async load(data) {
     let assetLoader = this.client.engine.assetLoader;
-    var dataPath = AGate.getDataPath('Gfx/2D');
+    let dataPath = AGate.getDataPath('Gfx/2D');
 
-    var path = '';
+    let path = '';
     if (AGate.Utils.isObject(data)) {
       let builder = new GfxPathBuilder(data);
       path = builder.toPath();
@@ -30,9 +34,7 @@ export class Sprite {
 
     this.path = path;
 
-    let variant = 0; //AGate.Utils.isUndefined(data.variant) ? 0 : data.variant
-
-    this.selectedVariant = variant;
+    this.selectedVariant = 0;
 
     switch (this.type) {
       case GfxTypes.Tile:
@@ -47,11 +49,16 @@ export class Sprite {
         break;
     }
 
-    let meta = await assetLoader.loadJsonFile(`${dataPath}/${this.path}/Meta.json`);
+    let spritePath = `${dataPath}/${this.path}`;
+    let meta = await assetLoader.loadJsonFile(`${spritePath}/Meta.json`);
     if (!meta)
       return;
 
-    Object.assign(this, meta);
+    this.frameRate = meta.frameRate;
+    this.triggerFrame = meta.triggerFrame;
+    this.animated = meta.animated;
+
+    //Object.assign(this, meta);
 
     /*
     "frameRate": 14,
@@ -64,30 +71,29 @@ export class Sprite {
     this.variants = [];
     this.stages = [];
 
-    let stageDirs = await assetLoader.findDirs(`${dataPath}/${this.path}/${variant}/`);
+    let variantPath = `${spritePath}/${this.selectedVariant}`;
+    let keyPrefix = `${this.path}/${this.selectedVariant}`;
 
-    stageDirs.forEach((dir) => {
-      let stageName = AGate.Utils.getLastDir(dir);
-      let key = `${this.path}/${variant}/${stageName}`;
+    let stageDirs = await assetLoader.findDirs(variantPath);
 
-      //AGate.Utils.logError(`${dir}/Sprite.${AGate.Const.Sprite.DefaultExt}`)
+    for (let [key, value] of stageDirs) {
+      let stageName = key; // AGate.Utils.getLastDir(dir);
+      let stagePath = `${variantPath}/${stageName}`;
+      let assetKey = `${keyPrefix}/${stageName}`;
 
-      //let urlPath = `${dataUrl}/${path}`
-      //if (AGate.Utils.isFileExist(`${urlPath}/Stage.json`))
-
-      this.client.scene.loadAsset(key, 'atlas', {
-        texture: `${dir}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
-        data: `${dir}/Stage.json`,
+      this.client.scene.loadAsset(assetKey, 'atlas', {
+        texture: `${stagePath}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
+        data: `${stagePath}/Stage.json`,
         flippedX: this.flipped
       });
 
       this.stages.push(stageName);
-    });
+    }
   }
 
   addToScene(target, x, y, z = 0, offset = null) {
-    var currentPath = `${this.path}/${this.selectedVariant}`;
-    var key, frame;
+    let currentPath = `${this.path}/${this.selectedVariant}`;
+    let key, frame;
 
     switch (this.type) {
       case GfxTypes.Tile:
@@ -101,15 +107,12 @@ export class Sprite {
       case GfxTypes.Portal:
         key = `${currentPath}/North`;
         frame = `${key}/0`;
+        //this.animated = true;
         break;
       default:
         key = `${currentPath}/${this.currentStage}`;
         frame = `${key}/${this.frame}`;
         break;
-    }
-
-    if (this.flipped && this.type != GfxTypes.Tile) {
-      frame += `/Flipped`;
     }
 
     this.sprite = target.scene.addIsoSprite(x, y, z, key, frame, target, offset);
@@ -121,22 +124,22 @@ export class Sprite {
       case GfxTypes.Portal:
         this.sprite.alpha = 0.7;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 .5;
         break;
-
     }
 
     this.sprite.setInteractive();
-
-    //this.sprite.originY = 1.0;
 
     if (this.flipped && this.type !== GfxTypes.Facade) {
       //this.sprite.originX = 0.5;
 
 
-      //this.sprite.scaleX *= -1;
-      this.sprite.flipX = true;
+      this.sprite.scaleX *= -1;
+
+      //this.sprite.flipX = true;
+
+      this.sprite.resetIsoBounds();
     }
 
-    if (this.stageLength > 1 && this.type !== GfxTypes.Facade) {
+    if (this.animated /*this.stageLength > 1 && (this.type !== GfxTypes.Facade && this.type !== GfxTypes.Tile)*/) {
       for (let stageIndex = 0; stageIndex < this.stages.length; stageIndex++) {
         let stageName = this.stages[stageIndex];
         let stagePath = `${this.path}/${this.selectedVariant}/${stageName}`;
@@ -145,11 +148,20 @@ export class Sprite {
         let frames = target.scene.anims.generateFrameNames(stagePath,
           {prefix: `${stagePath}/`, end: this.stageLength - 1});
 
-        target.scene.anims.create(
-          {key: stagePath, frames: frames, frameRate: this.frameRate, repeat: -1});
+        target.scene.anims.create({
+            key: stagePath,
+            frames: frames,
+            frameRate: this.frameRate,
+            repeat: -1,
+
+            onUpdate: (sprite, animation, params) => {
+              sprite.displayOriginX = sprite.frame.centerX;
+              sprite.displayOriginY = sprite.frame.centerY;
+            }
+        });
 
         // load animation
-        this.sprite.anims.load(stagePath);
+        this.sprite.anims.play(stagePath);
       }
     }
 
@@ -163,7 +175,19 @@ export class Sprite {
   }
 
   setBlendMode(mode) {
-    this.sprite.setBlendMode(Phaser.BlendModes.ADD);
+
+    switch (mode) {
+      case 'BlendAdd':
+        mode = Phaser.BlendModes.ADD;
+        break;
+      case 'BlendMul':
+        mode = Phaser.BlendModes.MULTIPLY;
+        break;
+      default:
+        return;
+    }
+
+    this.sprite.setBlendMode(mode);
   }
 
   setTint(color) {

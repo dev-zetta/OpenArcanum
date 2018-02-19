@@ -21,9 +21,7 @@ class Manager {
     list.forEach((path) => {
       let widget = require(path).widget;
 
-      let dotPos = path.lastIndexOf(".");
-      let slashPos = path.lastIndexOf("/");
-      let key = path.substring(slashPos + 1, dotPos);
+      let key = AGate.Utils.getFileBase(path);
 
       if (widget.parent) {
         resolve[key] = widget;
@@ -45,7 +43,7 @@ class Manager {
   async loadAssets() {
     await this.generateAssets();
 
-    let assetPath = '/media/maxli/Data/dev/OpenArcanum/public/assets';
+    let assetPath = 'Gui';
 
     let assetLoader = this.engine.assetLoader;
 

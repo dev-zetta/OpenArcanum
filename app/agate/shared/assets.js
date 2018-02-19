@@ -1,6 +1,5 @@
 /* global requireNode */
 import AGate from '../agate';
-import {Utils} from './Utils';
 //var liquidfun = requireNode('liquidfun')
 
 export var GfxTypes = new AGate.Enum(
@@ -58,7 +57,10 @@ export class GfxPathBuilder {
         base += `${data.name}`; // ok
         break;
       case GfxTypes.Critter:
-        base += `${data.race}/${data.gender}/${data.armor}/${data.shield}/${data.weapon}/${data.animation}`;
+        let gender = (data.race == 'Human') ? data.gender : 'Male';
+
+
+        base += `${data.race}/${gender}/${data.armor}/${data.shield}/${data.weapon}/${data.animation}`;
         break;
       case GfxTypes.Monster:
         base += `${data.name}/${data.armor}/${data.shield}/${data.weapon}/${data.animation}`;
@@ -78,9 +80,13 @@ export class GfxPathBuilder {
 const fs = AGate.requireNode('fs');
 const util = AGate.requireNode('util');
 const mime = AGate.requireNode('mime-types');
-const loadJsonFile = AGate.requireNode('load-json-file');
+const parseJson = AGate.requireNode('parse-json');
 const writeJsonFile = AGate.requireNode('write-json-file');
 const find = AGate.requireNode('find');
+
+// https://github.com/antelle/node-stream-zip
+
+const StreamZip = AGate.requireNode('node-stream-zip');
 
 export class AssetLoader {
   constructor(engine) {
@@ -89,6 +95,7 @@ export class AssetLoader {
     this.preloadAssets = [];
 
     this.useBlobs = false;
+    this.archives = [];
   }
 
   hasAsset(key) {
@@ -96,40 +103,114 @@ export class AssetLoader {
   }
 
   preload(descriptor) {
+    if (this.loadedAssets.has(descriptor.key))
+      return;
+
     this.preloadAssets.push(descriptor);
     this.loadedAssets.set(descriptor.key, null);
   }
 
-  async start(onAssetLoaded) {
-    //return new Promise(resolve => {
-      var loaded = 0;
-      for (let i = 0; i < this.preloadAssets.length; i++) {
-        let descriptor = this.preloadAssets[i];
+  async processArchive(file, zipId) {
+    return new Promise(resolve => {
+      console.log(`Loading archive: ${file}`);
 
-        if (descriptor == null)
-          continue;
+      let zip = new StreamZip({
+        file: file,
+        storeEntries: false
+      });
 
-        let result = await this.loadAsset(descriptor);
-        if (!result) {
-          continue;
+      zip.on('entry', (entry) => {
+        if (entry.isDirectory)
+          return;
+
+        //console.log(`Read entry ${entry.name}`);
+
+        let parts = entry.name.split('/');
+        let parent = this.archiveEntries;
+
+        for (let i = 0; i < parts.length; i++) {
+          let part = parts[i];
+
+          if (i + 1 == parts.length) {
+            if (parent.has(part)) {
+              console.log(`Overriding file? ${entry.name}`);
+            }
+
+            entry.zipId = zipId;
+            parent.set(part, entry);
+          } else {
+            let child = parent.get(part);
+            if (!child) {
+              child =  new Map();
+              parent.set(part, child);
+            }
+
+            parent = child;
+          }
         }
-        onAssetLoaded(descriptor);
+      });
 
-        this.loadedAssets.set(descriptor.key, descriptor);
-        loaded++;
+      zip.on('error', (err) => {
+        console.log(err);
+      });
 
-        this.preloadAssets[i] = null;
-
-        if (loaded == this.preloadAssets.length) {
-          this.preloadAssets.clear();
-          //resolve(loaded);
-        }
+      zip.on('ready', () => {
+        resolve(zip);
+      });
 
 
+    });
+  }
+
+  async initialize() {
+    let path = AGate.getAppPath('archives/');
+
+    let files = await this.findFiles(path, '.zip');
+
+    this.archiveEntries = new Map();
+
+    for (let i = 0; i < files.length; i++) {
+      let file = files[i];
+
+      let zipId = this.archives.length;
+      let zip = await this.processArchive(file, zipId);
+      this.archives.push(zip);
+    }
+  }
+
+  async loadAssets(list, onLoaded) {
+    if (!list) {
+      list = this.preloadAssets;
+    }
+
+    let loaded = 0;
+    for (let i = 0; i < list.length; i++) {
+      let descriptor = list[i];
+
+      if (descriptor == null)
+        continue;
+
+      if (this.loadedAssets.get(descriptor.key) != null)
+        continue;
+
+      let result = await this.loadAsset(descriptor);
+      if (!result) {
+        continue;
       }
-    //});
 
-    return true; //Promise.resolve(loaded);
+      onLoaded(descriptor);
+
+      this.loadedAssets.set(descriptor.key, descriptor);
+      loaded++;
+
+      list[i] = null;
+
+      if (loaded == list.length) {
+        this.preloadAssets.clear();
+      }
+    }
+
+    return true;
   }
 
   stringToBlob(string, contentType = '', sliceSize = 512) {
@@ -152,39 +233,64 @@ export class AssetLoader {
     return blob;
   }
 
-  async loadFileToBlob(src) {
+  loadFile(src, encoding = undefined) {
     return new Promise(resolve => {
-      fs.readFile(src, undefined, (err, data) => {
+
+      let result = this.findInArchives(src);
+
+      if (result) {
+        //console.log(`Loaded file from zip: ${src}`);
+
+        try {
+          let entry = result;//[0];
+          let archive = this.archives[entry.zipId];
+
+          const data = archive.entryDataSync(entry);
+
+          resolve(data);
+        } catch (err) {
+          console.log(err);
+        }
+
+        return;
+      }
+
+      let root = AGate.getAppPath();
+
+      fs.readFile(`${root}/${src}`, encoding, (err, data) => {
         if(err){
           AGate.Utils.logError(`Unable to load file: ${src}`);
           resolve(null);
         } else {
-          let blob = this.stringToBlob(data.toString('binary'));
-          resolve(blob);
+          resolve(data);
         }
-
-
       });
 
     });
+  }
+
+  async loadFileToBlob(src) {
+    let data = await this.loadFile(src);
+    if (!data)
+      return null;
+
+    let blob = this.stringToBlob(data.toString('binary'));
+    return blob;
   }
 
   async loadFileToBlobUrl(src) {
     //var data = fs.readFileSync(src).toString("base64")
     //return util.format("data:%s;base64,%s", mime.lookup(src), data)
 
-    var blob = this.loadFileToBlob(src);
+    let blob = await this.loadFileToBlob(src);
     return URL.createObjectURL(blob);
   }
 
   async loadFileToDataUrl(src) {
-    return new Promise(resolve => {
-      fs.readFile(src, 'base64', (err, data) => {
-        let result = util.format('data:%s;base64,%s', mime.lookup(src), data.toString('binary'));
-        resolve(result);
-      });
+    let data = await this.loadFile(src, 'base64');
 
-    });
+    let result = util.format('data:%s;base64,%s', mime.lookup(src), data.toString('binary'));
+    return result;
   }
 
   async createAndLoadImage(src) {
@@ -229,7 +335,6 @@ export class AssetLoader {
         return new Image();
       }
 
-
       return await createImageBitmap(blob);
     }
   }
@@ -252,8 +357,9 @@ export class AssetLoader {
 
   async loadJsonFile(filePath) {
     try {
-      return await loadJsonFile(filePath);
+      let data = await this.loadFile(filePath);
 
+      return parseJson(data.toString('binary'));
     } catch (err) {
       AGate.Utils.logError(err.message);
       return null;
@@ -305,6 +411,13 @@ export class AssetLoader {
   async findFiles(dir, ext) {
     let regExp = new RegExp(`\.${ext}`, 'i');
     return new Promise(resolve => {
+
+      let entries = this.findInArchives(dir, regExp);
+      if (entries) {
+        resolve(entries);
+        return;
+      }
+
       let list = find.fileSync(regExp, dir);
       resolve(list);
     });
@@ -312,8 +425,62 @@ export class AssetLoader {
 
   async findDirs(dir, pattern) {
     return new Promise(resolve => {
+      if (!pattern) {
+        pattern = new RegExp(`^[^.]+$`, 'i');
+      }
+
+      let entries = this.findInArchives(dir, pattern);
+      if (entries) {
+        resolve(entries);
+        return;
+      }
+
       let list = find.dirSync(pattern, dir);
       resolve(list);
     });
   }
+
+  findInArchives(what, filter = null) {
+    if (!this.archiveEntries)
+      return null;
+
+    let parts = what.split('/');
+
+    let partsCount = parts.length;
+    if (what.endsWith('/'))
+      partsCount -= 1;
+
+    let parent = this.archiveEntries;
+
+    for (let i = 0; i < partsCount; i++) {
+      let part = parts[i];
+
+      let item = parent.get(part);
+      if (!item) {
+        console.log(`Not found: ${what} - ${part}`);
+        return null;
+      }
+
+      if (i + 1 == partsCount) {
+        if (!filter)
+          return item;
+
+        //console.log(what)
+        let result = new Map();
+        for (let [key, value] of item) {
+          if (filter.exec(key)) {
+            result.set(key, value);
+          }
+        }
+
+        return result;
+      }
+
+      parent = item;
+    }
+
+    return null;
+  }
+
+
 }

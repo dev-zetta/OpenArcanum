@@ -1,33 +1,44 @@
-import { Sector } from './Sector';
+import {Sector} from './Sector';
+import {Math} from './Math';
+import AGate from '../agate';
 
-export class Location {
+export class Location extends Math.Vec2 {
 
   constructor(x, y) {
-    this.x = x;
-    this.y = y;
+    if (AGate.Utils.isArray(x)) {
+      super(x[0], x[1]);
+    } else {
+      super(x, y);
+    }
+
   }
 
   worldToScreen() {
-    let x = ((this.x - this.y) * (Sector.TileWidth / 2));
-    let y = ((this.x + this.y) * (Sector.TileHeight / 2));
+    let x = ((this.x - this.y) * Sector.TileWidthHalf);
+    let y = ((this.x + this.y) * Sector.TileHeightHalf);
 
     return new Location(x, y);
   }
 
-  getSectorX() {
+  get sectorX() {
     return (this.x / Sector.Width);
   }
 
-  getSectorY() {
+  get sectorY() {
     return (this.y / Sector.Height);
   }
 
-  getTileX() {
+  get tileX() {
     return (this.x % Sector.Width);
   }
 
-  getTileY() {
+  get tileY() {
     return (this.y % Sector.Height);
+  }
+
+  static makeRaw(sectorX, sectorY, tileX, tileY) {
+    return [(sectorX * Sector.Width) + tileX, (sectorY *
+      Sector.Height) + tileY];
   }
 
 }

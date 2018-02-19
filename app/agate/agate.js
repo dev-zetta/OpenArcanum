@@ -4,9 +4,15 @@
 import {Utils} from './shared/Utils';
 import {Math} from './shared/Math';
 
+//import 'reflect-metadata';
+
 class AGate {
-  static getDataPath(subDir = '') {
+  static getAppPath(subDir = '') {
     return `/media/maxli/Data/dev/ArcanumAlive/Data/converted/${subDir}`;
+  }
+
+  static getDataPath(subDir = '') {
+    return `${subDir}`;
   }
 
   /*static getDataUrl(subDir = '') {

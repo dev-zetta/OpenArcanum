@@ -33,4 +33,15 @@ export class Utils extends lodash {
     return new Function(args, fn_body);
   }
 
+  /**
+   * Returns filename from path, excluding file extension
+   * @param path
+   * @returns {string | *}
+   */
+  static getFileBase(path) {
+    let dotPos = path.lastIndexOf(".");
+    let slashPos = path.lastIndexOf("/");
+    return path.substring(slashPos + 1, dotPos);
+  }
+
 }

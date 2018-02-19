@@ -2,6 +2,7 @@ import {Phaser} from './Phaser';
 import {Point3} from './Point3';
 import {Isometric} from './Isometric';
 import {Math} from './Math';
+import {Sector} from '../../shared/Sector';
 
 /**
  * @class Projector
@@ -191,6 +192,8 @@ export class Projector {
 
     for (let i = 0; i < groups.length; i++) {
       let group = groups[i];
+      if (!group)
+        continue;
 
       if (group instanceof Phaser.GameObjects.Group) {
         objectLists.push(group.getChildren());
@@ -206,7 +209,7 @@ export class Projector {
     prop = prop || 'isoDepth';
 
     if (typeof padding === 'undefined') {
-      padding = 1.5;
+      padding = 0.1;
     }
 
     for (let o = 0; o < objectLists.length; o++) {
@@ -271,9 +274,15 @@ export class Projector {
         let child = children[i];
 
         child.postUpdate();
-        child.depth = Math.round((child._isoPosition.x / 40) * ((child._isoPosition.y / 40) * 64));
 
-        //child.depth = child.depth; //children[i][prop];
+        let pos = child._isoPosition;
+        //let x = (pos.x - pos.y) - child.displayOriginX;
+        //let y = ((pos.x + pos.y) / 2) - child.displayOriginY;
+
+
+        //child.depth = x * y; //Math.round((child._isoPosition.x * (child._isoPosition.y * 64)) / 40);
+        child.depth = (child._isoPosition.x * (child._isoPosition.y * 64)) - child.displayOriginY;
+        //child.depth = children[i][prop];
 
         //child.debug();
       }

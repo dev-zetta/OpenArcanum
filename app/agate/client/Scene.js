@@ -4,7 +4,9 @@ import Phaser from '../libs/phaser';
 import {Isometric} from '../libs/phaser-isometric/Isometric';
 import {Point3} from '../libs/phaser-isometric/Point3';
 import {IsoSprite} from '../libs/phaser-isometric/IsoSprite';
+
 import {Sector} from '../shared/Sector';
+import {Location} from '../shared/Location';
 
 const dat = AGate.requireNode('dat.gui');
 
@@ -90,9 +92,9 @@ export class Scene extends Phaser.Scene {
    */
   async startLoader(map) {
     if (this.customLoader) {
-      var textures = this.sys.textures;
+      let textures = this.sys.textures;
 
-      var result = await this.engine.assetLoader.start((descriptor) => {
+      let result = await this.engine.assetLoader.loadAssets(null, (descriptor) => {
         switch (descriptor.type) {
           case 'atlas':
             let texture = textures.addAtlas(descriptor.key, descriptor.image, descriptor.meta);
@@ -101,27 +103,15 @@ export class Scene extends Phaser.Scene {
             for (let key in frames) {
               let frameInfo = frames[key];
               let delta = frameInfo.delta;
+              let center = frameInfo.center;
+
               let frame = texture.get(key);
 
-              if (!AGate.Utils.isUndefined(delta)) {
-                //delta = this.iso.unprojectAbsolute(delta);
+              //center = this.iso.unprojectAbsolute(center);
 
-                frame.centerX = delta.x;
-                frame.centerY = delta.y;
-
-                //if (descriptor.flippedX) {
-                  let coord = frameInfo.frame;
-
-                  let flipped = texture.add(`${key}/Flipped`, 0, coord.x, coord.y, coord.w, coord.h);
-
-                  flipped.centerX = (coord.w - delta.x);
-                  flipped.centerY = delta.y;
-               // }
-
-              } else {
-                if (descriptor.flippedX) {
-                  texture.add(`${key}/Flipped`, 0, frame.x, frame.y, frame.width, frame.height);
-                }
+              if (center) {
+                frame.centerX = center.x;
+                frame.centerY = center.y;
               }
             }
 
@@ -369,9 +359,9 @@ export class Scene extends Phaser.Scene {
   onMapLoaded(map) {
     AGate.Utils.logError('Scene: onMapLoaded');
 
-    //let center = new Location((map.width * Sector.Width) / 2,  (map.height * Sector.Height) / 2).worldToScreen()
+    //
     let center = this.iso.projectXY(
-      {x: (map.width * Sector.Width) / 2, y: (map.height * Sector.Height) / 2});
+      {x: (map.width * 40) / 2, y: (map.height * 40) / 2});
 
     //this.player = this.add.sprite(center.x, center.y, 'pointer');
     //this.player.setDepth(1);
@@ -379,14 +369,25 @@ export class Scene extends Phaser.Scene {
     //this.text = this.add.text(center.x, center.y, 'Phaser')
     //this.text.setDepth(1)
 
-    let cam = this.cameras.main;
-    //cam.setSize(800, 800)
-    //cam.setViewport(-50000, -50000, 100000, 100000)
-    //cam.scrollX = center.x + 100;
-    //cam.scrollY = center.y + 100;
+
+
     //this.game.physics.p2.enable(this.player)
 
     //cam.follow(this.player, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1)
+
+    this.setCameraLocation([330, 350 /*(map.width / 2) * 64,  (map.height / 2) * 64*/]);
+  }
+
+  setCameraLocation(location) {
+    let cam = this.cameras.main;
+    let center = new Location(location).worldToScreen();
+    center.x += cam.width / 2;
+    center.y += cam.height / 2;
+
+    //cam.setSize(800, 800)
+    //cam.setViewport(-50000, -50000, 100000, 100000)
+    cam.scrollX = center.x;
+    cam.scrollY = center.y;
   }
 
 }

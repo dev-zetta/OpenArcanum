@@ -1,18 +1,20 @@
-import ECS from '../libs/ecs/ecs';
+import AGate from '../agate';
+import {ECS} from '../libs/ecs';
 import {GfxTypes} from './assets';
 import {Sprite} from '../client/Sprite';
 import {Utils} from '../client/Utils';
-import AGate from '../agate';
 import {Light} from '../client/Light';
+import {Location} from './Location';
+import {Sector} from './Sector';
 
-const Location = {
-  name: 'location',
-  defaults: {x: 0, y: 0},
+let Components = {
+
 };
+
 
 export class Entity extends ECS.Entity {
   constructor(map) {
-    super([Location]);
+    super([]);
     this.map = map;
 
     /*let entity = new ECS.Entity();
@@ -46,10 +48,10 @@ export class Entity extends ECS.Entity {
 
   placeToScene(target) {
     let baseComponent = this.components['Base'];
-    var position = baseComponent.location.tile;
+    let location = new Location(baseComponent.location);
 
     let visualComponent = this.components['Visual'];
-    if (visualComponent) {
+    if (visualComponent && visualComponent.classes) {
       let visualClass = visualComponent.classes['Current'];
       if (AGate.Utils.isUndefined(visualClass)) {
         visualClass = visualComponent.classes['Normal'];
@@ -66,20 +68,20 @@ export class Entity extends ECS.Entity {
       }
 
       let offset = baseComponent.offset;
+      if (AGate.Utils.isArray(offset)) {
+        offset = {x: offset[0], y: offset[1]};
+      }
 
-      let y = (position.x * 40);
-      let x = (position.y * 40);
-
-      //if (sprite.type == 'Portal')
-      //console.log(sprite.currentStage)
+      let y = (location.x * Sector.TileWidthHalf);
+      let x = (location.y * Sector.TileWidthHalf);
 
       if (sprite.type === GfxTypes.Wall) {
         switch (sprite.currentStage) // Counter clockwise
         {
           case 'NorthEast':
             // South east, indoor (Up right)
-            offset.x += 40; //(Sector.TileWidth / 2) - 1
-            offset.y -= 20; //(Sector.TileHeight / 2)
+            //x += 20; //(Sector.TileWidth / 2) - 1
+            y -= Sector.TileWidthHalf; //(Sector.TileHeight / 2)
             break;
           case 'SouthEast':
             // South west, outdoor
@@ -94,8 +96,8 @@ export class Entity extends ECS.Entity {
 
           case 'NorthWest':
             // South west, indoor (Up left)
-            offset.x -= 40; //(Sector.TileWidth / 2) + 1
-            offset.y -= 20; //(Sector.TileHeight / 2)
+            x -= Sector.TileWidthHalf; //(Sector.TileWidth / 2) + 1
+            //y -= 20; //(Sector.TileHeight / 2)
             break;
         }
       } else if (sprite.type === GfxTypes.Portal) {
@@ -103,8 +105,8 @@ export class Entity extends ECS.Entity {
         {
           case 1:
             // South east, indoor (Up right)
-            offset.x += 40; //(Sector.TileWidth / 2) - 1
-            offset.y -= 20; //(Sector.TileHeight / 2)
+            //x += 40; //(Sector.TileWidth / 2) - 1
+            y -= Sector.TileWidthHalf; //(Sector.TileHeight / 2)
             break;
           case 3:
             // South west, outdoor
@@ -119,13 +121,12 @@ export class Entity extends ECS.Entity {
 
           case 7:
             // South west, indoor (Up left)
-            offset.x -= 40; //(Sector.TileWidth / 2) + 1
-            offset.y -= 20; //(Sector.TileHeight / 2)
+            x -= Sector.TileWidthHalf; //(Sector.TileWidth / 2) + 1
+            //y -= 20; //(Sector.TileHeight / 2)
             break;
         }
       } else {
-        //offset.x += 20;
-        //offset.x -= 20;
+
       }
 
       sprite.addToScene(target, x, y, 0 /*position.y / 64 + position.x*/,
@@ -144,7 +145,10 @@ export class Entity extends ECS.Entity {
           for (let i = 0; i < flags.length; i++) {
             switch (flags[i]) {
               case 'BlendAdd':
-                sprite.setBlendMode();
+                sprite.setBlendMode('BlendAdd');
+                break;
+              case 'BlendMul':
+                sprite.setBlendMode('BlendMul');
                 break;
             }
           }
@@ -154,7 +158,6 @@ export class Entity extends ECS.Entity {
 
       let lightComponent = visualComponent.light;
       if (lightComponent) {
-
         if (lightComponent.color) {
           let color = Utils.stringToColor(lightComponent.color);
           //sprite.setTint(color);
@@ -162,12 +165,8 @@ export class Entity extends ECS.Entity {
           this.light = new Light();
           this.light.addToScene(target.scene, sprite.sprite.x, sprite.sprite.y, color);
         }
-
-
       }
 
-
-      //sprite.setTint(0x808080);
     }
   }
 

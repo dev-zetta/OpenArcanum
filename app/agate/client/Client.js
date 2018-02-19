@@ -20,7 +20,7 @@ export class Client {
     this.engine = engine;
     this._canvas = canvas;
     this.assetServer = new AssetServer();
-    this.assetServer.start(AGate.getDataPath());
+    //this.assetServer.start(AGate.getDataPath());
     this.guiManager = new Manager(engine);
 
     /*game.state.add('boot', new Boot())
@@ -36,7 +36,7 @@ export class Client {
     let self = this;
     this.game = new Phaser.Game({
       parent: this._canvas,
-      renderType: Phaser.CANVAS,
+      renderType: Phaser.WEBGL,
       transparent: true,
       //antialias: true,
       multiTexture: false,

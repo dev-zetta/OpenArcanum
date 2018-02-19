@@ -1,4 +1,4 @@
-const WebSocket = require('ws');
+const WebSocket = requireNode('ws');
 
 class GameServer {
     create(port = 8080) {

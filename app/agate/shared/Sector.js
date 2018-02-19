@@ -1,13 +1,16 @@
 import {Sprite} from '../client/Sprite';
 import {Location} from './Location';
+
 import Phaser from '../libs/phaser';
 import AGate from '../agate';
 import {GfxTypes} from './assets';
 
 export class Sector {
-  static get TileWidth() { return 78; }
+  static get TileWidth() { return 80; }
+  static get TileWidthHalf() { return 40; }
 
   static get TileHeight() { return 40; }
+  static get TileHeightHalf() { return 20; }
 
   static get Width() { return 64; }
 
@@ -24,9 +27,13 @@ export class Sector {
     let data = await this.engine.assetLoader.loadJsonFile(`${path}/Sector.json`);
     AGate.Utils.logError(`...Loaded`);
 
+    this.tiles = data.tiles;
+    if (!this.tiles)
+      return;
+
     this.x = x;
     this.y = y;
-    this.tiles = data.tiles;
+
     this.lights = data.lights;
     this.roofs = data.roofs;
 
@@ -34,11 +41,12 @@ export class Sector {
       for (let tx = 0; tx < Sector.Width; tx++) {
 
         let tile = this.tiles[ty][tx];
+        if (!tile)
+          continue;
 
-        tile.location = new Location(x * Sector.Width + ty, y *
-          Sector.Height + tx);
+        tile.location = Location.makeRaw(x, y, tx, ty);
 
-        if (this.engine.client) {
+        if (this.engine.client && tile.type) {
           tile.sprite = new Sprite(this.engine.client);
 
           await tile.sprite.load(tile);
@@ -53,35 +61,39 @@ export class Sector {
 
   placeToScene(target) {
 
+    if (!this.tiles)
+      return;
+
     // Add tiles
     this.tileGroup = new Phaser.GameObjects.Group(target.scene);
     target.add(this.tileGroup);
 
+    let ax = this.x * Sector.Width * Sector.TileWidthHalf;
+    let ay = this.y * Sector.Height * Sector.TileWidthHalf;
+
     for (let y = 0; y < Sector.Height; y++) {
-      var dy = y * 40;
+      let dx = ax;
       for (let x = 0; x < Sector.Width; x++) {
-        let dx = x * 40;
         let tile = this.tiles[y][x];
+        if (!tile)
+          continue;
 
-        if (tile.type === GfxTypes.Tile /*|| tile.type === 'Facade'*/) {
-          let offset = {x: 0, y: 0};
-          tile.sprite.addToScene(this.tileGroup, dy, dx, 0, offset);
-        } else {
-          tile.sprite.addToScene(this.tileGroup, dy, dx);
+        if (tile.type) {
+          tile.sprite.addToScene(this.tileGroup, ay, dx, 0);
+
+          tile.sprite.setData(tile);
+          //let child = tile.sprite.sprite;
         }
-
-
-        tile.sprite.setData(tile);
-        let child = tile.sprite.sprite;
-
-        //child.depth = 100000; //(64 * 64 * 40) - (child._isoPosition.y * 64 + child._isoPosition.x);
 
         /*if ((x % 2 == 0) || (y % 2 == 0)) {
           tile.sprite.sprite.setTint(0xaaaaaa);
         }*/
 
         tile.entities = [];
+        dx += Sector.TileWidthHalf;
       }
+
+      ay += Sector.TileWidthHalf;
     }
 
     /*this.tiles.forEach((col, colIndex, array1) => {
@@ -98,9 +110,11 @@ export class Sector {
 
     this.entities.forEach((entity, iIndex, array1) => {
       let baseComponent = entity.components['Base'];
-      var position = baseComponent.location.tile;
+      let location = new Location(baseComponent.location);
 
-      this.tiles[position.y][position.x].entities.push(entity);
+      let tile = this.tiles[location.tileY][location.tileX];
+      if (tile)
+        tile.entities.push(entity);
 
       entity.placeToScene(this.staticGroup);
     });
@@ -110,6 +124,9 @@ export class Sector {
   }
 
   update() {
+    if (!this.tiles)
+      return;
+
     // Loop through all tiles and test to see if the 3D position from above intersects with the automatically generated IsoSprite tile bounds.
     var cursorPos = this.engine.client.scene.cursorPos;
 
@@ -140,9 +157,11 @@ export class Sector {
         }
       }
     }
+  }
 
-
-
+  isTileBlocked(x, y) {
+    let tile = this.tile[y][x];
+    return (!tile) || tile.blocked;
   }
 
 }

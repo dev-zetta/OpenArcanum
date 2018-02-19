@@ -38,6 +38,8 @@ export class Engine {
   }
 
   async createClient(canvas) {
+    await this.assetLoader.initialize();
+
     this.client = new Client(this, canvas);
 
     await this.client.create();
@@ -48,7 +50,7 @@ export class Engine {
   }
 
   load() {
-    let path = AGate.getDataPath('map2');
+    let path = AGate.getDataPath('Void - Arronax\'s Interior');
     this.map.load(path);
   }
 

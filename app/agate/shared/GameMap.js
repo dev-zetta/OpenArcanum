@@ -5,7 +5,6 @@ import {EntitySystem} from './EntitySystem';
 import {Sprite} from '../client/Sprite';
 import {Location} from './Location';
 import {Sector} from './Sector';
-import {Light} from '../client/Light';
 
 export class GameMap {
 
@@ -31,15 +30,16 @@ export class GameMap {
     for (let col = 0; col < this.height; col++) {
       this.sectors[col] = [];
       for (let row = 0; row < this.width; row++) {
-        let sector = new Sector(this);
 
-        if (row == 1 && col == 1) {
+
+        //if (row == 7 && col == 0) {
           //this.engine.workerPool.exec()
-
+          let sector = new Sector(this);
           await sector.load(this.getSectorPath(col, row), col, row);
-        }
+          this.sectors[col][row] = sector;
+        //}
 
-        this.sectors[col][row] = sector;
+
       }
     }
 
@@ -55,14 +55,12 @@ export class GameMap {
 
     let entityTypes = await this.engine.assetLoader.findDirs(`${path}/`);
 
-    for(let i = 0; i < entityTypes.length; i++) {
+    for (let [key, value] of entityTypes) {
+      let entityFiles = await this.engine.assetLoader.findFiles(`${path}/${key}`, '.json');
 
-      let entityFiles = await this.engine.assetLoader.findFiles(`${entityTypes[i]}/`, '.json');
-
-      for (let j = 0; j < entityFiles.length; j++) {
-
+      for (let [key, value] of entityFiles) {
         outputList.push(
-          await this.loadEntity(entityFiles[j])
+          await this.loadEntity(value.name)
         );
       }
     }
@@ -72,14 +70,17 @@ export class GameMap {
     AGate.Utils.logError(`Loading entity: ${path}`);
 
     let data = await this.engine.assetLoader.loadJsonFile(`${path}`);
+
+    if (!data.id) {
+      data.id = AGate.Utils.getFileBase(path);
+    }
+
     let entity = await this.entitySystem.newEntity(data);
 
     return entity;
   }
 
   placeToScene(target) {
-    //console.log(Phaser.GameObjects);
-
     AGate.Utils.logError(`Placing to scene: ${this.path}`);
 
     this.rootGroup = target.add.group();
@@ -91,7 +92,7 @@ export class GameMap {
       for (let row = 0; row < this.width; row++) {
         let sector = this.sectors[col][row];
 
-        if (row == 1 && col == 1) {
+        if (sector) {
           sector.placeToScene(this.rootGroup);
           sortGroups.push(sector.staticGroup);
         }
@@ -121,8 +122,7 @@ export class GameMap {
         if(!sector)
           continue;
 
-        if (row == 1 && col == 1)
-          sector.update();
+        sector.update();
       }
     }
 
@@ -133,7 +133,7 @@ export class GameMap {
             this.engine.onMapLoaded(this)
     }*/
 
-    //this.ecs.update()
+    this.entitySystem.update();
 
   }
 

@@ -169,7 +169,11 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
     const asy = Math.abs(this.scaleY);
 
     let bounds = this._isoBounds;
-    let anchor = {x: this.displayOriginX / this.width, y: this.displayOriginY / this.height};
+
+
+    let x = this.scaleX < 0 ? this.frame.width - this.displayOriginX : this.displayOriginX;
+
+    let anchor = {x:  x / this.width, y: this.displayOriginY / this.height};
 
     if (false) {
       bounds.widthX = Math.round(Math.abs(this.width) * 0.5) * asx;
@@ -181,8 +185,8 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
       bounds.z = this.isoZ - (Math.abs(this.height) * (1 - anchor.y)) + (Math.abs(this.width * 0.5));
     }
     else {
-      let tileWidth = Math.abs(this.width);
-      let tileHeight = Math.abs(this.width) * Math.tan(this.scene.iso.projectionAngle);
+      let tileWidth = Math.abs(this.width) * this.scene.iso._transform[0];
+      let tileHeight = Math.abs(this.width) * this.scene.iso._transform[1]; //* Math.tan(this.scene.iso.projectionAngle);
 
       bounds.widthX = Math.round(Math.sqrt(Math.pow(tileWidth, 2) + Math.pow(tileHeight, 2)) * 0.5) * asx;
       bounds.widthY = bounds.widthX; //Math.round(Math.sqrt(Math.pow(tileWidth, 2) + Math.pow(tileHeight, 2)) * 0.5) * asx;
