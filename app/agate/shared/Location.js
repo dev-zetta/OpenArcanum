@@ -1,6 +1,19 @@
 import {Sector} from './Sector';
 import {Math} from './Math';
 import AGate from '../agate';
+import Enums from './enums';
+
+let Directions = [
+  Enums.Direction.NorthWest,
+  Enums.Direction.South,
+  Enums.Direction.SouthWest,
+  Enums.Direction.West,
+  Enums.Direction.SouthEast,
+  Enums.Direction.North,
+  Enums.Direction.NorthEast,
+  Enums.Direction.East
+];
+
 
 export class Location extends Math.Vec2 {
 
@@ -21,24 +34,47 @@ export class Location extends Math.Vec2 {
   }
 
   get sectorX() {
-    return (this.x / Sector.Width);
+    return Math.floor(this.x / Sector.Width);
   }
 
   get sectorY() {
-    return (this.y / Sector.Height);
+    return Math.floor(this.y / Sector.Height);
   }
 
   get tileX() {
-    return (this.x % Sector.Width);
+    return Math.floor(this.x % Sector.Width);
   }
 
   get tileY() {
-    return (this.y % Sector.Height);
+    return Math.floor(this.y % Sector.Height);
   }
 
   static makeRaw(sectorX, sectorY, tileX, tileY) {
     return [(sectorX * Sector.Width) + tileX, (sectorY *
       Sector.Height) + tileY];
   }
+
+  getVelocity(location) {
+    if (AGate.Utils.isArray(location))
+      location = new Location(location);
+
+    let velocity = location.subtract(this, true);
+    velocity.normalize();
+
+    return velocity;
+  }
+
+  getDistance(location) {
+    return Math.max(Math.abs(this.x - location.x), Math.abs(this.y - location.y));
+  }
+
+  static velocityToDirection(velocity) {
+    let angle = Math.atan2( velocity.y, velocity.x ); //current.angleTo(next);
+    let octant = Math.round( 8 * angle / ( 2 * Math.PI ) + 8 ) % 8;
+
+    return Directions[octant];
+  }
+
+
 
 }

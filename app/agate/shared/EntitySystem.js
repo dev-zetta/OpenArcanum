@@ -1,75 +1,98 @@
 import {ECS} from '../libs/ecs';
 import {Entity} from './Entity';
 import {Location} from './Location';
+import AGate from '../agate';
 
-class RenderingSystem extends ECS.System {
+import {Flags} from './Flags';
+import Base from './entity/components/Base';
+import Critter from './entity/components/Critter';
+import Npc from './entity/components/Npc';
+import Visual from './entity/components/Visual';
 
-  constructor(engine, system) {
-    super();
-    this.engine = engine;
-  }
 
-  test(entity) {
-    // the entity must have a position component
-    return !!entity.components.pos;
-  }
+let Components = {
+  Base,
+  Critter,
+  Npc,
+  Visual
+};
 
-  enter(entity) {
-    // super useful variable (and comment)
-    entity.iAmRendered = true;
-  }
+import {NpcSystem} from './entity/systems/NpcSystem';
+import {RenderSystem} from './entity/systems/RenderSystem';
 
-  update(entity) {
-    let {pos} = entity.components;
-
-    //this.ctx.fillRect(pos.x - 5, pos.y - 5, 10, 10);
-  }
-
-  exit(entity) {
-    entity.iAmRendered = false;
-  }
+let Systems = {
+  NpcSystem,
+  RenderSystem
 }
 
-class DebugSystem extends ECS.System {
 
-  enter(entity) {
-    // attach entity to window so the dev can play with it in the console
-    // note: don't forget this is an example, no real world code
-    window.ecsDebugEntity = entity;
-  }
-
-  exit(entity) {
-    window.ecsDebugEntity = null;
-  }
-}
+const ClassTransformer = AGate.requireNode('class-transformer');
 
 export class EntitySystem extends ECS {
   constructor(map) {
     super();
 
     this.map = map;
-    this.addSystem(new RenderingSystem(map.engine, this));
-    this.addSystem(new DebugSystem());
 
+    for (let key in Systems) {
+      let system = Systems[key];
+      console.log(`Adding entity system: ${key}`);
+      this.addSystem(new system(map.engine, this));
+    }
 
-    this.entityMap = {};
+    this.components = new Map();
+    this.loadComponents();
+  }
+
+  loadComponents() {
+    for (let key in Components) {
+      this.components.set(key, Components[key]);
+    }
+
+    /*AGate.Utils.loadScripts('shared/entity/components', (name, script) => {
+      let component = script.component;
+
+      this.components.set(name, component)
+    })*/
   }
 
   update() {
     super.update();
   }
 
-  async newEntity(components) {
-    let baseComponent = components['Base'];
-    //baseComponent.location = new Location(baseComponent.location[0], baseComponent.location[1]);
-    
-    let id = components.id;
+  async newEntity(id, data) {
 
-    var entity = new Entity(this.map);
+    //let baseComponent = components.base;
+
+
+    //baseComponent.id = id;
+    //baseComponent.location = new Location(baseComponent.location[0], baseComponent.location[1]);
+
+    let components = {};
+    for (let key in data) {
+      let component = this.components.get(key);
+
+      if (!component) {
+        AGate.Utils.logError(`Unknown component: ${key}`);
+        continue;
+      }
+
+      let instance = new component();
+      Object.assign(instance, data[key]); // ClassTransformer.plainToClass(component, data[key]);
+      instance.flags = new Flags(instance.flags);
+
+      /*let location = instance.location;
+      if (location) {
+        location = [location[1], location[0]];
+      }*/
+
+      components[AGate.Utils.camelCase(key)] = instance;
+    }
+
+    let entity = new Entity(this.map, id);
     await entity.loadFromData(components);
 
-    this.entityMap[id] = entity;
-
+    this.addEntity(entity);
     return entity;
   }
 

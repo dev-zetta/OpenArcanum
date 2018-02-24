@@ -25,7 +25,7 @@ class ECS {
      * @property entities
      * @type {Array}
      */
-    this.entities = [];
+    this.entities = new Map();
 
     /**
      * Store entities which need to be tested at beginning of next tick.
@@ -59,13 +59,7 @@ class ECS {
    * @return {Entity} The entity if found null otherwise
    */
   getEntityById(id) {
-    for (let i = 0, entity; entity = this.entities[i]; i += 1) {
-      if (entity.id === id) {
-        return entity;
-      }
-    }
-
-    return null;
+    return this.entities.get(id);
   }
   /**
    * Add an entity to the ecs.
@@ -74,7 +68,7 @@ class ECS {
    * @param {Entity} entity The entity to add.
    */
   addEntity(entity) {
-    this.entities.push(entity);
+    this.entities.set(entity.id, entity);
     entity.addToECS(this);
   }
   /**
@@ -85,20 +79,10 @@ class ECS {
    * @return {Entity}        the remove entity if any
    */
   removeEntity(entity) {
-    let index = this.entities.indexOf(entity);
-    let entityRemoved = null;
+    this.entities.remove(entity.id);
 
-    // if the entity is not found do nothing
-    if (index !== -1) {
-      entityRemoved = this.entities[index];
-
-      entity.dispose();
-      this.removeEntityIfDirty(entityRemoved);
-
-      fastSplice(this.entities, index, 1);
-    }
-
-    return entityRemoved;
+    entity.dispose();
+    this.removeEntityIfDirty(entity);
   }
   /**
    * Remove an entity from the ecs by entity id.
@@ -108,16 +92,13 @@ class ECS {
    * @return {Entity}          removed entity if any
    */
   removeEntityById(entityId) {
-    for (let i = 0, entity; entity = this.entities[i]; i += 1) {
-      if (entity.id === entityId) {
-        entity.dispose();
-        this.removeEntityIfDirty(entity);
+    let entity = this.entities.get(entityId);
+    if (!entity)
+      return null;
 
-        fastSplice(this.entities, i, 1);
+    this.removeEntity(entity);
 
-        return entity;
-      }
-    }
+    return entity;
   }
   /**
    * Remove an entity from dirty entities by reference.
@@ -130,7 +111,7 @@ class ECS {
     let index = this.entitiesSystemsDirty.indexOf(entity);
 
     if (index !== -1) {
-      fastSplice(this.entities, index, 1);
+      this.entities.remove(entity.id);
     }
   }
   /**
@@ -143,9 +124,9 @@ class ECS {
     this.systems.push(system);
 
     // iterate over all entities to eventually add system
-    for (let i = 0, entity; entity = this.entities[i]; i += 1) {
-      if (system.test(entity)) {
-        system.addEntity(entity);
+    for (let [key, value] of this.entities) {
+      if (system.test(value)) {
+        system.addEntity(value);
       }
     }
   }

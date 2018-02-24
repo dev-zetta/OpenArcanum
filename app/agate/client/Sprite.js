@@ -3,6 +3,7 @@ import {GfxTypes, GfxPathBuilder} from '../shared/assets';
 import Enums from '../shared/enums';
 
 import Phaser from '../libs/phaser';
+import {Math} from '../shared/Math';
 
 export class Sprite {
 
@@ -15,25 +16,27 @@ export class Sprite {
   }
 
   async load(data) {
+    //console.log(data)
+
     let assetLoader = this.client.engine.assetLoader;
     let dataPath = AGate.getDataPath('Gfx/2D');
 
     let path = '';
     if (AGate.Utils.isObject(data)) {
-      let builder = new GfxPathBuilder(data);
-      path = builder.toPath();
-
       Object.assign(this, data);
 
-      //this.flipped = data.flipped;
       this.frame = AGate.Utils.isUndefined(data.frame) ? 0 : data.frame;
-      this.type = GfxTypes.get(data.type);
+
+      //if (!this.type)
+        this.type = GfxTypes.get(data.type);
+
+      let builder = new GfxPathBuilder(this);
+      path = builder.toPath();
     } else {
       path = data;
     }
 
     this.path = path;
-
     this.selectedVariant = 0;
 
     switch (this.type) {
@@ -50,6 +53,8 @@ export class Sprite {
     }
 
     let spritePath = `${dataPath}/${this.path}`;
+    //console.log(`Loading: ${spritePath}`);
+
     let meta = await assetLoader.loadJsonFile(`${spritePath}/Meta.json`);
     if (!meta)
       return;
@@ -59,14 +64,6 @@ export class Sprite {
     this.animated = meta.animated;
 
     //Object.assign(this, meta);
-
-    /*
-    "frameRate": 14,
-    "stageCount": 8,
-    "stageLength": 10,
-    "triggerFrame": 7,
-    "versionCount": 4
-    */
 
     this.variants = [];
     this.stages = [];
@@ -81,7 +78,7 @@ export class Sprite {
       let stagePath = `${variantPath}/${stageName}`;
       let assetKey = `${keyPrefix}/${stageName}`;
 
-      this.client.scene.loadAsset(assetKey, 'atlas', {
+      await this.client.scene.loadAsset(assetKey, 'atlas', {
         texture: `${stagePath}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
         data: `${stagePath}/Stage.json`,
         flippedX: this.flipped
@@ -130,16 +127,13 @@ export class Sprite {
 
     if (this.flipped && this.type !== GfxTypes.Facade) {
       //this.sprite.originX = 0.5;
-
-
       this.sprite.scaleX *= -1;
 
       //this.sprite.flipX = true;
-
       this.sprite.resetIsoBounds();
     }
 
-    if (this.animated /*this.stageLength > 1 && (this.type !== GfxTypes.Facade && this.type !== GfxTypes.Tile)*/) {
+    /*if (this.animated) {
       for (let stageIndex = 0; stageIndex < this.stages.length; stageIndex++) {
         let stageName = this.stages[stageIndex];
         let stagePath = `${this.path}/${this.selectedVariant}/${stageName}`;
@@ -163,7 +157,7 @@ export class Sprite {
         // load animation
         this.sprite.anims.play(stagePath);
       }
-    }
+    }*/
 
     //if (this.type == GfxTypes.Tile)
     //this.sprite.setPipeline('Light2D');
@@ -174,8 +168,65 @@ export class Sprite {
     this.data = data;
   }
 
-  setBlendMode(mode) {
+  setFrame(index) {
+    let sprite = this.sprite;
+    let texture = sprite.texture;
 
+    // Generate key name
+    let key = texture.firstFrame;
+    key = key.substring(0, key.lastIndexOf('/'));
+    key = `${key}/${index}`;
+
+    //sprite.frame = sprite.texture.frames[key];
+
+    sprite.setFrame(key);
+
+    sprite.displayOriginX = sprite.frame.centerX;
+    sprite.displayOriginY = sprite.frame.centerY;
+  }
+
+  setStage(stage) {
+    if (stage == this.currentStage)
+      return;
+
+    let sprite = this.sprite;
+    let texture = sprite.texture;
+
+    // Generate key name
+    let key = texture.key;
+    key = key.substring(0, key.lastIndexOf('/'));
+    key = `${key}/${stage}`;
+
+    sprite.setTexture(key);
+
+    this.currentStage = stage;
+  }
+
+  isValid() {
+    return !!this.sprite;
+  }
+
+  move(x, y, elapsed) {
+    //let delta = (elapsed % 1001) / 1000;
+    let sprite = this.sprite;
+
+    //console.log(x * delta, y * delta)
+    sprite.isoMove(x, y);
+    sprite.postUpdate();
+  }
+
+  update(totalElapsed, speed) {
+    let sprite = this.sprite;
+
+    //let elapsed = (totalElapsed % 1000);
+
+    let frameTime = (this.frameRate / 1000) * speed;
+    let frameIndex = Math.round(totalElapsed * frameTime) % (sprite.texture.frameTotal - 1);
+
+    this.setFrame(frameIndex);
+  }
+
+  setBlendMode(mode) {
     switch (mode) {
       case 'BlendAdd':
         mode = Phaser.BlendModes.ADD;
@@ -192,6 +243,14 @@ export class Sprite {
 
   setTint(color) {
     this.sprite.setTint(color);
+  }
+
+  get isoPosition() {
+    return this.sprite.isoPosition;
+  }
+
+  async change(data) {
+    await this.load(data);
   }
 
   //  Canvas and WebGL:

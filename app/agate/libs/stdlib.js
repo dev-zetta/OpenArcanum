@@ -1,4 +1,3 @@
+const stdlib = requireNode('@stdlib/stdlib');
 
-const stdlib = requireNode('@stdlib/stdlib')
-
-export { stdlib }
+export { stdlib };

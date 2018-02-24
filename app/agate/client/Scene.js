@@ -70,20 +70,50 @@ export class Scene extends Phaser.Scene {
    * @param options
    * @returns {boolean}
    */
-  loadAsset(key, type, options) {
+  async loadAsset(key, type, options) {
     if (this.engine.assetLoader.hasAsset(key)) {
       return true;
     }
 
-    let data = AGate.Utils.merge(options, {'key': key, 'type': type});
+    let descriptor = AGate.Utils.merge(options, {'key': key, 'type': type});
 
     if (this.customLoader) {
+      let textures = this.sys.textures;
+
+      let loaded = await this.engine.assetLoader.loadAsset(descriptor);
+      if (!loaded)
+        return false;
+
+      switch (descriptor.type) {
+        case 'atlas':
+          let texture = textures.addAtlas(descriptor.key, descriptor.image, descriptor.meta);
+          let frames = descriptor.meta['frames'];
+
+          for (let key in frames) {
+            let frameInfo = frames[key];
+            let delta = frameInfo.delta;
+            let center = frameInfo.center;
+
+            let frame = texture.get(key);
+
+            //center = this.iso.unprojectAbsolute(center);
+
+            if (center) {
+              frame.centerX = center.x;
+              frame.centerY = center.y;
+            }
+          }
+
+          break;
+      }
 
     } else {
       this.load[type].call(this.load, data);
     }
 
-    this.engine.assetLoader.preload(data);
+    //this.engine.assetLoader.preload(data);
+
+    return true;
   }
 
   /**
@@ -304,7 +334,7 @@ export class Scene extends Phaser.Scene {
         let sprite = gameObject.data;
 
         if (sprite.data) {
-          this.addDatGui(sprite.data.components);
+          this.addDatGui(sprite.data);
         } else {
           this.addDatGui(sprite);
         }
@@ -349,7 +379,7 @@ export class Scene extends Phaser.Scene {
       data: `${dataUrl}/Tile/tiles.json`,
     });
 
-    this.startLoader(map);
+    //this.startLoader(map);
   }
 
   /**
@@ -380,6 +410,7 @@ export class Scene extends Phaser.Scene {
 
   setCameraLocation(location) {
     let cam = this.cameras.main;
+
     let center = new Location(location).worldToScreen();
     center.x += cam.width / 2;
     center.y += cam.height / 2;
@@ -389,5 +420,28 @@ export class Scene extends Phaser.Scene {
     cam.scrollX = center.x;
     cam.scrollY = center.y;
   }
+
+  highlightTiles(tiles) {
+    let color = 0xff0000;
+    let sectors = this.engine.map.sectors;
+
+    for (let i = 0; i < tiles.length; i++) {
+      let pos = tiles[i];
+      let location = new Location(pos[1], pos[0]);
+
+
+      let sector = sectors[location.sectorY][location.sectorX];
+      if (!sector || !sector.tiles)
+        continue;
+
+      let tile = sector.tiles[location.tileY][location.tileX];
+      if (!tile || !tile.sprite)
+        continue;
+
+      tile.sprite.setTint(Math.random() * 16000000);
+      tile.sprite.setBlendMode('BlendAdd');
+    }
+  }
+
 
 }

@@ -1,6 +1,5 @@
-const Position = (Base) => class extends Base {
+export default class {
   constructor() {
-    super(...arguments);
 
     this._x = 0;
     this._y = 0;
@@ -17,5 +16,4 @@ const Position = (Base) => class extends Base {
 
 };
 
-export { Position };
 

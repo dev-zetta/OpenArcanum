@@ -1,13 +1,8 @@
-
-
-
-const Critter = (Base) => class extends Base {
+export default class {
   constructor() {
-    super(...arguments);
 
   }
 
 };
 
-export { Critter };
 

@@ -21,16 +21,46 @@ export class Sector {
     this.engine = map.engine;
   }
 
+  getTile(x, y) {
+    if (!this.tiles)
+      return null;
+
+    let tile = this.tiles[y][x];
+    return tile;
+  }
+
+  addEntity(entity) {
+    if (this.entities.has(entity.id)) {
+      console.log(`Replacing entity: ${entity.id}`);
+
+      return false;
+    }
+
+    let location = new Location(entity.base.location);
+
+    let tile = this.getTile(location.tileX, location.tileY);
+
+    let name = AGate.Utils.camelCase(entity.base.type);
+    if (tile[name]) {
+      console.log(entity);
+      console.log(`Replacing entity: ${name}`);
+    }
+
+    tile[name] = entity;
+
+    this.entities.set(entity.id, entity);
+  }
+
   async load(path, x, y) {
     AGate.Utils.logError(`Loading sector: ${path}`);
 
     let data = await this.engine.assetLoader.loadJsonFile(`${path}/Sector.json`);
     AGate.Utils.logError(`...Loaded`);
 
-    this.tiles = data.tiles;
-    if (!this.tiles)
+    if (!data.tiles)
       return;
 
+    this.tiles = data.tiles;
     this.x = x;
     this.y = y;
 
@@ -40,7 +70,7 @@ export class Sector {
     for (let ty = 0; ty < Sector.Height; ty++) {
       for (let tx = 0; tx < Sector.Width; tx++) {
 
-        let tile = this.tiles[ty][tx];
+        let tile = this.getTile(tx, ty);
         if (!tile)
           continue;
 
@@ -50,13 +80,15 @@ export class Sector {
           tile.sprite = new Sprite(this.engine.client);
 
           await tile.sprite.load(tile);
-          tile.type = GfxTypes.get(tile.type);
+          //tile.type = GfxTypes.get(tile.type);
         }
       }
     }
 
-    this.entities = [];
-    await this.map.loadEntities(path, this.entities);
+    this.entities = new Map();
+    await this.map.loadEntities(path, (entity) => {
+      this.addEntity(entity);
+    });
   }
 
   placeToScene(target) {
@@ -74,7 +106,7 @@ export class Sector {
     for (let y = 0; y < Sector.Height; y++) {
       let dx = ax;
       for (let x = 0; x < Sector.Width; x++) {
-        let tile = this.tiles[y][x];
+        let tile = this.getTile(x, y);
         if (!tile)
           continue;
 
@@ -82,39 +114,29 @@ export class Sector {
           tile.sprite.addToScene(this.tileGroup, ay, dx, 0);
 
           tile.sprite.setData(tile);
-          //let child = tile.sprite.sprite;
         }
 
         /*if ((x % 2 == 0) || (y % 2 == 0)) {
           tile.sprite.sprite.setTint(0xaaaaaa);
         }*/
 
-        tile.entities = [];
         dx += Sector.TileWidthHalf;
       }
 
       ay += Sector.TileWidthHalf;
     }
 
-    /*this.tiles.forEach((col, colIndex, array1) => {
-      col.forEach((row, rowIndex, array1) => {
-
-        //let screen = row.location.worldToScreen()
-
-      });
-    });*/
-
     // Add static objects
     this.staticGroup = new Phaser.GameObjects.Group(target.scene);
     target.add(this.staticGroup);
 
-    this.entities.forEach((entity, iIndex, array1) => {
-      let baseComponent = entity.components['Base'];
+    this.entities.forEach((entity) => {
+      /*let baseComponent = entity.base;
       let location = new Location(baseComponent.location);
 
-      let tile = this.tiles[location.tileY][location.tileX];
+      let tile = this.getTile(location.tileX, location.tileY);
       if (tile)
-        tile.entities.push(entity);
+        tile.entities.push(entity);*/
 
       entity.placeToScene(this.staticGroup);
     });
@@ -151,7 +173,7 @@ export class Sector {
 
       for (let y = 0; y < Sector.Height; y++) {
         for (let x = 0; x < Sector.Width; x++) {
-          let tile = this.tiles[y][x];
+          let tile = this.getTile(x, y);
 
           //tile.sprite.sprite.debug();
         }
@@ -160,7 +182,7 @@ export class Sector {
   }
 
   isTileBlocked(x, y) {
-    let tile = this.tile[y][x];
+    let tile = this.getTile(x, y);
     return (!tile) || tile.blocked;
   }
 

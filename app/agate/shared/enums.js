@@ -5,6 +5,13 @@ class Enums {
 
 }
 
+Enums.State = new AGate.Enum([
+  'Moving',
+  'MovingToWaypoint',
+  'PlanningToMove',
+
+]);
+
 Enums.SpriteState = new AGate.Enum([
   'Current',
   'Normal',

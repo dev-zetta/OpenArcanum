@@ -1,31 +1,22 @@
 import {Flags} from '../../Flags';
+import {MovementPath} from '../MovementPath';
 
-const Npc = (Base) => class extends Base {
+export default class {
   constructor() {
-    super(...arguments);
 
-    this._waypoints = [];
+    this.waypoints = [];
+    this.currentWaypoint = null;
+    this.movementPath = new MovementPath();
 
-    this._flags = new Flags();
+    this.flags = null;
 
     this._standpointDay = null;
     this._standpointNight = null;
-  }
 
-  get waypoints() {
-    return this._waypoints;
-  }
 
-  set waypoints(data) {
-    this._waypoints = data;
-  }
-
-  get flags() {
-    return this._flags;
   }
 
 
 };
 
-export { Npc };
 

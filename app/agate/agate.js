@@ -19,6 +19,10 @@ class AGate {
       return `http://localhost:7000/${subDir}`
   }*/
 
+  static getScriptsPath(subDir = '') {
+    return `/media/maxli/Data/dev/OpenArcanum/app/agate/${subDir}`;
+  }
+
   static requireNode(name) {
     return requireNode(name);
   }

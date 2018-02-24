@@ -1,8 +1,6 @@
 import AGate from '../agate';
 import {Sprite} from './GuiSprite';
 
-const find = AGate.requireNode('find');
-
 class Manager {
   constructor(engine) {
     this.engine = engine;
@@ -12,23 +10,18 @@ class Manager {
   }
 
   static loadComponents() {
-    let regExp = new RegExp(`\..js`, 'i');
-    let list = find.fileSync(regExp, '/media/maxli/Data/dev/OpenArcanum/app/agate/client/gui' /*`${__dirname}/gui/`*/);
 
     let resolve = {};
     let result = {};
 
-    list.forEach((path) => {
-      let widget = require(path).widget;
-
-      let key = AGate.Utils.getFileBase(path);
+    AGate.Utils.loadScripts('client/gui', (name, script) => {
+      let widget = script.widget;
 
       if (widget.parent) {
-        resolve[key] = widget;
+        resolve[name] = widget;
       } else {
-        result[key] = widget;
+        result[name] = widget;
       }
-
     });
 
     for (let key in resolve) {

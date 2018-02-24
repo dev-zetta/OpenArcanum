@@ -1,8 +1,9 @@
 import AGate from '../agate';
 
-export class Flags extends Set {
-  constructor() {
-    super();
+export class Flags  {
+  constructor(list) {
+    //super(...arguments);
+    this._set = new Set(list);
   }
 
   add(val) {
@@ -13,24 +14,52 @@ export class Flags extends Set {
       return;
     }
 
-    if (!AGate.Utils.isString(val))
-      return;
+    /*if (!AGate.Utils.isString(val))
+      return;*/
 
-    super.add(val);
+    this._set.add(String(val));
   }
 
-  has(val) {
+  remove(val) {
+    if (AGate.Utils.isArray(val)) {
+      for (let i = 0; i < val.length; i++)
+        this.remove(val[i]);
+
+      return;
+    }
+
+    this._set.delete(String(val));
+  }
+
+  getMissing(val) {
     if (AGate.Utils.isArray(val)) {
       let missing = [];
       for (let i = 0; i < val.length; i++) {
-        if (!super.has(val[i]))
+        if (!this.has(val[i]))
           missing.push(val[i]);
       }
 
       return missing;
     }
 
-    return super.has(val);
+    return this.has(val);
+  }
+
+  hasAny(val) {
+    if (AGate.Utils.isArray(val)) {
+      for (let i = 0; i < val.length; i++) {
+        if (this.has(val[i]))
+          return true;
+      }
+
+      return false;
+    }
+
+    return this.has(val);
+  }
+
+  has(val) {
+    return this._set.has(String(val));
   }
 
 }

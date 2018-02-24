@@ -1,10 +1,13 @@
 /* global requireNode */
 
+import AGate from '../agate';
+
 const console = requireNode('console');
 const process = requireNode('process');
 
 const fs = requireNode('fs');
 const lodash = requireNode('lodash');
+const find = requireNode('find');
 
 var myConsole = new console.Console(process.stdout, process.stderr);
 
@@ -42,6 +45,20 @@ export class Utils extends lodash {
     let dotPos = path.lastIndexOf(".");
     let slashPos = path.lastIndexOf("/");
     return path.substring(slashPos + 1, dotPos);
+  }
+
+  static loadScripts(path, callback) {
+    path = AGate.getScriptsPath(path);
+
+    let regExp = new RegExp(`\..js`, 'i');
+    let list = find.fileSync(regExp, path);
+
+    list.forEach((path) => {
+      let script = require(path);
+      let name = AGate.Utils.getFileBase(path);
+
+      callback(name, script);
+    });
   }
 
 }

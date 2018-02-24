@@ -22,28 +22,13 @@ class Entity {
    *
    * @param {Array[Component]} [components=[]] An array of initial components.
    */
-  constructor(idOrUidGenerator, components = []) {
+  constructor(id, components = []) {
     /**
      * Unique identifier of the entity.
      *
      * @property {Number} id
      */
-    this.id = null;
-
-    // initialize id depending on what is the first argument
-    if (typeof idOrUidGenerator === 'number') {
-      // if a number was passed then simply set it as id
-      this.id = idOrUidGenerator;
-    } else if (idOrUidGenerator instanceof UID.UIDGenerator) {
-      // if an instance of UID.UIDGenerator was passed then use it to generate
-      // the id. This allow the user to use multiple UID generators and
-      // therefore to create entities with unique ids accross a cluster
-      // or an async environment. See uid.js for more details
-      this.id = idOrUidGenerator.next();
-    } else {
-      // if nothing was passed simply use the default generator
-      this.id = UID.DefaultUIDGenerator.next();
-    }
+    this.id = id || UID.DefaultUIDGenerator.next();
 
     /**
      * Systems applied to the entity.
@@ -65,7 +50,7 @@ class Entity {
      *
      * @property {Object} components
      */
-    this.components = {};
+    /*this.components = {};
 
     // components initialisation
     for (let i = 0, component; component = components[i]; i += 1) {
@@ -80,7 +65,7 @@ class Entity {
         this.components[component.name] = Object.assign({},
           components[i].defaults);
       }
-    }
+    }*/
 
     /**
      * A reference to parent ECS class.
@@ -143,7 +128,7 @@ class Entity {
    * @param {Object} data Component data.
    */
   addComponent(name, data) {
-    this.components[name] = data || {};
+    this[name] = data || {};
     this.setSystemsDirty();
   }
   /**
@@ -154,11 +139,11 @@ class Entity {
    * @param  {String} name Name of the component to remove.
    */
   removeComponent(name) {
-    if (!this.components[name]) {
+    if (!this[name]) {
       return;
     }
 
-    this.components[name] = undefined;
+    this[name] = undefined;
     this.setSystemsDirty();
   }
   /**
@@ -175,7 +160,7 @@ class Entity {
    *   // entity.component.pos is '{vel: 0, angle: 90, pos: {y: 1}}'
    */
   updateComponent(name, data) {
-    let component = this.components[name];
+    let component = this[name];
 
     if (!component) {
       this.addComponent(name, data);
@@ -192,11 +177,9 @@ class Entity {
    *
    * @param  {Object} componentsData Dict of components to update.
    */
-  updateComponents(componentsData) {
-    let components = Object.keys(componentsData);
-
-    for (let i = 0, component; component = components[i]; i += 1) {
-      this.updateComponent(component, componentsData[component]);
+  updateComponents(components) {
+    for (let key in components) {
+      this.updateComponent(key, components[key]);
     }
   }
   /**

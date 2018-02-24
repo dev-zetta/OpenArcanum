@@ -7,29 +7,17 @@ import {Light} from '../client/Light';
 import {Location} from './Location';
 import {Sector} from './Sector';
 
-let Components = {
-
-};
-
-
 export class Entity extends ECS.Entity {
-  constructor(map) {
-    super([]);
+  constructor(map, id) {
+    super(id, []);
     this.map = map;
-
-    /*let entity = new ECS.Entity();
-    entity.updateComponent('pos', {
-        x: canvas.width / 2,
-        y: canvas.height / 2
-    });
-*/
   }
 
   async loadFromData(data) {
     this.updateComponents(data);
 
     if (this.map.engine.client) {
-      let visualComponent = this.components['Visual'];
+      let visualComponent = this.visual;
       if (visualComponent) {
         let visualClasses = visualComponent.classes;
 
@@ -47,10 +35,10 @@ export class Entity extends ECS.Entity {
   }
 
   placeToScene(target) {
-    let baseComponent = this.components['Base'];
+    let baseComponent = this.base;
     let location = new Location(baseComponent.location);
 
-    let visualComponent = this.components['Visual'];
+    let visualComponent = this.visual;
     if (visualComponent && visualComponent.classes) {
       let visualClass = visualComponent.classes['Current'];
       if (AGate.Utils.isUndefined(visualClass)) {
@@ -72,8 +60,8 @@ export class Entity extends ECS.Entity {
         offset = {x: offset[0], y: offset[1]};
       }
 
-      let y = (location.x * Sector.TileWidthHalf);
-      let x = (location.y * Sector.TileWidthHalf);
+      let x = (location.x * Sector.TileWidthHalf);
+      let y = (location.y * Sector.TileWidthHalf);
 
       if (sprite.type === GfxTypes.Wall) {
         switch (sprite.currentStage) // Counter clockwise

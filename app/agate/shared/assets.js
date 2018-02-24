@@ -28,11 +28,11 @@ export class GfxPathBuilder {
   }
 
   build(data) {
-    let base = `${data.type}/`;
+    let base = `${data.type.key}/`;
 
     //console.log(data.type);
 
-    switch (GfxTypes.get(data.type)) {
+    switch (data.type) {
       case GfxTypes.Tile:
         base += `${data.start.category}/${data.end.category}/${data.start.version}/${data.end.version}`;
         break;
@@ -58,8 +58,6 @@ export class GfxPathBuilder {
         break;
       case GfxTypes.Critter:
         let gender = (data.race == 'Human') ? data.gender : 'Male';
-
-
         base += `${data.race}/${gender}/${data.armor}/${data.shield}/${data.weapon}/${data.animation}`;
         break;
       case GfxTypes.Monster:
@@ -178,6 +176,12 @@ export class AssetLoader {
     }
   }
 
+  /**
+   *
+   * @param list
+   * @param onLoaded
+   * @returns {Promise<boolean>}
+   */
   async loadAssets(list, onLoaded) {
     if (!list) {
       list = this.preloadAssets;
@@ -190,17 +194,11 @@ export class AssetLoader {
       if (descriptor == null)
         continue;
 
-      if (this.loadedAssets.get(descriptor.key) != null)
-        continue;
-
       let result = await this.loadAsset(descriptor);
-      if (!result) {
-        continue;
+      if (result) {
+        onLoaded(descriptor);
       }
 
-      onLoaded(descriptor);
-
-      this.loadedAssets.set(descriptor.key, descriptor);
       loaded++;
 
       list[i] = null;
@@ -377,6 +375,11 @@ export class AssetLoader {
   }
 
   async loadAsset(descriptor) {
+    if (this.loadedAssets.get(descriptor.key) != null) {
+      console.log(`Already loaded: ${descriptor.key}`);
+      return false;
+    }
+
     let result;
 
     switch (descriptor.type) {
@@ -405,6 +408,8 @@ export class AssetLoader {
         break;
     }
 
+    //console.log(descriptor.key);
+    this.loadedAssets.set(descriptor.key, descriptor);
     return true; //Promise.resolve(true);
   }
 
