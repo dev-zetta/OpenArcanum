@@ -35,6 +35,10 @@ html {
   position: relative;
 }
 
+.dg.ac {
+  z-index: 100;
+}
+
 #gui {
   z-index: 99;
   background-color: transparent;

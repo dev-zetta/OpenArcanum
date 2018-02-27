@@ -9,6 +9,7 @@ export class Sprite {
 
   constructor(client) {
     this.client = client;
+    this.totalElapsed = 0;
   }
 
   get stageLength() {
@@ -27,7 +28,7 @@ export class Sprite {
 
       this.frame = AGate.Utils.isUndefined(data.frame) ? 0 : data.frame;
 
-      //if (!this.type)
+      if (!AGate.Utils.isUndefined(data.type))
         this.type = GfxTypes.get(data.type);
 
       let builder = new GfxPathBuilder(this);
@@ -43,12 +44,15 @@ export class Sprite {
       case GfxTypes.Tile:
         this.currentStage = 'North';
         return;
-      case GfxTypes.Portal:
-      case GfxTypes.Wall:
-        this.currentStage =  data.stage;
-        break;
       default:
-        this.currentStage = AGate.Utils.isUndefined(data.stage) ? 'North' : data.stage;
+        if (!AGate.Utils.isUndefined(data.stage)) {
+          this.currentStage = data.stage;
+        }
+
+        if (!this.currentStage) {
+          this.currentStage =  'North';
+        }
+
         break;
     }
 
@@ -56,8 +60,10 @@ export class Sprite {
     //console.log(`Loading: ${spritePath}`);
 
     let meta = await assetLoader.loadJsonFile(`${spritePath}/Meta.json`);
-    if (!meta)
+    if (!meta) {
+      console.log(`Unable to load sprite: ${`${spritePath}/Meta.json`}`);
       return;
+    }
 
     this.frameRate = meta.frameRate;
     this.triggerFrame = meta.triggerFrame;
@@ -88,9 +94,9 @@ export class Sprite {
     }
   }
 
-  addToScene(target, x, y, z = 0, offset = null) {
+  makeTextureInfo() {
+    let frame, key;
     let currentPath = `${this.path}/${this.selectedVariant}`;
-    let key, frame;
 
     switch (this.type) {
       case GfxTypes.Tile:
@@ -111,6 +117,13 @@ export class Sprite {
         frame = `${key}/${this.frame}`;
         break;
     }
+
+    return { key, frame };
+  }
+
+  addToScene(target, x, y, z = 0, offset = null) {
+
+    let {key, frame} = this.makeTextureInfo();
 
     this.sprite = target.scene.addIsoSprite(x, y, z, key, frame, target, offset);
     this.sprite.data = this;
@@ -183,11 +196,15 @@ export class Sprite {
 
     sprite.displayOriginX = sprite.frame.centerX;
     sprite.displayOriginY = sprite.frame.centerY;
+
+    this.frame = index;
   }
 
   setStage(stage) {
     if (stage == this.currentStage)
       return;
+
+    console.log(`Changing to stage ${stage}`);
 
     let sprite = this.sprite;
     let texture = sprite.texture;
@@ -206,7 +223,7 @@ export class Sprite {
     return !!this.sprite;
   }
 
-  move(x, y, elapsed) {
+  move(x, y) {
     //let delta = (elapsed % 1001) / 1000;
     let sprite = this.sprite;
 
@@ -215,13 +232,15 @@ export class Sprite {
     sprite.postUpdate();
   }
 
-  update(totalElapsed, speed) {
+  update(elapsed, speed = 1.0) {
+    this.totalElapsed += elapsed;
+
     let sprite = this.sprite;
 
     //let elapsed = (totalElapsed % 1000);
 
     let frameTime = (this.frameRate / 1000) * speed;
-    let frameIndex = Math.round(totalElapsed * frameTime) % (sprite.texture.frameTotal - 1);
+    let frameIndex = Math.round(this.totalElapsed * frameTime) % (sprite.texture.frameTotal - 1);
 
     this.setFrame(frameIndex);
   }
@@ -251,6 +270,15 @@ export class Sprite {
 
   async change(data) {
     await this.load(data);
+    this.frame = 0;
+    this.totalElapsed = 0;
+
+    let {key, frame} = this.makeTextureInfo();
+
+    let sprite = this.sprite;
+
+    console.log(`Changing to: ${key} - ${frame}`);
+    sprite.setTexture(key, frame);
   }
 
   //  Canvas and WebGL:

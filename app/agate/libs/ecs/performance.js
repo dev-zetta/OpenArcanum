@@ -1,12 +1,14 @@
 
-/*global global */
+/*global window */
 
 let perf = null, start = Date.now();
 
 // use global browser performance module
 // for node create a polyfill
-if (!global) {
+
+if (window && window.performance) {
   perf = window.performance;
+  console.log(window.performance)
 } else {
   perf = {
     now() {

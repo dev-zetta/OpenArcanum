@@ -10,6 +10,14 @@ import {Location} from '../shared/Location';
 
 const dat = AGate.requireNode('dat.gui');
 
+let DatConfig = {
+  Entity: {
+    exclude: ['systems', 'ecs', 'map']
+  }
+
+}
+
+
 export class Scene extends Phaser.Scene {
 
   constructor(client) {
@@ -39,7 +47,7 @@ export class Scene extends Phaser.Scene {
     //this.datGui.add(this, 'renderToTexture')
     parent = parent || this.datGui;
 
-    parent.open();
+    //parent.open();
 
     for (let key in object) {
       if (key.charAt(0) === '_')
@@ -405,7 +413,7 @@ export class Scene extends Phaser.Scene {
 
     //cam.follow(this.player, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1)
 
-    this.setCameraLocation([330, 350 /*(map.width / 2) * 64,  (map.height / 2) * 64*/]);
+    this.setCameraLocation([320, 340 /*(map.width / 2) * 64,  (map.height / 2) * 64*/]);
   }
 
   setCameraLocation(location) {

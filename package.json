@@ -81,6 +81,8 @@
     "pathfinding": "^0.4.18",
     "phaser": "file:vendor/phaser",
     "pouchdb": "^6.4.3",
+    "rbush": "^2.0.2",
+    "rbush-knn": "^2.0.0",
     "reflect-metadata": "^0.1.12",
     "shufflejs": "^5.0.3",
     "socket.io": "^2.0.4",

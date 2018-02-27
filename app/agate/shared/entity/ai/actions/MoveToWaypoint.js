@@ -1,14 +1,21 @@
 exports.action = {
 
-  hasWaypoints({ Enums, entity }) {
-    if (!entity.npc.waypoints || entity.npc.waypoints.length == 0)
+  isAttacking({ Enums, entity }) {
+    if (entity.npc.aiState.hasAny([Enums.AiState.Attacking, Enums.AiState.PreparingToAttack]))
       return -125;
 
     return 0;
   },
 
+  hasWaypoints({ Enums, entity }) {
+    if (!entity.npc.waypoints || entity.npc.waypoints.length == 0)
+      return -125;
+
+    return 125;
+  },
+
   isMoving({ Enums, entity }) {
-    if (entity.base.flags.hasAny([Enums.State.Moving, Enums.State.MovingToWaypoint, Enums.State.PlanningToMove]))
+    if (entity.npc.aiState.hasAny([Enums.AiState.Moving, Enums.AiState.MovingToWaypoint, Enums.AiState.PlanningToMove]))
       return -125;
 
     return 0;

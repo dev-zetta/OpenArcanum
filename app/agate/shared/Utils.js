@@ -1,4 +1,4 @@
-/* global requireNode */
+/* global window, requireNode */
 
 import AGate from '../agate';
 
@@ -14,6 +14,8 @@ var myConsole = new console.Console(process.stdout, process.stderr);
 // https://lodash.com/docs/4.17.4
 
 export class Utils extends lodash {
+
+
   static isFileExist(path) {
     return fs.existsSync(path);
   }
@@ -62,3 +64,11 @@ export class Utils extends lodash {
   }
 
 }
+
+if (window.performance) {
+  Utils.performance = window.performance;
+} else {
+  alert('TODO');
+}
+
+

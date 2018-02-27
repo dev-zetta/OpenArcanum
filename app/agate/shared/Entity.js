@@ -6,11 +6,18 @@ import {Utils} from '../client/Utils';
 import {Light} from '../client/Light';
 import {Location} from './Location';
 import {Sector} from './Sector';
+import Enums from './enums';
 
 export class Entity extends ECS.Entity {
   constructor(map, id) {
     super(id, []);
     this.map = map;
+  }
+
+  dispose() {
+
+
+    super.dispose();
   }
 
   async loadFromData(data) {
@@ -40,9 +47,9 @@ export class Entity extends ECS.Entity {
 
     let visualComponent = this.visual;
     if (visualComponent && visualComponent.classes) {
-      let visualClass = visualComponent.classes['Current'];
+      let visualClass = visualComponent.classes.current;
       if (AGate.Utils.isUndefined(visualClass)) {
-        visualClass = visualComponent.classes['Normal'];
+        visualClass = visualComponent.classes.normal;
       }
 
       if (AGate.Utils.isUndefined(visualClass)) {
@@ -157,5 +164,36 @@ export class Entity extends ECS.Entity {
 
     }
   }
+
+  getCurrentVisual() {
+    return this.visual.classes.current;
+  }
+
+  getVisualRate() {
+
+    let rate = 1.0;
+
+    if (this.npc) {
+      let {npc} = this;
+
+      if (npc.aiState.has(Enums.AiState.Moving)) {
+        let speed = npc.getMovementSpeed();
+        rate = speed;
+      } else if (npc.aiState.has(Enums.AiState.Attacking)) {
+        let speed = npc.getAttackSpeed();
+        rate = speed;
+      } else {
+        rate = 0.1;
+      }
+    }
+
+    return rate;
+  }
+
+  move(x, y) {
+
+  }
+
+
 
 }

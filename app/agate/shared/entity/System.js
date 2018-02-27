@@ -6,9 +6,16 @@ export class System extends ECS.System {
 
     this.engine = engine;
     this.ecs = ecs;
+    this.totalElapsed = 0;
   }
 
   get map() {
     return this.engine.map;
   }
+
+  update(entity, elapsed) {
+    this.totalElapsed += elapsed;
+  }
+
+
 }

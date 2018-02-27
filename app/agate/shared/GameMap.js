@@ -34,28 +34,25 @@ export class GameMap {
     this.height = data.height;
     this.sectors = [];
 
+    let promises = [];
     for (let col = 0; col < this.height; col++) {
       this.sectors[col] = [];
       for (let row = 0; row < this.width; row++) {
-
-
-        //if (row == 7 && col == 0) {
-          //this.engine.workerPool.exec()
-          let sector = new Sector(this);
-          await sector.load(this.getSectorPath(col, row), col, row);
-          this.sectors[col][row] = sector;
-        //}
-
-
+        promises.push(this.loadSector(row, col));
       }
     }
 
-    //this.mobileEntities = [];
-    //await this.loadEntities(`${path}/Mobile`, this.mobileEntities);
+    await Promise.all(promises);
 
     this.engine.onMapLoaded(this);
     this.isLoading = false;
     this.isLoaded = true;
+  }
+
+  async loadSector(x, y) {
+    let sector = new Sector(this);
+    await sector.load(this.getSectorPath(y, x), y, x);
+    this.sectors[y][x] = sector;
   }
 
   async loadEntities(path, onLoaded) {
@@ -103,16 +100,6 @@ export class GameMap {
       }
     }
 
-    /*this.mobileGroup = target.add.group();
-    this.mobileGroup.autoCull = true;
-
-    this.mobileEntities.forEach((entity, index, array) => {
-      AGate.Utils.logError(`Placing mobile: ${entity.id}`);
-      entity.placeToScene(this.mobileGroup);
-    });
-
-    sortGroups.push(this.mobileGroup);*/
-
     this.engine.client.scene.sortGroups(sortGroups);
   }
 
@@ -145,9 +132,16 @@ export class GameMap {
     return `${this.path}/Sector/${x}/${y}`;
   }
 
-  getTile(location) {
-    if (AGate.Utils.isArray(location))
-      location = new Location(location);
+  isTileBlocked(x, y) {
+    let tile = this.getTile(x, y);
+    if (!tile)
+      return true;
+
+    return tile.blocked;
+  }
+
+  getTile(x, y) {
+    let location = new Location(x, y);
 
     let col = this.sectors[location.sectorY];
     if (!col)
@@ -157,10 +151,10 @@ export class GameMap {
     if (!sector)
       return null;
 
-    return sector.getTile(sector.tileX, sector.tileY);
+    return sector.getTile(location.tileX, location.tileY);
   }
 
-  getObjectInRange(types, center, range) {
+  getEntitiesInRange(types, center, range) {
 
     let names = [];
     if (types) {
@@ -169,7 +163,6 @@ export class GameMap {
         names.push(name);
       }
     }
-
 
     let tilesX = this.width * Sector.Width;
     let startX = center[0] - range;
@@ -191,7 +184,7 @@ export class GameMap {
     if (endY >= tilesY)
       endY = tilesY - 1;
 
-    let result = new Map();
+    let result = [];
     for (let y = startY; y <= endY; y++) {
       let tileY = y % Sector.Height;
       let sectorY = Math.floor(y / Sector.Height);
@@ -199,7 +192,6 @@ export class GameMap {
       for (let x = startX; x <= endX; x++) {
         let tileX = x % Sector.Width;
         let sectorX = Math.floor(x / Sector.Width);
-
 
         let sector = this.sectors[sectorY][sectorX];
 
@@ -211,7 +203,9 @@ export class GameMap {
           for (let i = 0; i < names.length; i++) {
             let entity = tile[names[i]];
             if (entity) {
-              result.push(entity.id, entity);
+
+              entity.distanceToCenter = Location.calculateDistance(entity.base.location, center);
+              result.push(entity);
             }
           }
         } else {
@@ -223,7 +217,11 @@ export class GameMap {
       }
     }
 
+    result.sort((a, b) => {
+      return a.distanceToCenter - b.distanceToCenter;
+    });
 
+    return result;
   }
 
 

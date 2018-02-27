@@ -68,6 +68,10 @@ export class Location extends Math.Vec2 {
     return Math.max(Math.abs(this.x - location.x), Math.abs(this.y - location.y));
   }
 
+  static calculateDistance(a, b) {
+    return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
+  }
+
   static velocityToDirection(velocity) {
     let angle = Math.atan2( velocity.y, velocity.x ); //current.angleTo(next);
     let octant = Math.round( 8 * angle / ( 2 * Math.PI ) + 8 ) % 8;

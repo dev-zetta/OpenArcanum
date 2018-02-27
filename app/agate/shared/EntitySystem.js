@@ -19,12 +19,13 @@ let Components = {
 
 import {NpcSystem} from './entity/systems/NpcSystem';
 import {RenderSystem} from './entity/systems/RenderSystem';
+import {CombatSystem} from './entity/systems/CombatSystem';
 
 let Systems = {
   NpcSystem,
-  RenderSystem
-}
-
+  CombatSystem,
+  RenderSystem,
+};
 
 const ClassTransformer = AGate.requireNode('class-transformer');
 
@@ -63,8 +64,6 @@ export class EntitySystem extends ECS {
   async newEntity(id, data) {
 
     //let baseComponent = components.base;
-
-
     //baseComponent.id = id;
     //baseComponent.location = new Location(baseComponent.location[0], baseComponent.location[1]);
 

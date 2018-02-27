@@ -6,6 +6,9 @@ let Evaluators = {
     actions: {
       'MoveToWaypoint': {
 
+      },
+      'AttackNearby': {
+
       }
     }
   }

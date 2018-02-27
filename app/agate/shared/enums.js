@@ -5,7 +5,9 @@ class Enums {
 
 }
 
-Enums.State = new AGate.Enum([
+Enums.AiState = new AGate.Enum([
+  'PreparingToAttack',
+  'Attacking',
   'Moving',
   'MovingToWaypoint',
   'PlanningToMove',
