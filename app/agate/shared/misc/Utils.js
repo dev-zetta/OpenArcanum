@@ -1,6 +1,4 @@
-/* global window, requireNode */
-
-import AGate from '../agate';
+/* global AGate, window, requireNode */
 
 const console = requireNode('console');
 const process = requireNode('process');
@@ -62,7 +60,6 @@ export class Utils extends lodash {
       callback(name, script);
     });
   }
-
 }
 
 if (window.performance) {

@@ -1,5 +1,5 @@
-import AGate from '../../agate';
-import KDTree from '../KDTree';
+/* global AGate */
+import KDTree from '../misc/KDTree';
 
 // https://www.npmjs.com/package/kdgrass
 const kdgrass = AGate.requireNode('kdgrass');

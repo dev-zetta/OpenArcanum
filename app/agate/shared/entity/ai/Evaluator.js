@@ -1,7 +1,6 @@
+/* global AGate */
 
 // https://www.npmjs.com/package/utility-ai
-import AGate from '../../../agate';
-
 
 const UtilityAi = AGate.requireNode('utility-ai');
 

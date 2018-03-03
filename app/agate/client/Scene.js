@@ -1,11 +1,11 @@
-import AGate from '../agate';
+/* global AGate */
 import Phaser from '../libs/phaser';
 
 import {Isometric} from '../libs/phaser-isometric/Isometric';
 import {Point3} from '../libs/phaser-isometric/Point3';
 import {IsoSprite} from '../libs/phaser-isometric/IsoSprite';
 
-import {Sector} from '../shared/Sector';
+import {Sector} from '../shared/map/Sector';
 import {Location} from '../shared/Location';
 
 const dat = AGate.requireNode('dat.gui');
@@ -84,43 +84,36 @@ export class Scene extends Phaser.Scene {
     }
 
     let descriptor = AGate.Utils.merge(options, {'key': key, 'type': type});
+    let textures = this.sys.textures;
 
-    if (this.customLoader) {
-      let textures = this.sys.textures;
+    let loaded = await this.engine.assetLoader.loadAsset(descriptor);
+    if (!loaded)
+      return false;
 
-      let loaded = await this.engine.assetLoader.loadAsset(descriptor);
-      if (!loaded)
-        return false;
+    switch (descriptor.type) {
+      case 'atlas':
+        let texture = textures.addAtlas(descriptor.key, descriptor.image, descriptor.meta);
+        let frames = descriptor.meta['frames'];
 
-      switch (descriptor.type) {
-        case 'atlas':
-          let texture = textures.addAtlas(descriptor.key, descriptor.image, descriptor.meta);
-          let frames = descriptor.meta['frames'];
+        for (let key in frames) {
+          let frameInfo = frames[key];
+          let delta = frameInfo.delta;
+          let center = frameInfo.center;
 
-          for (let key in frames) {
-            let frameInfo = frames[key];
-            let delta = frameInfo.delta;
-            let center = frameInfo.center;
+          let frame = texture.get(key);
 
-            let frame = texture.get(key);
+          //center = this.iso.unprojectAbsolute(center);
 
-            //center = this.iso.unprojectAbsolute(center);
-
-            if (center) {
-              frame.centerX = center.x;
-              frame.centerY = center.y;
-            }
+          if (center) {
+            frame.centerX = center.x;
+            frame.centerY = center.y;
           }
+        }
 
-          break;
-      }
-
-    } else {
-      this.load[type].call(this.load, data);
+        break;
     }
 
     //this.engine.assetLoader.preload(data);
-
     return true;
   }
 
@@ -128,7 +121,7 @@ export class Scene extends Phaser.Scene {
    * Starts loading of scene assets for given map
    * @param map
    */
-  async startLoader(map) {
+  /*async startLoader(map) {
     if (this.customLoader) {
       let textures = this.sys.textures;
 
@@ -169,7 +162,7 @@ export class Scene extends Phaser.Scene {
       this.load.start();
     }
 
-  }
+  }*/
 
   /**
    * Adds isometric sprite to scene
@@ -369,8 +362,8 @@ export class Scene extends Phaser.Scene {
 
     });
 
-    this.lights.enable();
-    this.lights.setAmbientColor(0x666666);
+    //this.lights.enable();
+    //this.lights.setAmbientColor(0x666666);
 
   }
 
@@ -413,15 +406,15 @@ export class Scene extends Phaser.Scene {
 
     //cam.follow(this.player, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1)
 
-    this.setCameraLocation([320, 340 /*(map.width / 2) * 64,  (map.height / 2) * 64*/]);
+    this.setCameraLocation([(map.width / 2) * 64,  (map.height / 2) * 64]);
   }
 
   setCameraLocation(location) {
     let cam = this.cameras.main;
 
     let center = new Location(location).worldToScreen();
-    center.x += cam.width / 2;
-    center.y += cam.height / 2;
+    //center.x += cam.width / 2;
+    //center.y += cam.height / 2;
 
     //cam.setSize(800, 800)
     //cam.setViewport(-50000, -50000, 100000, 100000)
@@ -430,7 +423,7 @@ export class Scene extends Phaser.Scene {
   }
 
   highlightTiles(tiles) {
-    let color = 0xff0000;
+    let color = Math.random() * 16000000;
     let sectors = this.engine.map.sectors;
 
     for (let i = 0; i < tiles.length; i++) {
@@ -446,8 +439,10 @@ export class Scene extends Phaser.Scene {
       if (!tile || !tile.sprite)
         continue;
 
-      tile.sprite.setTint(Math.random() * 16000000);
-      tile.sprite.setBlendMode('BlendAdd');
+      tile.sprite.setTint(color);
+      //tile.sprite.setBlendMode('BlendAdd');
+
+      //tile.sprite.sprite.alpha = 0.7;
     }
   }
 

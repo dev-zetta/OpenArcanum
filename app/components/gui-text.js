@@ -1,5 +1,6 @@
+/* global AGate */
+
 import GuiWidget from './gui-widget';
-import AGate from '../agate/agate';
 
 export default GuiWidget.extend({
   value: "100",

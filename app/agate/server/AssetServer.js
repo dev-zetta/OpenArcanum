@@ -1,4 +1,4 @@
-import AGate from '../agate'
+/* global AGate */
 
 var http = AGate.requireNode('http')
 var url = AGate.requireNode('url')

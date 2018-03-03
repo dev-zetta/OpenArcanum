@@ -11,12 +11,7 @@ exports.action = {
     if (!nearby || nearby.length == 0)
       return -125;
 
-    for (let another of nearby) {
-      if (entity.id != another.id)
-        return 50;
-    }
-
-    return 0;
+    return 50;
   },
 
 

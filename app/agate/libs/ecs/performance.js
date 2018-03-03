@@ -8,7 +8,6 @@ let perf = null, start = Date.now();
 
 if (window && window.performance) {
   perf = window.performance;
-  console.log(window.performance)
 } else {
   perf = {
     now() {

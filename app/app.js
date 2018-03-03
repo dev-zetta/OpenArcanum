@@ -11,4 +11,7 @@ const App = Application.extend({
 
 loadInitializers(App, config.modulePrefix);
 
+import AGate from './agate/AGate';
+global.AGate = AGate;
+
 export default App;

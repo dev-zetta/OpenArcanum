@@ -1,8 +1,8 @@
 /* global requireNode */
 
 //import Engine from './shared/engine'
-import {Utils} from './shared/Utils';
-import {Math} from './shared/Math';
+import {Utils} from './shared/misc/Utils';
+import {Math} from './shared/misc/Math';
 
 //import 'reflect-metadata';
 

@@ -1,4 +1,5 @@
-import AGate from '../agate';
+/* global AGate */
+
 import {Sprite} from './GuiSprite';
 
 class Manager {

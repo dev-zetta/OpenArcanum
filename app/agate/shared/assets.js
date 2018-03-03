@@ -1,5 +1,4 @@
-/* global requireNode */
-import AGate from '../agate';
+/* global AGate, requireNode */
 //var liquidfun = requireNode('liquidfun')
 
 export var GfxTypes = new AGate.Enum(
@@ -46,7 +45,9 @@ export class GfxPathBuilder {
         base += `${data.category}/${data.name}`;
         break;
       case GfxTypes.Item:
-        base += `${data.category}/${data.subtype}/${data.number}/${data.display}`;
+        let number = data.number ? data.number : 0;
+        let subcat = data.subcat ? data.subcat : 'Base';
+        base += `${data.category}/${subcat}/${number}/${data.display}`;
         break;
       case GfxTypes.Container:
         base += `${data.category}/${data.name}`; // ok
@@ -405,6 +406,9 @@ export class AssetLoader {
           return false; //Promise.resolve(false);
         }
 
+        break;
+      case 'json':
+        descriptor.meta = await this.loadJsonFile(descriptor.data);
         break;
     }
 

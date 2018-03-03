@@ -1,9 +1,9 @@
-import AGate from '../agate';
+/* global AGate */
 import {GfxTypes, GfxPathBuilder} from '../shared/assets';
 import Enums from '../shared/enums';
 
 import Phaser from '../libs/phaser';
-import {Math} from '../shared/Math';
+import {Math} from '../shared/misc/Math';
 
 export class Sprite {
 
@@ -12,10 +12,19 @@ export class Sprite {
     this.totalElapsed = 0;
   }
 
+  /**
+   *
+   * @returns {integer}
+   */
   get stageLength() {
     return this.sprite.texture.frameTotal;
   }
 
+  /**
+   *
+   * @param data
+   * @returns {Promise<void>}
+   */
   async load(data) {
     //console.log(data)
 
@@ -79,19 +88,26 @@ export class Sprite {
 
     let stageDirs = await assetLoader.findDirs(variantPath);
 
+    let promises = [];
+
     for (let [key, value] of stageDirs) {
       let stageName = key; // AGate.Utils.getLastDir(dir);
       let stagePath = `${variantPath}/${stageName}`;
       let assetKey = `${keyPrefix}/${stageName}`;
 
-      await this.client.scene.loadAsset(assetKey, 'atlas', {
+      let promise = this.client.scene.loadAsset(assetKey, 'atlas', {
         texture: `${stagePath}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
         data: `${stagePath}/Stage.json`,
         flippedX: this.flipped
       });
 
+      promises.push(promise);
+
       this.stages.push(stageName);
     }
+
+    await Promise.all(promises);
+
   }
 
   makeTextureInfo() {
@@ -124,6 +140,9 @@ export class Sprite {
   addToScene(target, x, y, z = 0, offset = null) {
 
     let {key, frame} = this.makeTextureInfo();
+
+    //if (this.type == GfxTypes.Tile)
+    //  console.log(offset);
 
     this.sprite = target.scene.addIsoSprite(x, y, z, key, frame, target, offset);
     this.sprite.data = this;
@@ -174,7 +193,6 @@ export class Sprite {
 
     //if (this.type == GfxTypes.Tile)
     //this.sprite.setPipeline('Light2D');
-
   }
 
   setData(data) {

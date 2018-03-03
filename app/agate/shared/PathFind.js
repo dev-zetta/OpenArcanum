@@ -1,7 +1,8 @@
-import AGate from '../agate';
-import {Sector} from './Sector';
+/* global AGate */
+
+import {Sector} from './map/Sector';
 import {Location} from './Location';
-import {Math} from './Math';
+import {Math} from './misc/Math';
 
 // https://github.com/qiao/PathFinding.js
 const PF = AGate.requireNode('pathfinding');
@@ -21,6 +22,8 @@ export class PathFind {
   async findPath(start, end) {
     return new Promise(resolve => {
       let map = this.map;
+
+      console.log(`${start} - ${end}`);
 
       let distance = Location.calculateDistance(start, end);
       let range = distance + Math.round(distance / 2);
@@ -54,7 +57,9 @@ export class PathFind {
         endY = tilesY - 1;
 
       //console.log(Math.abs(endX - startX) + 1, Math.abs(endY - startY) + 1)
-      this.grid = new PF.Grid(Math.abs(endX - startX) + 1, Math.abs(endY - startY) + 1);
+      let width = Math.abs(endX - startX) + 1;
+      let height = Math.abs(endY - startY) + 1;
+      this.grid = new PF.Grid(width, height);
 
       // Set blocked tiles to the grid
       for (let y = startY; y < endY; y++) {
@@ -69,7 +74,7 @@ export class PathFind {
       //console.log(start, end);
       //console.log(start[0] - startX, start[1] - startY, end[0] - startX, end[1] - startY);
 
-      let path = this.finder.findPath(start[0] - startX, start[1] - startY, end[0] - startX, end[1] - startY,
+      let path = this.finder.findPath(start[0] - startX, start[1] - startY, end[0] - startX, end[1] - startY, // start[0] % width, start[1] % height, end[0] % width, end[1] % height
         this.grid);
 
       if (reversed) {

@@ -1,3 +1,5 @@
+/* global AGate */
+
 import {Flags} from '../../Flags';
 import {AiState} from '../ai/AiState';
 

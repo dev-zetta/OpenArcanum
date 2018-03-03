@@ -1,4 +1,4 @@
-import AGate from '../../../agate';
+/* global AGate */
 import {Evaluator} from './Evaluator';
 
 let Evaluators = {

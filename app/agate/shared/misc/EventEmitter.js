@@ -1,4 +1,4 @@
-import AGate from '../agate';
+/* global AGate */
 
 const events = AGate.requireNode('events');
 

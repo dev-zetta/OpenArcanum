@@ -1,5 +1,5 @@
 /* global requireNode */
-import AGate from '../agate';
+/* global AGate */
 
 class Enums {
 

@@ -1,3 +1,5 @@
+/* global AGate */
+
 const WebSocket = requireNode('ws');
 
 class GameServer {

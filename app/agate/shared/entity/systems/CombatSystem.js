@@ -1,3 +1,5 @@
+/* global AGate */
+
 import {System} from '../System';
 import {Location} from '../../Location';
 import Enums from '../../enums';

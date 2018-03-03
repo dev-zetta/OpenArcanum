@@ -26,10 +26,10 @@ app.on('window-all-closed', () => {
 });
 app.on('ready', () => {
     mainWindow = new BrowserWindow({
-        width: 1024,
-        height: 768,
+        width: 1280,
+        height: 1024,
         //frame: false,
-        resizable: false,
+        resizable: true,
         transparent: true,
         title: "OpenArcanum",
         webPreferences: {

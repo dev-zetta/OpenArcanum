@@ -1,7 +1,6 @@
-import AGate from '../agate';
+/* global AGate */
 
-var workerpool = AGate.requireNode('workerpool');
-
+let workerpool = AGate.requireNode('workerpool');
 
 // https://github.com/josdejong/workerpool
 export class WorkerPool {

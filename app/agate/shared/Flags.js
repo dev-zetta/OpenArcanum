@@ -1,4 +1,4 @@
-import AGate from '../agate';
+/* global AGate */
 
 export class Flags  {
   constructor(list) {

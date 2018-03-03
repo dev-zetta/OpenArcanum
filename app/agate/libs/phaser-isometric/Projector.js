@@ -2,7 +2,7 @@ import {Phaser} from './Phaser';
 import {Point3} from './Point3';
 import {Isometric} from './Isometric';
 import {Math} from './Math';
-import {Sector} from '../../shared/Sector';
+import {Sector} from '../../shared/map/Sector';
 
 /**
  * @class Projector
@@ -158,8 +158,8 @@ export class Projector {
 
     z = z || 0;
 
-    const x = point.x - (this.scene.cameras.main.width * this.anchor.x);
-    const y = point.y - (this.scene.cameras.main.height * this.anchor.y) + z;
+    const x = point.x;// - (this.scene.cameras.main.width * this.anchor.x);
+    const y = point.y;// - (this.scene.cameras.main.height * this.anchor.y) + z;
 
     out.x = x / (2 * this._transform[0]) + y / (2 * this._transform[1]);
     out.y = -(x / (2 * this._transform[0])) + y / (2 * this._transform[1]);

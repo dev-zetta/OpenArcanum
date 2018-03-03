@@ -1,12 +1,10 @@
-import AGate from '../agate';
-import Phaser from '../libs/phaser';
+/* global AGate */
 
-import {EntitySystem} from './EntitySystem';
-import {Sprite} from '../client/Sprite';
-import {Location} from './Location';
+import {EntitySystem} from '../EntitySystem';
+import {Location} from '../Location';
 import {Sector} from './Sector';
-import {AiSystem} from './entity/ai/AiSystem';
-import {PathFind} from './PathFind';
+import {AiSystem} from '../entity/ai/AiSystem';
+import {PathFind} from '../PathFind';
 
 export class GameMap {
 
@@ -19,6 +17,11 @@ export class GameMap {
     this.isLoaded = false;
   }
 
+  /**
+   *
+   * @param path
+   * @returns {Promise<void>}
+   */
   async load(path) {
     this.path = path;
     this.name = '';
@@ -26,6 +29,8 @@ export class GameMap {
     this.isLoaded = false;
 
     this.engine.onMapLoading(this);
+
+    await this.entitySystem.loadPrototypes();
 
     AGate.Utils.logError(`Loading map: ${path}`);
     let data = await this.engine.assetLoader.loadJsonFile(`${path}/Map.json`);
@@ -49,12 +54,24 @@ export class GameMap {
     this.isLoaded = true;
   }
 
+  /**
+   *
+   * @param x
+   * @param y
+   * @returns {Promise<void>}
+   */
   async loadSector(x, y) {
     let sector = new Sector(this);
     await sector.load(this.getSectorPath(y, x), y, x);
     this.sectors[y][x] = sector;
   }
 
+  /**
+   *
+   * @param path
+   * @param onLoaded
+   * @returns {Promise<void>}
+   */
   async loadEntities(path, onLoaded) {
     AGate.Utils.logError(`Loading entities...`);
 
@@ -64,12 +81,17 @@ export class GameMap {
       let entityFiles = await this.engine.assetLoader.findFiles(`${path}/${key}`, '.json');
 
       for (let [key, value] of entityFiles) {
-        let entity = await this.loadEntity(value.name)
+        let entity = await this.loadEntity(value.name);
         onLoaded(entity);
       }
     }
   }
 
+  /**
+   *
+   * @param path
+   * @returns {Promise<Entity>}
+   */
   async loadEntity(path) {
     AGate.Utils.logError(`Loading entity: ${path}`);
 
@@ -81,6 +103,10 @@ export class GameMap {
     return entity;
   }
 
+  /**
+   *
+   * @param target
+   */
   placeToScene(target) {
     AGate.Utils.logError(`Placing to scene: ${this.path}`);
 
@@ -103,6 +129,9 @@ export class GameMap {
     this.engine.client.scene.sortGroups(sortGroups);
   }
 
+  /**
+   *
+   */
   update() {
     if (!this.isLoaded)
       return;
@@ -128,10 +157,22 @@ export class GameMap {
 
   }
 
+  /**
+   *
+   * @param x
+   * @param y
+   * @returns {string}
+   */
   getSectorPath(x, y) {
     return `${this.path}/Sector/${x}/${y}`;
   }
 
+  /**
+   *
+   * @param x
+   * @param y
+   * @returns {boolean}
+   */
   isTileBlocked(x, y) {
     let tile = this.getTile(x, y);
     if (!tile)
@@ -140,6 +181,12 @@ export class GameMap {
     return tile.blocked;
   }
 
+  /**
+   *
+   * @param x
+   * @param y
+   * @returns {*}
+   */
   getTile(x, y) {
     let location = new Location(x, y);
 
@@ -154,7 +201,13 @@ export class GameMap {
     return sector.getTile(location.tileX, location.tileY);
   }
 
-  getEntitiesInRange(types, center, range) {
+  /**
+   *
+   * @param options
+   * @returns {Array}
+   */
+  getEntitiesInRange(options) {
+    let {types, center, range, ignore, filter} = options;
 
     let names = [];
     if (types) {
@@ -201,12 +254,34 @@ export class GameMap {
 
         if (types) {
           for (let i = 0; i < names.length; i++) {
-            let entity = tile[names[i]];
-            if (entity) {
 
-              entity.distanceToCenter = Location.calculateDistance(entity.base.location, center);
-              result.push(entity);
+            // Has tile the entity of given type
+            let entity = tile[names[i]];
+            if (!entity)
+              continue;
+
+            // Is entity being ignored?
+            if (ignore) {
+              let ignored = false;
+              for (let other of ignore) {
+                if (other.id == entity.id) {
+                  ignored = true;
+                  break;
+                }
+              }
+
+              if (ignored)
+                continue;
             }
+
+            if (filter) {
+              if (!filter(entity))
+                continue;
+            }
+
+            // Put entity into list
+            entity.distanceToCenter = Location.calculateDistance(entity.base.location, center);
+            result.push(entity);
           }
         } else {
           //tile

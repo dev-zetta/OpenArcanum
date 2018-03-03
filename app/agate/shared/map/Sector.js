@@ -1,9 +1,9 @@
-import {Sprite} from '../client/Sprite';
-import {Location} from './Location';
+/* global AGate */
 
-import Phaser from '../libs/phaser';
-import AGate from '../agate';
-import {GfxTypes} from './assets';
+import {Sprite} from '../../client/Sprite';
+import {Location} from '../Location';
+
+import Phaser from '../../libs/phaser';
 
 export class Sector {
   static get TileWidth() { return 80; }
@@ -13,7 +13,6 @@ export class Sector {
   static get TileHeightHalf() { return 20; }
 
   static get Width() { return 64; }
-
   static get Height() { return 64; }
 
   constructor(map) {
@@ -21,6 +20,12 @@ export class Sector {
     this.engine = map.engine;
   }
 
+  /**
+   *
+   * @param x
+   * @param y
+   * @returns {*}
+   */
   getTile(x, y) {
     if (!this.tiles)
       return null;
@@ -29,6 +34,11 @@ export class Sector {
     return tile;
   }
 
+  /**
+   *
+   * @param entity
+   * @returns {boolean}
+   */
   addEntity(entity) {
     if (this.entities.has(entity.id)) {
       console.log(`Replacing entity: ${entity.id}`);
@@ -51,6 +61,13 @@ export class Sector {
     this.entities.set(entity.id, entity);
   }
 
+  /**
+   *
+   * @param path
+   * @param x
+   * @param y
+   * @returns {Promise<void>}
+   */
   async load(path, x, y) {
     AGate.Utils.logError(`Loading sector: ${path}`);
 
@@ -91,6 +108,10 @@ export class Sector {
     });
   }
 
+  /**
+   *
+   * @param target
+   */
   placeToScene(target) {
 
     if (!this.tiles)
@@ -111,7 +132,7 @@ export class Sector {
           continue;
 
         if (tile.type) {
-          tile.sprite.addToScene(this.tileGroup, ay, dx, 0);
+          tile.sprite.addToScene(this.tileGroup, ay, dx, 0, [0, 20]);
 
           tile.sprite.setData(tile);
         }
@@ -145,12 +166,15 @@ export class Sector {
     //target.scene.sortGroup(this.staticGroup);
   }
 
+  /**
+   *
+   */
   update() {
     if (!this.tiles)
       return;
 
     // Loop through all tiles and test to see if the 3D position from above intersects with the automatically generated IsoSprite tile bounds.
-    var cursorPos = this.engine.client.scene.cursorPos;
+    /*var cursorPos = this.engine.client.scene.cursorPos;
 
     if (!AGate.Utils.isUndefined(this.tileGroup)) {
 
@@ -178,7 +202,7 @@ export class Sector {
           //tile.sprite.sprite.debug();
         }
       }
-    }
+    }*/
   }
 
   isTileBlocked(x, y) {

@@ -1,3 +1,3 @@
-import { Math } from '../../shared/Math';
+import { Math } from '../../shared/misc/Math';
 
 export { Math };

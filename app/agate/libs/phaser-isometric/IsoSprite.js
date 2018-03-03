@@ -44,15 +44,15 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
     if (false) {
       let pos = {x: this.frame.centerX, y: this.frame.centerY};
       if (offset != null) {
-        pos.x -= offset.x;
-        pos.y -= offset.y;
+        pos.x -= offset[0];
+        pos.y -= offset[1];
       }
 
       this.displayOriginX = pos.x;
       this.displayOriginY = pos.y;
     } else {
       if (offset != null) {
-        offset = this.scene.iso.unprojectAbsolute(offset);
+        offset = this.scene.iso.unprojectAbsolute({x: offset[0], y: offset[1]});
 
         x += offset.x;
         y += offset.y;

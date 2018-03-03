@@ -1,6 +1,8 @@
+/* global AGate */
+
 import {Waypoint} from './Waypoint';
-import {Sector} from '../Sector';
-import {Math} from '../Math';
+import {Sector} from '../map/Sector';
+import {Math} from '../misc/Math';
 import {Location} from '../Location';
 
 export class MovementPath {
@@ -9,6 +11,8 @@ export class MovementPath {
     this.currentIndex = 0;
     //this.totalElapsed = 0;
     this.waypointElapsed = 0;
+    this.movedDistance = 0;
+    this.nextTo = false;
   }
 
   /**
@@ -17,6 +21,7 @@ export class MovementPath {
   clear() {
     this.waypoints.length = 0;
     this.currentIndex = 0;
+    this.movedDistance = 0;
   }
 
   /**
@@ -37,17 +42,22 @@ export class MovementPath {
    *
    * @returns {boolean}
    */
-  start() {
+  start(nextTo) {
     if (this.currentIndex + 1 >= this.waypoints.length) {
+      console.log(this.waypoints)
       return false;
     }
 
-    let current = new Location(this.waypoints[this.currentIndex]);
-    this.velocity = current.getVelocity(this.waypoints[this.currentIndex + 1]);
+    this.nextTo = nextTo;
+
+    let current = this.waypoints[this.currentIndex];
+    let next = this.waypoints[this.currentIndex + 1];
+
+    this.velocity = Location.calculateVelocity(current, next);
 
     let direction = Location.velocityToDirection(this.velocity);
     this.directionName = String(direction);
-    this.movedDistance = 0;
+
     //let vec = current.lerp(next, percent, true);
   }
 
@@ -59,35 +69,31 @@ export class MovementPath {
    */
   process(entity, elapsed) {
     if (this.currentIndex + 1 >= this.waypoints.length) {
+      entity.moved = false;
+      // console.log(this.currentIndex, this.waypoints.length)
+      this.processVisual(entity, null, null);
       return false;
     }
 
     let speed = entity.npc.getMovementSpeed();
+    let delta = Location.calculateMultiply(this.velocity, (speed * Sector.TileWidthHalf) * (elapsed / 1000));
 
-    //this.waypointElapsed += elapsed;
-    //this.totalElapsed += elapsed;
+    this.processMovement(entity, delta[0], delta[1]);
+    this.processVisual(entity, delta[0], delta[1]);
+    return true;
+  }
 
-    //console.log(x, y, octant, direction);
-
-    // Update sprite frame
-    //sprite.update(this.totalElapsed, speed);
-
-    // Update sprite position
-    let delta = this.velocity.multiply((speed * Sector.TileWidthHalf) * (elapsed / 1000), true);
-    entity.moved = entity.base.move(delta.x, delta.y);
+  processMovement(entity, dx, dy) {
+    entity.moved = entity.base.move(dx, dy);
 
     //let timeAtTile = 1000 / speed;
     if (entity.moved /*this.waypointElapsed >= timeAtTile*/) {
       //this.waypointElapsed = this.waypointElapsed % timeAtTile;
       this.movedDistance++;
       this.currentIndex++;
-      this.start();
+      this.start(this.nextTo);
     }
-
-    this.processVisual(entity, delta.x, delta.y);
-    return true;
   }
-
 
   processVisual(entity, dx, dy) {
     let visualClass = entity.getCurrentVisual();
@@ -99,9 +105,14 @@ export class MovementPath {
       return false;
 
     sprite.setStage(this.directionName);
-    sprite.move(dx, dy);
+
+    if (dx != null && dy != null)
+      sprite.move(dx, dy);
+
     return true;
   }
+
+
 
 
 }

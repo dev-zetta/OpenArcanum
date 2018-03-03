@@ -1,6 +1,7 @@
+/* global AGate */
+
 import GuiWidget from './gui-widget';
-import {Math} from '../agate/shared/Math';
-import AGate from '../agate/agate';
+import {Math} from '../agate/shared/misc/Math';
 
 export default GuiWidget.extend({
 

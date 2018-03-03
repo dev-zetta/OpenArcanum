@@ -1,4 +1,5 @@
-import AGate from '../agate';
+/* global AGate */
+
 import Phaser from '../libs/phaser';
 
 class CUtils {

@@ -1,9 +1,9 @@
-import AGate from '../agate';
+/* global AGate */
 import {Client} from '../client/Client';
-import {GameMap} from './GameMap';
+import {GameMap} from './map/GameMap';
 import {AssetLoader} from './assets';
-import {WorkerPool} from './WorkerPool';
-import {EventEmitter} from './EventEmitter';
+import {WorkerPool} from './misc/WorkerPool';
+import {EventEmitter} from './misc/EventEmitter';
 
 export class Engine {
 
@@ -37,6 +37,11 @@ export class Engine {
     });*/
   }
 
+  /**
+   *
+   * @param canvas
+   * @returns {Promise<void>}
+   */
   async createClient(canvas) {
     await this.assetLoader.initialize();
 
@@ -45,23 +50,40 @@ export class Engine {
     await this.client.create();
   }
 
+  /**
+   *
+   */
   update() {
     this.map.update();
   }
 
+  /**
+   *
+   */
   load() {
-    let path = AGate.getDataPath('Void - Arronax\'s Interior');
+    let path = AGate.getDataPath('Bates Mansion Lev 2');
     this.map.load(path);
   }
 
+  /**
+   *
+   */
   onPreloaded() {
     this.load();
   }
 
+  /**
+   *
+   * @param map
+   */
   onMapLoading(map) {
     this.client.onMapLoading(map);
   }
 
+  /**
+   *
+   * @param map
+   */
   onMapLoaded(map) {
     this.client.onMapLoaded(map);
   }

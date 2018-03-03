@@ -11,7 +11,7 @@ exports.action = {
     if (!entity.npc.waypoints || entity.npc.waypoints.length == 0)
       return -125;
 
-    return 125;
+    return 50;
   },
 
   isMoving({ Enums, entity }) {

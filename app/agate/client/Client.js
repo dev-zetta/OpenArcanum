@@ -1,4 +1,5 @@
-import AGate from '../agate';
+/* global AGate */
+
 import Phaser from '../libs/phaser';
 
 /*
@@ -9,7 +10,7 @@ import Preloader from './states/preloader'
 import Gameover from './states/gameover'
 */
 
-import {AssetServer} from '../server/AssetServer';
+//import {AssetServer} from '../server/AssetServer';
 import {Scene} from './Scene';
 import {Manager} from './Gui';
 
@@ -19,7 +20,7 @@ export class Client {
 
     this.engine = engine;
     this._canvas = canvas;
-    this.assetServer = new AssetServer();
+    //this.assetServer = new AssetServer();
     //this.assetServer.start(AGate.getDataPath());
     this.guiManager = new Manager(engine);
 

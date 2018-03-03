@@ -1,7 +1,8 @@
+/* global AGate */
+
 import Component from '@ember/component';
 import {Engine} from '../agate/shared/Engine';
 import {Manager} from '../agate/client/Gui';
-import AGate from '../agate/agate';
 
 export default Component.extend({
   store: Ember.inject.service(),
