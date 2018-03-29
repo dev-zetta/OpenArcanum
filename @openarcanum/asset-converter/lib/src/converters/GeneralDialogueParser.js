@@ -12,7 +12,6 @@ module.exports = {
         var file = allFiles[fileName];
         for (var record in records) {
           if (!addRecordToFile(file, records[record])) {
-            console.log(file);
             console.log("Could not find matching place for record: {" + records[record].key + ": " + records[record].value + "} from file: " + fileName);
           }
         }

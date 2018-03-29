@@ -1,7 +1,7 @@
 module.exports = {
   writeJsonObjectToFile: function (obj, filePathAndName) {
     var fs = require('fs');
-    fs.writeFile(filePathAndName, JSON.stringify(obj), function (err) {
+    fs.writeFileSync(filePathAndName, JSON.stringify(obj), {}, function (err) {
       if (err) {
         return console.log(err);
       }

@@ -10,8 +10,7 @@ module.exports = {
   },
 
   convertAllFiles : function(arcanumPath, patternsPath, outputPath){
-    var allDialogues = generalDialogueParser.prepareJson(patternsPath + "dialoguePattern.json", arcanumPath + "mes/");
-    readerHelper.writeJsonObjectToFile(allDialogues, outputPath + "GeneralDialogue.json");
-    generalDialogueParser.prepareJson(patternsPath + "dialoguePattern.json", arcanumPath + "mes/");
+    var generalDialogues = generalDialogueParser.prepareJson(patternsPath + "dialoguePattern.json", arcanumPath + "mes/");
+    readerHelper.writeJsonObjectToFile(generalDialogues, outputPath + "GeneralDialogue.json");
   }
 };
