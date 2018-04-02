@@ -1,7 +1,7 @@
 const globalConverter = require("./GlobalConverter");
 var patterns = "../resources/patterns/";
 var arcanumPath = "../resources/";
-var output = "../resources/";
+var output = "../resources/out/";
 
 globalConverter.prepareAllPatterns(arcanumPath, patterns);
 globalConverter.convertAllFiles(arcanumPath, patterns, output);

@@ -27,6 +27,27 @@ module.exports = {
         console.log(err);
       }
     });
+  },
+
+  readRecords: function readJSONFile(filePathAndName) {
+    var fs = require('fs');
+    var data =  fs.readFileSync(filePathAndName, {encoding: 'utf-8'}, function (err) {
+      if (!err) {
+      } else {
+        console.log(err);
+      }
+    });
+    return parseTextRecords(data);
   }
 };
+
+function parseTextRecords(data) {
+  var textRecords = [];
+  var messages = data.match(/{\d+}{[\s\S]*?}/g);
+  for (var i = 0; i < messages.length; ++i) {
+    var record = messages[i].match(/{(.+)}{([\s\S]*?)}/);
+    textRecords.push({key: record[1], value: record[2]})
+  }
+  return textRecords;
+}
 
