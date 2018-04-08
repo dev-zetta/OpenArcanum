@@ -26,7 +26,7 @@ module.exports = {
     }
     readerHelper.writeJsonObjectToFile(generated, outputFolder + parserFilename);
   },
-  generatePatternForSingleFile: function(file, inputFolder, outputFolder) {
+  parseSpells: function(file, inputFolder, outputFolder) {
     var generated = generatePatternForSingleFile(inputFolder + file.name + '.mes', file);
     readerHelper.writeJsonObjectToFile(generated, outputFolder + file.name + '.json');
   }

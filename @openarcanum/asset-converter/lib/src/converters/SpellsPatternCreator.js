@@ -1,101 +1,25 @@
-class Spell {
-  constructor(name, records, startAt) {
-    this.name = name;
-    this.castingEffect = 'Instant';
-    this.maintain = false;
-    this.resist = false;
-    this.range = 'MaxVisible';
-    this.minIq = 6;
-    this.info = 'Neutral';
-    this.cost = 0;
-
-    this.effects = [];
-
-    this.parseRecordsToSpell(records, startAt);
-  }
-
-  parseRecordsToSpell(records, startAt) {
-    for (var i = 0; i < records.length; ++i) {
-      var _record = records[i];
-      switch (_record.key - startAt) {
-        case 0:
-          this.parseTargetingRecord(_record);
-          break;
-        case 1:
-          this.parseCostRecord(_record);
-          break;
-        case 2:
-          this.parseMissleRecord(_record);
-          break;
-        case 3:
-          this.parseFlagsRecord(_record);
-          break;
-        case 4:
-          this.parseAiRecord(_record);
-          break;
-        default:
-          this.parseEffectRecord(_record);
-          break;
-      }
-    }
-  }
-
-  parseTargetingRecord(record) {}
-
-  parseMissleRecord(record) {}
-
-  parseCostRecord(record) {
-    var _temp = record.value.replace(/: /g, '":"');
-    _temp = _temp.replace(/, /g, '","');
-    var parsedInfo = JSON.parse('{"' + _temp + '"}');
-    this.maintain = parsedInfo.Maintain || this.maintain;
-    this.cost = parsedInfo.Cost || this.cost;
-    this.resist = parsedInfo.Resist || this.resist;
-    this.range = parsedInfo.Range || this.range;
-    this.info = parsedInfo.Info || this.info;
-  }
-
-  parseFlagsRecord(record) {}
-
-  parseAiRecord(record) {}
-
-  parseEffectRecord(record) {}
-}
-
 const readerHelper = require('../helpers/ReaderHelper');
 const dictionary = require('../resources/Dictionaries');
 const colleges = dictionary.spellList().colleges;
 const spellsMap = dictionary.spellList().spells;
+var Spell = require('../classes/Spell');
 
 //* ************
 // GENERATORS
 //* ************
 module.exports = {
-  generatePatternForSingleFile: function(file, inputFolder, outputFolder) {
-    var generated = generatePatternForSingleFile(inputFolder + file + '.mes', file);
-    readerHelper.writeJsonObjectToFile(generated, outputFolder + file + '.json');
-
-    var clear = generatePatternForSingleFileCLEAR(inputFolder + file + '.mes', file);
-    readerHelper.writeJsonObjectToFile(clear, outputFolder + file + 'CLEAR.json');
+  parseSpells: function(file, inputFolder) {
+    return parseSpells(inputFolder + file + '.mes', file);
   }
 };
 
-function generatePatternForSingleFile(filePath, file) {
+function parseSpells(filePath, file) {
   var data = readerHelper.readFile(filePath);
   var records = readerHelper.readRecords(filePath);
   if (data === null) {
     return null;
   }
   return prepareSpells(records);
-}
-
-function generatePatternForSingleFileCLEAR(filePath, file) {
-  var data = readerHelper.readFile(filePath);
-  var records = readerHelper.readRecords(filePath);
-  if (data === null) {
-    return null;
-  }
-  return prepareClearFile(records);
 }
 
 // *********
@@ -140,7 +64,7 @@ function prepareClearFile(data) {
 
 function fetchRecordsForRange(records, min, max) {
   const recordsToReturn = [];
-  for (let j = 0; j < records.length; ++j) {
+  for (var j = 0; j < records.length; ++j) {
     if (records[j].key >= max) {
       break;
     }
@@ -150,9 +74,3 @@ function fetchRecordsForRange(records, min, max) {
   }
   return recordsToReturn;
 }
-
-module.exports.generatePatternForSingleFile(
-  'SpellList',
-  'C:/Users/Lorthiz/Desktop/rules/',
-  '../Resources/out/'
-);
