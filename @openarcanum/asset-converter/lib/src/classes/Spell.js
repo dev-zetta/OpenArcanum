@@ -8,7 +8,7 @@ module.exports = class Spell {
     this.minIq = 6;
     this.info = 'Neutral';
     this.cost = 0;
-    this.flags = {};
+    this.flags = [];
 
     this.effects = [];
 
@@ -58,13 +58,13 @@ module.exports = class Spell {
     this.info = parsedInfo.Info || this.info;
   }
 
-  parseFlagsRecord(record) {}
+  parseFlagsRecord(record) {
+    this.flags.push(record);
+  }
 
   parseAiRecord(record) {
     var _temp = record.value.replace(/: /g, '":"');
     _temp = _temp.replace(/, /g, '","');
-    console.log(_temp);
-    console.log(record);
     if (record.value) {
       var parsedInfo = JSON.parse('{"' + _temp + '"}');
       this.AI_Offensive = parsedInfo.AI_Offensive;
@@ -74,5 +74,7 @@ module.exports = class Spell {
     }
   }
 
-  parseEffectRecord(record) {}
+  parseEffectRecord(record) {
+    this.effects.push(record);
+  }
 };

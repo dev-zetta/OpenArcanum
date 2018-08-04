@@ -4,9 +4,202 @@ const dictionary = require('../resources/Dictionaries').generalDialogue();
 //* ************
 // GENERATORS
 //* ************
+
+// --- RECORD ---
+/*
+All resources in Arcanum can be represented in a simple pattern later called RECORD:
+{"resourceId": string}
+resourceId: this is a number that can be shared between files and in original game is used as identifier
+To this Id we have some data tied to it that is represented by a string
+
+Examples:
+{"1000": "Could you spare a coin?"}
+{"1001": "Please I have nothing to eat..."}
+{"1050": "You dirty beggar!"}
+*/
+
+// --- RECORD RANGE ---
+/*
+A lot of records can be grouped by ranges:
+"identifier": {
+  "min": integer,
+  "max": integer,
+  "lines": [ {RECORD}{RECORD}, ... ]
+}
+identifier:  could be anything: className, raceName, direction or just 'default', it gives context to whole group
+min: it is a starting mark for recordId range
+max:  it is ending mark for recordId range
+lines: is initially empty and will be filled in a proper parser with specific language data RECORDs.
+
+Normal file could be filled with records form 1000 to let's say 10000 and we should be aware that it contains
+more records that can belong to different categories:
+1000 could be a default dialogue option, but 2049 could be race specific, and 2050 could belong to other race etc.
+
+Examples:
+"default": {
+  "min": 1500,
+  "max": 1599,
+  "lines": []
+}
+"north": {
+  "min": 700,
+  "max": 709,
+  "lines": []
+}
+"orc": {
+  "min": 1550,
+  "max": 1599,
+  "lines": [
+    {"1050": "ME EAT NOOOOOW"},
+    {"1051": "ME NO HUNGRY"}
+  ]
+}
+*/
+
+// --- DIALOGUE TYPE ---
+/*
+Dialogues can be mostly represented by this structure:
+{
+  "type": string,
+  "description": string,
+  "classes": {
+    "className": {RECORD RANGE},
+    "secondClass": {RECORD RANGE}
+  },
+  races: {
+    "raceName": {RECORD RANGE},
+    "secondRace": {RECORD RANGE}
+  }
+  directions: {
+    "direction": {RECORD RANGE}
+    "otherDirection": {RECORD RANGE}
+  }
+  "default":[
+    {RECORD RANGE}
+  ]
+}
+type: it's type of dialogue that we're dealing with
+description: it's description that describes dialogue
+classes: it's array/object with specific classes and their dialogues, it only contains objects if dialogue have some class specific dialogue records
+races: the same as classes but are race specific
+directions: it's another group created only for directions. In original arcanum files it was treated as diffrent category from default, race or class so I implemented it the same way
+default: it contains default dialogue options for given dialogue
+
+It should be mentioned that variables classes, races, directions, default can be empty. This simply means that that this dialogue does not contain any records in that specific context;
+
+Examples:
+{
+  "type": "khajjitIsInnocentOfThisCrime",
+  "description": "the NPC is refusing to buy stolen goods",
+  "classes": {
+
+  },
+  "races": {
+
+  },
+  "directions": {
+
+  },
+  "default": [{
+    "min": 4600,
+    "max": 4699,
+    "lines": []
+  }]
+}
+
+{
+  "type": "nearbyDirections",
+  "description": "Nearby directions",
+  "classes": {
+
+  },
+  "races": {
+
+  },
+  "directions": {
+    "north": {
+      "min": 200,
+      "max": 209,
+      "lines": []
+    },
+    "northEast": {
+      "min": 210,
+      "max": 219,
+      "lines": []
+    }
+  },
+  "default": []
+}
+*/
+
+// GeneralDialoguesPatternCreator
+/*
+This generator creates a pattern for all given dialogue files which can be used later to parse dialogue records of those files in any language.
+For every filename we are assigning a list of DIALOGUE TYPES
+
+Methods:
+writeParserPatternForFiles(
+    fileInformation,
+    inputFolder,
+    outputFolder,
+    parserFilename,
+    writeAlsoToSingleFiles
+  )
+fileInformation: object with information about a file: name and how it should be parsed eg. {name: "gd_cls_dumb_f2f", type: "START_AT"} for more information check "FilesInformation.js"
+inputFolder: where is main Arcanum folder placed eg "C:/Games/Arcanum"
+inputFolder: where parsed JSON should be placed
+parserFilename: how parser should be named
+writeAlsoToSingleFiles: boolean if also single files should be created for every dialog file
+
+--- DIALOGUE FILES PATTERN ---
+{
+  "filename": [
+    {DIALOGUE TYPE},
+    {DIALOGUE TYPE}
+  ],
+  "filename2": [
+    {DIALOGUE TYPE},
+    {DIALOGUE TYPE}
+  ]
+}
+
+Examples
+"justSomeDialogueFilename": [
+  {
+    "type": "khajjitIsInnocentOfThisCrime",
+    "description": "the NPC is refusing to buy stolen goods",
+    "classes": {
+      "warrior":{
+        "min": 2000,
+        "max": 2999,
+        "lines": [
+        ]
+      }
+    },
+    "races": {
+      "khajiit":{
+        "min": 1000,
+        "max": 1999,
+        "lines": [
+        ]
+      }
+    }
+    "directions": {
+
+    },
+    "default": [{
+      "min": 3000,
+      "max": 3500,
+      "lines": [
+      ]
+    }]
+  }
+]
+ */
+
 module.exports = {
   writeParserPatternForFiles: function writeParserPatternForFiles(
-    files,
+    fileInformation,
     inputFolder,
     outputFolder,
     parserFilename,
@@ -14,8 +207,8 @@ module.exports = {
   ) {
     var generated = {};
 
-    for (var fileName in files) {
-      var file = files[fileName];
+    for (var fileName in fileInformation) {
+      var file = fileInformation[fileName];
       generated[file.name] = generatePatternForSingleFile(
         inputFolder + file.name + '.mes',
         file
@@ -25,10 +218,6 @@ module.exports = {
       }
     }
     readerHelper.writeJsonObjectToFile(generated, outputFolder + parserFilename);
-  },
-  parseSpells: function(file, inputFolder, outputFolder) {
-    var generated = generatePatternForSingleFile(inputFolder + file.name + '.mes', file);
-    readerHelper.writeJsonObjectToFile(generated, outputFolder + file.name + '.json');
   }
 };
 

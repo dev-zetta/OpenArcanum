@@ -1,7 +1,8 @@
 const readerHelper = require('../helpers/ReaderHelper');
 const dictionary = require('../resources/Dictionaries');
-const colleges = dictionary.spellList().colleges;
-const spellsMap = dictionary.spellList().spells;
+const spellRelatedDictionary = dictionary.spellRelated();
+const colleges = spellRelatedDictionary.colleges;
+const spellsMap = spellRelatedDictionary.spells;
 var Spell = require('../classes/Spell');
 
 //* ************
@@ -9,11 +10,11 @@ var Spell = require('../classes/Spell');
 //* ************
 module.exports = {
   parseSpells: function(file, inputFolder) {
-    return parseSpells(inputFolder + file + '.mes', file);
+    return parseSpells(inputFolder + file + '.mes');
   }
 };
 
-function parseSpells(filePath, file) {
+function parseSpells(filePath) {
   var data = readerHelper.readFile(filePath);
   var records = readerHelper.readRecords(filePath);
   if (data === null) {
@@ -36,11 +37,10 @@ function prepareSpells(data) {
     for (var j = 0; j < 5; ++j) {
       var spellName = spellNames[i * 5 + j];
       var startAt = 1000 + (i * 5 + j) * 50;
-      var endAt = 1000 + (i * 5 + j + 1) * 50;
+      var endAt = startAt + 50;
       var spellRecords = fetchRecordsForRange(data, startAt, endAt);
       var spell = new Spell(spellNames[i * 5 + j], spellRecords, startAt);
       messageTypes[collegeName][spellsMap.get(spellName)] = spell;
-      console.log(spell);
     }
   }
   return messageTypes;

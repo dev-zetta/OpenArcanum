@@ -264,7 +264,7 @@ module.exports = {
     };
   },
 
-  spellList: function() {
+  spellRelated: function() {
     var spells = new Map();
     spells.set('Disarm', 'disarm');
     spells.set('Unlocking Cantrip', 'unlockingCantrip');
