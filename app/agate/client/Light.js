@@ -1,16 +1,13 @@
-import Phaser from '../libs/phaser';
+import Phaser from '../libs/phaser'
 
 export class Light {
-  constructor() {
-
-  }
+  constructor() {}
 
   addToScene(scene, x, y, color) {
-    this.scene = scene;
+    this.scene = scene
 
-    this.instance = this.scene.lights.addLight(x, y, 40.0);
+    this.instance = this.scene.lights.addLight(x, y, 40.0)
 
-    this.instance.setColor(color);
+    this.instance.setColor(color)
   }
-
 }

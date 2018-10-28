@@ -1,40 +1,37 @@
 /* global AGate */
-import {Client} from '../client/Client';
-import {GameMap} from './map/GameMap';
-import {AssetLoader} from './assets';
-import {WorkerPool} from './misc/WorkerPool';
-import {EventEmitter} from './misc/EventEmitter';
+import Lance from '../libs/lance'
+import { Client } from '../client/Client'
+import { GameMap } from './map/GameMap'
+import { AssetLoader } from './assets'
+import { WorkerPool } from './misc/WorkerPool'
+import { EventEmitter } from './misc/EventEmitter'
+import { ServerEngine } from '../server/ServerEngine'
 
-export class Engine {
+const socketIo = requireNode('socket.io')
 
+export class Engine extends Lance.GameEngine {
   constructor() {
-    //super();
+    const options = {
+      traceLevel: 1000,
+      delayInputCount: 8,
+      scheduler: 'render-schedule',
+      syncOptions: {
+        sync: 'extrapolate',
+        localObjBending: 0.2,
+        remoteObjBending: 0.5
+      }
+    }
 
-    this.events = new EventEmitter();
-    this.workerPool = new WorkerPool(this);
-    this.assetLoader = new AssetLoader(this);
-    this.map = new GameMap(this);
+    super(options)
 
-    /*$ige.route('app', {
-        controller: Client0,
-        sceneGraph: Scene0,
-        textures: Textures0
-    });
+    this.options = options
 
-    // Create the HTML canvas
-    ige.createFrontBuffer(canvas, true);
+    this.events = new EventEmitter()
+    this.workerPool = new WorkerPool(this)
+    this.assetLoader = new AssetLoader(this)
+    this.map = new GameMap(this)
 
-    // Start the engine
-    ige.start(function (success) {
-        // Check if the engine started successfully
-        if (success) {
-            //ige.addComponent(IgeEditorComponent);
-            //ige.editor.showStats();
-
-            // Navigate to the app's main route
-            $ige.go('app');
-        }
-    });*/
+    this.createServer()
   }
 
   /**
@@ -43,33 +40,37 @@ export class Engine {
    * @returns {Promise<void>}
    */
   async createClient(canvas) {
-    await this.assetLoader.initialize();
+    await this.assetLoader.initialize()
 
-    this.client = new Client(this, canvas);
+    this.client = new Client(this, this.options, canvas)
 
-    await this.client.create();
+    await this.client.create()
   }
 
   /**
    *
    */
   update() {
-    this.map.update();
+    this.map.update()
+
+    if (this.client) {
+      this.client.update()
+    }
   }
 
   /**
    *
    */
   load() {
-    let path = AGate.getDataPath('Bates Mansion Lev 2');
-    this.map.load(path);
+    let path = AGate.getDataPath('Bates Mansion Lev 2')
+    this.map.load(path)
   }
 
   /**
    *
    */
   onPreloaded() {
-    this.load();
+    this.load()
   }
 
   /**
@@ -77,7 +78,7 @@ export class Engine {
    * @param map
    */
   onMapLoading(map) {
-    this.client.onMapLoading(map);
+    this.client.onMapLoading(map)
   }
 
   /**
@@ -85,11 +86,21 @@ export class Engine {
    * @param map
    */
   onMapLoaded(map) {
-    this.client.onMapLoaded(map);
+    this.client.onMapLoaded(map)
   }
 
+  createServer() {
+    var io = socketIo()
+    io.on('connection', client => {})
+
+    io.listen(3000)
+
+    this.server = new ServerEngine(io, this, {
+      debug: {},
+      updateRate: 6,
+      timeoutInterval: 0 // no timeout
+    })
+
+    this.server.start()
+  }
 }
-
-Engine.instance = new Engine();
-
-

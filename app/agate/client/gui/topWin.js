@@ -1,103 +1,108 @@
-exports.widget = {
+module.exports = {
   type: 'window',
   sprite: 'IntTop',
   align: 'center-top',
   visible: true,
-  style: 'border-radius: 0px 0px 10px 10px;',
+  style: { borderRadius: '0px 0px 10px 10px' },
 
   components: {
-    'debugText': {
+    debugText: {
       type: 'text',
       position: [0, 50],
       size: [100, 100]
     },
 
-    'characterBtn': {
+    characterBtn: {
       type: 'button',
       position: [4, 1],
       sprite: 'CharBut',
       events: {
-        onClick(event) { // this.getWidget('topWin').toggle();
-          this.emitEvent('charWin:open');
+        click(event) {
+          // this.getWidget('topWin').toggle();
+          this.emitEvent('charWin:show')
         }
       }
     },
-    'logbookBtn': {
+    logbookBtn: {
       type: 'button',
       position: [41, 1],
       sprite: 'LogBut',
       events: {
-        onClick(event) {
-          this.emitEvent('logbookWin:open');
+        click(event) {
+          this.emitEvent('logbookWin:show')
         }
       },
-    },
-    'mapBtn': {
-      type: 'button',
-      position: [78, 1],
-      sprite: 'TMapBut', /* WMapBut */
-      events: {
-        onClick(event) {
-          this.emitEvent('mapWin:open');
+      listeners: {
+        click(event) {
+          this.emitEvent('logbookWin:show')
         }
       }
     },
-    'inventoryBtn': {
+    mapBtn: {
+      type: 'button',
+      position: [78, 1],
+      sprite: 'TMapBut' /* WMapBut */,
+      events: {
+        click(event) {
+          this.emitEvent('mapWin:show')
+        }
+      }
+    },
+    inventoryBtn: {
       type: 'button',
       position: [115, 1],
       sprite: 'InvnBut',
       events: {
-        onClick(event) {
-          this.emitEvent('openInventory');
+        click(event) {
+          this.emitEvent('openInventory')
         }
       }
-
     },
-    'fateBtn': {
+    fateBtn: {
       type: 'button',
       position: [154, 6],
-      sprite: 'tinybutt',
+      sprite: 'tinybutt'
     },
-    'fatePoints': {
+    fatePoints: {
       type: 'text',
-      position: [190, 13],
+      position: [190, 13]
     },
 
-    'plugBtn1': {
+    plugBtn1: {
       type: 'slot-button',
       position: [281, 3],
-      sprite: 'SPPlugged1',
+      sprite: 'SPPlugged1'
     },
-    'plugBtn2': {
+    plugBtn2: {
       type: 'slot-button',
       position: [331, 3],
-      sprite: 'SPPlugged1',
+      sprite: 'SPPlugged1'
     },
-    'plugBtn3': {
+    plugBtn3: {
       type: 'slot-button',
       position: [381, 3],
-      sprite: 'SPPlugged1',
+      sprite: 'SPPlugged1'
     },
-    'plugBtn4': {
+    plugBtn4: {
       type: 'slot-button',
       position: [431, 3],
-      sprite: 'SPPlugged1',
+      sprite: 'SPPlugged1'
     },
-    'plugBtn5': {
+    plugBtn5: {
       type: 'slot-button',
       position: [481, 3],
-      sprite: 'SPPlugged1',
+      sprite: 'SPPlugged1'
     },
-    'sleepBtn': {
+    sleepBtn: {
       type: 'button',
       position: [602, 6],
-      sprite: 'tinybutt',
+      sprite: 'tinybutt'
     },
-    'timeProgress': {
+    timeProgress: {
       type: 'gauge',
-      position: [648, 6],
+      position: [648, 6]
     },
-    'timeGauge': {
+    timeGauge: {
       type: 'gauge',
       position: [648, 4],
       sprite: 'Clktimestrip',
@@ -106,17 +111,14 @@ exports.widget = {
       min: 0,
       max: 100
     },
-
-    'loadSpinner': {
+    loadSpinner: {
       type: 'image',
       sprite: 'LoadIndicator',
       position: [700, 100],
       animation: {
         duration: 1000,
-        repeat: -1,
-      },
-    },
-
-  },
-};
-/* topWin */
+        repeat: -1
+      }
+    }
+  }
+}

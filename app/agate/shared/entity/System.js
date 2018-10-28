@@ -1,21 +1,19 @@
-import {ECS} from '../../libs/ecs';
+import { ECS } from '../../libs/ecs'
 
 export class System extends ECS.System {
   constructor(engine, ecs) {
-    super();
+    super()
 
-    this.engine = engine;
-    this.ecs = ecs;
-    this.totalElapsed = 0;
+    this.engine = engine
+    this.ecs = ecs
+    this.totalElapsed = 0
   }
 
   get map() {
-    return this.engine.map;
+    return this.engine.map
   }
 
   update(entity, elapsed) {
-    this.totalElapsed += elapsed;
+    this.totalElapsed += elapsed
   }
-
-
 }

@@ -2,7 +2,7 @@
 
 export class Sprite {
   constructor(key, json) {
-    this.frames = json;
+    this.frames = json
 
     /* let jsonFrames = json['frames'];
      for (let key in jsonFrames) {
@@ -19,23 +19,22 @@ export class Sprite {
 
      }*/
 
-    this.className = AGate.Utils.kebabCase(key);
+    this.className = AGate.Utils.kebabCase(key)
   }
 
   getFrame(index = 0) {
-    return this.frames[index];
+    return this.frames[index]
   }
 
   hasFrame(index) {
-    return index < this.frames.length;
+    return index < this.frames.length
   }
 
   getFrameCount() {
-    return this.frames.length;
+    return this.frames.length
   }
 
   getLastFrame() {
-    return this.frames[this.frames.length - 1];
+    return this.frames[this.frames.length - 1]
   }
-
 }

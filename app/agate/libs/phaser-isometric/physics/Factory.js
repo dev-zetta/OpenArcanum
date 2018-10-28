@@ -1,4 +1,3 @@
-
 //  When registering a factory function 'this' refers to the GameObjectFactory context.
 //
 //  There are several properties available to use:
@@ -8,30 +7,45 @@
 //  this.updateList - a reference to the Update List the Scene owns
 
 export class Factory {
+  constructor(world) {
+    this.world = world
 
-    constructor(world) {
-        this.world = world;
+    this.scene = world.scene
 
-        this.scene = world.scene;
+    this.sys = world.scene.sys
 
-        this.sys = world.scene.sys;
+    // this.displayList = this.sys.
+    // this.displayList = sys.displayList;
+    // this.updateList = sys.updateList;
+  }
 
-        // this.displayList = this.sys.
-        // this.displayList = sys.displayList;
-        // this.updateList = sys.updateList;
-    }
+  collider(
+    object1,
+    object2,
+    collideCallback,
+    processCallback,
+    callbackContext
+  ) {
+    return this.world.addCollider(
+      object1,
+      object2,
+      collideCallback,
+      processCallback,
+      callbackContext
+    )
+  }
 
-    collider(object1, object2, collideCallback, processCallback, callbackContext)
-    {
-        return this.world.addCollider(object1, object2, collideCallback, processCallback, callbackContext);
-    }
+  overlap(object1, object2, collideCallback, processCallback, callbackContext) {
+    return this.world.addOverlap(
+      object1,
+      object2,
+      collideCallback,
+      processCallback,
+      callbackContext
+    )
+  }
 
-    overlap(object1, object2, collideCallback, processCallback, callbackContext)
-    {
-        return this.world.addOverlap(object1, object2, collideCallback, processCallback, callbackContext);
-    }
-
-    /*staticImage: function (x, y, key, frame)
+  /*staticImage: function (x, y, key, frame)
     {
         var image = new ArcadeImage(this.scene, x, y, key, frame);
 
@@ -86,5 +100,4 @@ export class Factory {
     {
         return this.sys.updateList.add(new PhysicsGroup(this.world, this.world.scene, children, config));
     }*/
-
 }

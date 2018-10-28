@@ -2,17 +2,17 @@
 
 //https://github.com/lordnull/dice.js
 
-let dicejs = AGate.requireNode('dice.js');
+let dicejs = AGate.requireNode('dice.js')
 
 class Dice {
   constructor(syntax = '1d20') {
-    this.syntax = syntax;
+    this.syntax = syntax
   }
 
   roll(scope = undefined) {
-    let result = dicejs.roll(this.syntax, scope);
+    let result = dicejs.roll(this.syntax, scope)
 
-    return result;
+    return result
   }
 }
 

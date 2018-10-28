@@ -2,8 +2,7 @@
  * @module  uid
  */
 
-const uuidv5 = window.requireNode('uuid/v5');
-
+const uuidv5 = window.requireNode('uuid/v5')
 
 /*
  * UIDGenerator for multi-instance Entity Component System
@@ -17,11 +16,11 @@ const uuidv5 = window.requireNode('uuid/v5');
 // maximum number of salted generators that can run concurently, once the
 // number of allowed generators has been reached the salt of the next
 // generator is silently reset to 0
-const MAX_SALTS = 10000;
+const MAX_SALTS = 10000
 
-const MAX_ENTITY_PER_GENERATOR = Math.floor(Number.MAX_SAFE_INTEGER /
-  MAX_SALTS) - 1;
-let currentSalt = 0;
+const MAX_ENTITY_PER_GENERATOR =
+  Math.floor(Number.MAX_SAFE_INTEGER / MAX_SALTS) - 1
+let currentSalt = 0
 
 /**
  * Generate unique sequences of Numbers. Can be salted (up to 9999 salts)
@@ -56,13 +55,13 @@ class UIDGenerator {
      * The salt of this generator.
      * @property {Number} salt
      */
-    this.salt = salt;
+    this.salt = salt
 
     /**
      * The counter used to generate unique sequence.
      * @property {Number} uidCount
      */
-    this.uidCounter = 0;
+    this.uidCounter = 0
   }
   /**
    * Create a new unique id.
@@ -70,15 +69,15 @@ class UIDGenerator {
    * @return {Number} An unique id.
    */
   next() {
-    let nextUid = this.salt + this.uidCounter * MAX_SALTS;
+    let nextUid = this.salt + this.uidCounter * MAX_SALTS
 
     // if we exceed the number of maximum entities (which is
     // very high) reset the counter.
     if (++this.uidCounter >= MAX_ENTITY_PER_GENERATOR) {
-      this.uidCounter = 0;
+      this.uidCounter = 0
     }
 
-    return nextUid;
+    return nextUid
   }
 }
 
@@ -87,17 +86,13 @@ class UUIDGenerator {
    * @constructor
    * @class  UIDGenerator
    */
-  constructor(salt = 0) {
-
-  }
+  constructor(salt = 0) {}
 
   next() {
-      const MY_NAMESPACE = '4ea2b974-fc49-4c84-b03d-7cb70946e583';
-      return uuidv5('agate-ecs', MY_NAMESPACE);
+    const MY_NAMESPACE = '4ea2b974-fc49-4c84-b03d-7cb70946e583'
+    return uuidv5('agate-ecs', MY_NAMESPACE)
   }
 }
-
-
 
 /**
  * @class UID
@@ -139,15 +134,15 @@ const UID = {
    * @return {Number} A unique salt.
    */
   nextSalt: () => {
-    let salt = currentSalt;
+    let salt = currentSalt
 
     // if we exceed the number of maximum salts, silently reset
     // to 1 (since 0 will always be the default generator)
     if (++currentSalt > MAX_SALTS - 1) {
-      currentSalt = 1;
+      currentSalt = 1
     }
 
-    return salt;
+    return salt
   },
   /**
    * Create a new generator with unique salt.
@@ -156,6 +151,6 @@ const UID = {
    * @return {UIDGenerator} The created UIDGenerator.
    */
   nextGenerator: () => new UIDGenerator(UID.nextSalt())
-};
+}
 
-export default UID;
+export default UID

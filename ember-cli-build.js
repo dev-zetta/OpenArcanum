@@ -4,6 +4,7 @@ const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 
 module.exports = function(defaults) {
   let app = new EmberApp(defaults, {
+
     /*outputPaths: {
         app: {
             css: {
@@ -12,8 +13,26 @@ module.exports = function(defaults) {
             }
         }
     },*/
-    babel: {
-        //debug: true
+    'babel': {
+      //debug: true
+      loose: false,
+      //useBuiltIns: true,
+
+      /*"presets": [
+        [
+          "@babel/preset-env",
+          {
+            "targets": {
+              "node": "current"
+            }
+          }
+        ]
+      ],*/
+      "plugins": [["dynamic-import-node-babel-7", { "noInterop": false }]]
+    },
+
+    'ember-cli-babel': {
+      compileModules: true
     },
 
     'ember-bootstrap': {

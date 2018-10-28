@@ -1,58 +1,51 @@
 /* global AGate */
 
-import {Location} from '../../Location';
-import {Math} from '../../misc/Math';
-import {Flags} from '../../Flags';
-import {Sector} from '../../map/Sector';
-import {MovementPath} from '../MovementPath';
+import { Location } from '../../Location'
+import { Math } from '../../misc/Math'
+import { Flags } from '../../Flags'
+import { Sector } from '../../map/Sector'
+import { MovementPath } from '../MovementPath'
 
 export default class {
   constructor() {
-    this.location = [0, 0];
-    this.offset = new Math.Vec2();
-    this.movementPath = new MovementPath();
+    this.location = [0, 0]
+    this.offset = new Math.Vec2()
+    this.movementPath = new MovementPath()
 
     //this.flags = new Flags();
   }
 
   move(x, y) {
-    let location = this.location;
+    let location = this.location
 
-    this.offset[0] += x;
-    this.offset[1] += y;
+    this.offset[0] += x
+    this.offset[1] += y
 
-    let moved = false;
+    let moved = false
 
     //let ax = Math.trunc(Math.abs(this.offset[0]));
     //if (ax >= Sector.TileHeightHalf) {
-      let xr = Math.trunc(this.offset[0] / Sector.TileWidthHalf);
-      if (xr != 0) {
-        location[0] += xr;
-        this.offset[0] = this.offset[0] % Sector.TileWidthHalf;
-        moved = true;
-
-
-      }
-
+    let xr = Math.trunc(this.offset[0] / Sector.TileWidthHalf)
+    if (xr != 0) {
+      location[0] += xr
+      this.offset[0] = this.offset[0] % Sector.TileWidthHalf
+      moved = true
+    }
 
     //}
 
     //let ay = Math.trunc(Math.abs(this.offset[1]));
     //if (ay >= Sector.TileHeightHalf) {
-      let yr = Math.trunc(this.offset[1] / Sector.TileWidthHalf);
-      if (yr != 0) {
-        location[1] += yr;
-        this.offset[1] = this.offset[1] % Sector.TileWidthHalf;
-        moved = true;
-
-
-      }
-
+    let yr = Math.trunc(this.offset[1] / Sector.TileWidthHalf)
+    if (yr != 0) {
+      location[1] += yr
+      this.offset[1] = this.offset[1] % Sector.TileWidthHalf
+      moved = true
+    }
 
     //}
 
-
-   /* if (xr != 0 || yr != 0) {
+    /* if (xr != 0 || yr != 0) {
 
 
 
@@ -64,8 +57,6 @@ export default class {
       moved = false;
     }*/
 
-    return moved;
+    return moved
   }
-
 }
-

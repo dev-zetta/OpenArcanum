@@ -1,8 +1,8 @@
-import { Phaser } from './Phaser';
-import { Isometric } from './Isometric';
-import { Point3 } from './Point3';
-import { Cube } from './Cube';
-import { Math } from './Math';
+import { Phaser } from './Phaser'
+import { Isometric } from './Isometric'
+import { Point3 } from './Point3'
+import { Cube } from './Cube'
+import { Math } from './Math'
 
 /**
  * @class IsoSprite
@@ -25,54 +25,55 @@ import { Math } from './Math';
 
 export class IsoSprite extends Phaser.GameObjects.Sprite {
   constructor(scene, x, y, z, key, frame, offset) {
-
-    super(scene, undefined, undefined, key, frame);
+    super(scene, undefined, undefined, key, frame)
 
     //this.offset = offset;
     //this.anchor = {x: 0.0, y: 0.0};
 
-    this.originX = 0.0;
-    this.originY = 0.0;
+    this.originX = 0.0
+    this.originY = 0.0
 
     /**
      * @property {number} type - The const type of this object.
      * @readonly
      */
-    this.type = Isometric.ISOSPRITE;
-
+    this.type = Isometric.ISOSPRITE
 
     if (false) {
-      let pos = {x: this.frame.centerX, y: this.frame.centerY};
+      let pos = { x: this.frame.centerX, y: this.frame.centerY }
       if (offset != null) {
-        pos.x -= offset[0];
-        pos.y -= offset[1];
+        pos.x -= offset[0]
+        pos.y -= offset[1]
       }
 
-      this.displayOriginX = pos.x;
-      this.displayOriginY = pos.y;
+      this.displayOriginX = pos.x
+      this.displayOriginY = pos.y
     } else {
       if (offset != null) {
-        offset = this.scene.iso.unprojectAbsolute({x: offset[0], y: offset[1]});
+        offset = this.scene.iso.unprojectAbsolute({
+          x: offset[0],
+          y: offset[1]
+        })
 
-        x += offset.x;
-        y += offset.y;
+        x += offset.x
+        y += offset.y
       }
 
-      this.displayOriginX = this.frame.centerX;
-      this.displayOriginY = this.frame.centerY;
+      this.displayOriginX = this.frame.centerX
+      this.displayOriginY = this.frame.centerY
     }
 
     /**
      * @property {Point3} _isoPosition - Internal 3D position.
      * @private
      */
-    this._isoPosition = new Point3(x, y, z);
+    this._isoPosition = new Point3(x, y, z)
 
     /**
      * @property {number} snap - Snap this IsoSprite's position to the specified value; handy for keeping pixel art snapped to whole pixels.
      * @default
      */
-    this.snap = 0;
+    this.snap = 0
 
     /**
      * @property {number} _depth - Internal cached depth value.
@@ -86,29 +87,29 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
      * @readonly
      * @private
      */
-    this._depthChanged = true;
+    this._depthChanged = true
 
     /**
      * @property {boolean} _isoPositionChanged - Internal invalidation control for positioning.
      * @readonly
      * @private
      */
-    this._isoPositionChanged = true;
+    this._isoPositionChanged = true
 
     /**
      * @property {boolean} _isoBoundsChanged - Internal invalidation control for isometric bounds.
      * @readonly
      * @private
      */
-    this._isoBoundsChanged = true;
+    this._isoBoundsChanged = true
 
-    this._project();
+    this._project()
 
     /**
      * @property {Cube} _isoBounds - Internal derived 3D bounds.
      * @private
      */
-    this._isoBounds = this.resetIsoBounds();
+    this._isoBounds = this.resetIsoBounds()
   }
 
   /**
@@ -119,7 +120,7 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
    */
   postUpdate() {
     //super.postUpdate();
-    this._project();
+    this._project()
   }
 
   /**
@@ -129,10 +130,9 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
    * @private
    */
   _project() {
-    if (!this._isoPositionChanged)
-      return;
+    if (!this._isoPositionChanged) return
 
-    let pos = this.scene.iso.project(this._isoPosition);
+    let pos = this.scene.iso.project(this._isoPosition)
 
     /*let offset = this.offset;
     if (offset != null) {
@@ -147,53 +147,69 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
       this.setPosition(
         Phaser.Math.snapTo(pos.x, this.snap),
         Phaser.Math.snapTo(pos.y, this.snap)
-      );
+      )
     } else {
-      this.setPosition(pos.x, pos.y);
+      this.setPosition(pos.x, pos.y)
     }
 
-    this._isoPositionChanged = false;
-    this._depthChanged = this._isoBoundsChanged = true;
+    this._isoPositionChanged = false
+    this._depthChanged = this._isoBoundsChanged = true
   }
 
   resetIsoBounds() {
-    if (typeof this._isoBounds === "undefined") {
-      this._isoBounds = new Cube();
+    if (typeof this._isoBounds === 'undefined') {
+      this._isoBounds = new Cube()
     }
 
-    const asx = Math.abs(this.scaleX);
-    const asy = Math.abs(this.scaleY);
+    const asx = Math.abs(this.scaleX)
+    const asy = Math.abs(this.scaleY)
 
-    let bounds = this._isoBounds;
+    let bounds = this._isoBounds
 
+    let x =
+      this.scaleX < 0
+        ? this.frame.width - this.displayOriginX
+        : this.displayOriginX
 
-    let x = this.scaleX < 0 ? this.frame.width - this.displayOriginX : this.displayOriginX;
-
-    let anchor = {x:  x / this.width, y: this.displayOriginY / this.height};
+    let anchor = { x: x / this.width, y: this.displayOriginY / this.height }
 
     if (false) {
-      bounds.widthX = Math.round(Math.abs(this.width) * 0.5) * asx;
-      bounds.widthY = Math.round(Math.abs(this.width) * 0.5) * asx;
-      bounds.height = Math.round(Math.abs(this.height) - (Math.abs(this.width) * 0.5)) * asy;
+      bounds.widthX = Math.round(Math.abs(this.width) * 0.5) * asx
+      bounds.widthY = Math.round(Math.abs(this.width) * 0.5) * asx
+      bounds.height =
+        Math.round(Math.abs(this.height) - Math.abs(this.width) * 0.5) * asy
 
-      bounds.x = this.isoX + (bounds.widthX * -anchor.x) + bounds.widthX * 0.5;
-      bounds.y = this.isoY + (bounds.widthY * anchor.x) - bounds.widthY * 0.5;
-      bounds.z = this.isoZ - (Math.abs(this.height) * (1 - anchor.y)) + (Math.abs(this.width * 0.5));
+      bounds.x = this.isoX + bounds.widthX * -anchor.x + bounds.widthX * 0.5
+      bounds.y = this.isoY + bounds.widthY * anchor.x - bounds.widthY * 0.5
+      bounds.z =
+        this.isoZ -
+        Math.abs(this.height) * (1 - anchor.y) +
+        Math.abs(this.width * 0.5)
+    } else {
+      let tileWidth = Math.abs(this.width) * this.scene.iso._transform[0]
+      let tileHeight = Math.abs(this.width) * this.scene.iso._transform[1] //* Math.tan(this.scene.iso.projectionAngle);
+
+      bounds.widthX =
+        Math.round(
+          Math.sqrt(Math.pow(tileWidth, 2) + Math.pow(tileHeight, 2)) * 0.5
+        ) * asx
+      bounds.widthY = bounds.widthX //Math.round(Math.sqrt(Math.pow(tileWidth, 2) + Math.pow(tileHeight, 2)) * 0.5) * asx;
+      bounds.height = Math.round(Math.abs(this.height) - tileHeight) * asy
+
+      bounds.x =
+        this.isoX +
+        bounds.widthX * -anchor.x +
+        bounds.widthX * 0.5 -
+        bounds.widthX * anchor.y
+      bounds.y =
+        this.isoY +
+        bounds.widthY * anchor.x -
+        bounds.widthY * 0.5 -
+        bounds.widthY * anchor.y
+      bounds.z = this.isoZ - bounds.height * (1 - anchor.y)
     }
-    else {
-      let tileWidth = Math.abs(this.width) * this.scene.iso._transform[0];
-      let tileHeight = Math.abs(this.width) * this.scene.iso._transform[1]; //* Math.tan(this.scene.iso.projectionAngle);
 
-      bounds.widthX = Math.round(Math.sqrt(Math.pow(tileWidth, 2) + Math.pow(tileHeight, 2)) * 0.5) * asx;
-      bounds.widthY = bounds.widthX; //Math.round(Math.sqrt(Math.pow(tileWidth, 2) + Math.pow(tileHeight, 2)) * 0.5) * asx;
-      bounds.height = Math.round(Math.abs(this.height) - tileHeight) * asy;
-
-      bounds.x = this.isoX + (bounds.widthX * -anchor.x) + (bounds.widthX * 0.5) - (bounds.widthX * anchor.y);
-      bounds.y = this.isoY + (bounds.widthY * anchor.x) - (bounds.widthY * 0.5) - (bounds.widthY * anchor.y);
-      bounds.z = this.isoZ - bounds.height * (1 - anchor.y);
-    }
-
-    return bounds;
+    return bounds
   }
 
   /**
@@ -203,14 +219,14 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
    * @property {number} isoX - The axonometric position of the IsoSprite on the x axis.
    */
   get isoX() {
-    return this._isoPosition.x;
+    return this._isoPosition.x
   }
 
   set isoX(value) {
-    this._isoPosition.x = value;
-    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true;
-    if (this.body){
-      this.body._reset = true;
+    this._isoPosition.x = value
+    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true
+    if (this.body) {
+      this.body._reset = true
     }
   }
 
@@ -221,14 +237,14 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
    * @property {number} isoY - The axonometric position of the IsoSprite on the y axis.
    */
   get isoY() {
-    return this._isoPosition.y;
+    return this._isoPosition.y
   }
 
   set isoY(value) {
-    this._isoPosition.y = value;
-    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true;
-    if (this.body){
-      this.body._reset = true;
+    this._isoPosition.y = value
+    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true
+    if (this.body) {
+      this.body._reset = true
     }
   }
 
@@ -239,14 +255,14 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
    * @property {number} isoZ - The axonometric position of the IsoSprite on the z axis.
    */
   get isoZ() {
-    return this._isoPosition.z;
+    return this._isoPosition.z
   }
 
   set isoZ(value) {
-    this._isoPosition.z = value;
-    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true;
-    if (this.body){
-      this.body._reset = true;
+    this._isoPosition.z = value
+    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true
+    if (this.body) {
+      this.body._reset = true
     }
   }
 
@@ -258,22 +274,22 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
    * @readonly
    */
   get isoPosition() {
-    return this._isoPosition;
+    return this._isoPosition
   }
 
   set isoPosition(position) {
-    this._isoPosition = position;
-    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true;
-    if (this.body){
-      this.body._reset = true;
+    this._isoPosition = position
+    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true
+    if (this.body) {
+      this.body._reset = true
     }
   }
 
   isoMove(x, y) {
-    this._isoPosition.add(x, y, 0);
-    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true;
-    if (this.body){
-      this.body._reset = true;
+    this._isoPosition.add(x, y, 0)
+    this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true
+    if (this.body) {
+      this.body._reset = true
     }
   }
 
@@ -286,10 +302,10 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
    */
   get isoBounds() {
     if (this._isoBoundsChanged || !this._isoBounds) {
-      this.resetIsoBounds();
-      this._isoBoundsChanged = false;
+      this.resetIsoBounds()
+      this._isoBoundsChanged = false
     }
-    return this._isoBounds;
+    return this._isoBounds
   }
 
   /**
@@ -301,62 +317,62 @@ export class IsoSprite extends Phaser.GameObjects.Sprite {
    */
   get depth() {
     if (this._depthChanged === true) {
-      super.depth = (this._isoPosition.x + this._isoPosition.y) + (this._isoPosition.z * 1.25);
-      this._depthChanged = false;
+      super.depth =
+        this._isoPosition.x + this._isoPosition.y + this._isoPosition.z * 1.25
+      this._depthChanged = false
     }
-    return super.depth;
+    return super.depth
   }
 
   set depth(depth) {
-    super.depth = depth;
+    super.depth = depth
   }
 
   debug(color) {
     if (!this.isoBounds) {
-      return;
+      return
     }
 
-    color = color || 0x00aa00;
+    color = color || 0x00aa00
 
-    const corners = this.isoBounds.getCorners();
+    const corners = this.isoBounds.getCorners()
 
-    let camera = this.scene.cameras.main;
-    const posX = -camera.x;
-    const posY = -camera.y;
+    let camera = this.scene.cameras.main
+    const posX = -camera.x
+    const posY = -camera.y
 
-    var graphics = this.scene.add.graphics({ x: 0, y: 0 });
+    var graphics = this.scene.add.graphics({ x: 0, y: 0 })
 
-    graphics.lineStyle(1, color);
+    graphics.lineStyle(1, color)
 
-    let points = corners.slice(0, corners.length);
+    let points = corners.slice(0, corners.length)
     points = points.map(p => {
-      const newPos = this.scene.iso.project(p);
+      const newPos = this.scene.iso.project(p)
       //newPos.x += posX;
       //newPos.y += posY;
-      return newPos;
-    });
+      return newPos
+    })
 
-    graphics.beginPath();
-    graphics.moveTo(points[0].x, points[0].y);
-    graphics.lineTo(points[1].x, points[1].y);
-    graphics.lineTo(points[3].x, points[3].y);
-    graphics.lineTo(points[2].x, points[2].y);
-    graphics.lineTo(points[6].x, points[6].y);
-    graphics.lineTo(points[4].x, points[4].y);
-    graphics.lineTo(points[5].x, points[5].y);
-    graphics.lineTo(points[1].x, points[1].y);
-    graphics.lineTo(points[0].x, points[0].y);
-    graphics.lineTo(points[4].x, points[4].y);
-    graphics.moveTo(points[0].x, points[0].y);
-    graphics.lineTo(points[2].x, points[2].y);
-    graphics.moveTo(points[3].x, points[3].y);
-    graphics.lineTo(points[7].x, points[7].y);
-    graphics.lineTo(points[6].x, points[6].y);
-    graphics.moveTo(points[7].x, points[7].y);
-    graphics.lineTo(points[5].x, points[5].y);
-    graphics.closePath();
+    graphics.beginPath()
+    graphics.moveTo(points[0].x, points[0].y)
+    graphics.lineTo(points[1].x, points[1].y)
+    graphics.lineTo(points[3].x, points[3].y)
+    graphics.lineTo(points[2].x, points[2].y)
+    graphics.lineTo(points[6].x, points[6].y)
+    graphics.lineTo(points[4].x, points[4].y)
+    graphics.lineTo(points[5].x, points[5].y)
+    graphics.lineTo(points[1].x, points[1].y)
+    graphics.lineTo(points[0].x, points[0].y)
+    graphics.lineTo(points[4].x, points[4].y)
+    graphics.moveTo(points[0].x, points[0].y)
+    graphics.lineTo(points[2].x, points[2].y)
+    graphics.moveTo(points[3].x, points[3].y)
+    graphics.lineTo(points[7].x, points[7].y)
+    graphics.lineTo(points[6].x, points[6].y)
+    graphics.moveTo(points[7].x, points[7].y)
+    graphics.lineTo(points[5].x, points[5].y)
+    graphics.closePath()
 
-    graphics.strokePath();
-
+    graphics.strokePath()
   }
 }

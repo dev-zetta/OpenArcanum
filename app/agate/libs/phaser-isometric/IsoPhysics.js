@@ -1,18 +1,17 @@
-import { World } from './physics/World';
-import { Body } from './physics/Body';
-import { Factory } from './physics/Factory';
+import { World } from './physics/World'
+import { Body } from './physics/Body'
+import { Factory } from './physics/Factory'
 
 export class IsoPhysics {
+  constructor(physicsManager, config) {
+    this.config = config
+    this.physicsManager = physicsManager
 
-    constructor(physicsManager, config){
-        this.config = config;
-        this.physicsManager = physicsManager;
+    physicsManager.world = new World(physicsManager.scene, config)
+    physicsManager.add = new Factory(physicsManager.world)
+  }
 
-        physicsManager.world = new World(physicsManager.scene, config);
-        physicsManager.add = new Factory(physicsManager.world);
-    }
-
-    /*parseConfig() {
+  /*parseConfig() {
         if (this.config.hasOwnProperty('isoArcade') && this.config['isoArcade'] === true && hasOwnProperty('IsoArcade')) {
             this.isoArcade = new Isometric(this.game, this.config);
         }
@@ -31,14 +30,13 @@ export class IsoPhysics {
         }
     }*/
 
-    setBoundsToWorld() {
-        this.physicsManager.world.setBoundsToWorld();
-    }
+  setBoundsToWorld() {
+    this.physicsManager.world.setBoundsToWorld()
+  }
 
-    destroy(){
-        this.physicsManager.world = null;
+  destroy() {
+    this.physicsManager.world = null
 
-        //return super.destroy();
-    }
-
+    //return super.destroy();
+  }
 }

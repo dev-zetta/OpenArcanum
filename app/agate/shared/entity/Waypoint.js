@@ -1,5 +1,3 @@
-import {Location} from '../Location';
+import { Location } from '../Location'
 
-export class Waypoint extends Location {
-
-}
+export class Waypoint extends Location {}

@@ -1,23 +1,35 @@
 /* global AGate */
 
-import {Sprite} from '../../client/Sprite';
-import {Location} from '../Location';
+import { Sprite } from '../../client/Sprite'
+import { Location } from '../Location'
 
-import Phaser from '../../libs/phaser';
+//import Phaser from '../../libs/phaser';
 
 export class Sector {
-  static get TileWidth() { return 80; }
-  static get TileWidthHalf() { return 40; }
+  static get TileWidth() {
+    return 80
+  }
+  static get TileWidthHalf() {
+    return 40
+  }
 
-  static get TileHeight() { return 40; }
-  static get TileHeightHalf() { return 20; }
+  static get TileHeight() {
+    return 40
+  }
+  static get TileHeightHalf() {
+    return 20
+  }
 
-  static get Width() { return 64; }
-  static get Height() { return 64; }
+  static get Width() {
+    return 64
+  }
+  static get Height() {
+    return 64
+  }
 
   constructor(map) {
-    this.map = map;
-    this.engine = map.engine;
+    this.map = map
+    this.engine = map.engine
   }
 
   /**
@@ -27,11 +39,10 @@ export class Sector {
    * @returns {*}
    */
   getTile(x, y) {
-    if (!this.tiles)
-      return null;
+    if (!this.tiles) return null
 
-    let tile = this.tiles[y][x];
-    return tile;
+    let tile = this.tiles[y][x]
+    return tile
   }
 
   /**
@@ -41,24 +52,24 @@ export class Sector {
    */
   addEntity(entity) {
     if (this.entities.has(entity.id)) {
-      console.log(`Replacing entity: ${entity.id}`);
+      console.log(`Replacing entity: ${entity.id}`)
 
-      return false;
+      return false
     }
 
-    let location = new Location(entity.base.location);
+    let location = new Location(entity.base.location)
 
-    let tile = this.getTile(location.tileX, location.tileY);
+    let tile = this.getTile(location.tileX, location.tileY)
 
-    let name = AGate.Utils.camelCase(entity.base.type);
+    let name = AGate.Utils.camelCase(entity.base.type)
     if (tile[name]) {
-      console.log(entity);
-      console.log(`Replacing entity: ${name}`);
+      console.log(entity)
+      console.log(`Replacing entity: ${name}`)
     }
 
-    tile[name] = entity;
+    tile[name] = entity
 
-    this.entities.set(entity.id, entity);
+    this.entities.set(entity.id, entity)
   }
 
   /**
@@ -69,43 +80,40 @@ export class Sector {
    * @returns {Promise<void>}
    */
   async load(path, x, y) {
-    AGate.Utils.logError(`Loading sector: ${path}`);
+    AGate.Utils.logError(`Loading sector: ${path}`)
 
-    let data = await this.engine.assetLoader.loadJsonFile(`${path}/Sector.json`);
-    AGate.Utils.logError(`...Loaded`);
+    let data = await this.engine.assetLoader.loadJsonFile(`${path}/Sector.json`)
+    AGate.Utils.logError(`...Loaded`)
 
-    if (!data.tiles)
-      return;
+    if (!data.tiles) return
 
-    this.tiles = data.tiles;
-    this.x = x;
-    this.y = y;
+    this.tiles = data.tiles
+    this.x = x
+    this.y = y
 
-    this.lights = data.lights;
-    this.roofs = data.roofs;
+    this.lights = data.lights
+    this.roofs = data.roofs
 
     for (let ty = 0; ty < Sector.Height; ty++) {
       for (let tx = 0; tx < Sector.Width; tx++) {
+        let tile = this.getTile(tx, ty)
+        if (!tile) continue
 
-        let tile = this.getTile(tx, ty);
-        if (!tile)
-          continue;
-
-        tile.location = Location.makeRaw(x, y, tx, ty);
+        tile.location = Location.makeRaw(x, y, tx, ty)
 
         if (this.engine.client && tile.type) {
-          tile.sprite = new Sprite(this.engine.client);
+          tile.sprite = new Sprite(this.engine.client)
 
-          await tile.sprite.load(tile);
+          await tile.sprite.load(tile)
           //tile.type = GfxTypes.get(tile.type);
         }
       }
     }
 
-    this.entities = new Map();
-    await this.map.loadEntities(path, (entity) => {
-      this.addEntity(entity);
-    });
+    this.entities = new Map()
+    await this.map.loadEntities(path, entity => {
+      this.addEntity(entity)
+    })
   }
 
   /**
@@ -113,45 +121,42 @@ export class Sector {
    * @param target
    */
   placeToScene(target) {
-
-    if (!this.tiles)
-      return;
+    if (!this.tiles) return
 
     // Add tiles
-    this.tileGroup = new Phaser.GameObjects.Group(target.scene);
-    target.add(this.tileGroup);
+    this.tileGroup = target.scene.add.group(target) //new Phaser.GameObjects.Group(target.scene);
+    //target.add(this.tileGroup);
 
-    let ax = this.x * Sector.Width * Sector.TileWidthHalf;
-    let ay = this.y * Sector.Height * Sector.TileWidthHalf;
+    let ax = this.x * Sector.Width * Sector.TileWidthHalf
+    let ay = this.y * Sector.Height * Sector.TileWidthHalf
 
     for (let y = 0; y < Sector.Height; y++) {
-      let dx = ax;
+      let dx = ax
       for (let x = 0; x < Sector.Width; x++) {
-        let tile = this.getTile(x, y);
-        if (!tile)
-          continue;
+        let tile = this.getTile(x, y)
+        if (!tile) continue
 
         if (tile.type) {
-          tile.sprite.addToScene(this.tileGroup, ay, dx, 0, [0, 20]);
+          tile.sprite.addToScene(this.tileGroup, ay, dx, 0, [0, 20])
 
-          tile.sprite.setData(tile);
+          tile.sprite.setData(tile)
         }
 
         /*if ((x % 2 == 0) || (y % 2 == 0)) {
           tile.sprite.sprite.setTint(0xaaaaaa);
         }*/
 
-        dx += Sector.TileWidthHalf;
+        dx += Sector.TileWidthHalf
       }
 
-      ay += Sector.TileWidthHalf;
+      ay += Sector.TileWidthHalf
     }
 
     // Add static objects
-    this.staticGroup = new Phaser.GameObjects.Group(target.scene);
-    target.add(this.staticGroup);
+    this.staticGroup = target.scene.add.group(target) //new Phaser.GameObjects.Group(target.scene);
+    //target.add(this.staticGroup);
 
-    this.entities.forEach((entity) => {
+    this.entities.forEach(entity => {
       /*let baseComponent = entity.base;
       let location = new Location(baseComponent.location);
 
@@ -159,8 +164,8 @@ export class Sector {
       if (tile)
         tile.entities.push(entity);*/
 
-      entity.placeToScene(this.staticGroup);
-    });
+      entity.placeToScene(this.staticGroup)
+    })
 
     // Sort objects
     //target.scene.sortGroup(this.staticGroup);
@@ -170,8 +175,7 @@ export class Sector {
    *
    */
   update() {
-    if (!this.tiles)
-      return;
+    if (!this.tiles) return
 
     // Loop through all tiles and test to see if the 3D position from above intersects with the automatically generated IsoSprite tile bounds.
     /*var cursorPos = this.engine.client.scene.cursorPos;
@@ -206,8 +210,7 @@ export class Sector {
   }
 
   isTileBlocked(x, y) {
-    let tile = this.getTile(x, y);
-    return (!tile) || tile.blocked;
+    let tile = this.getTile(x, y)
+    return !tile || tile.blocked
   }
-
 }

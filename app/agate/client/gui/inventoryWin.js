@@ -1,64 +1,64 @@
-exports.widget = {
-  //"parent": "middleWin",
+module.exports = {
+  //parent: 'middleWin',
   type: 'window',
   sprite: 'Inventor',
-  "align": "right-center",
-  'visible': false,
+  align: 'right-center',
+  visible: false,
 
-  'listeners': {
+  listeners: {
     openInventory(event) {
-      this.toggle();
+      console.log('test')
+      this.toggle()
     }
   },
 
   components: {
-    'sortBtn': {
+    sortBtn: {
       type: 'button',
       sprite: 'LilGrnBut',
-      position: [405, 198],
+      position: [405, 198]
     },
-    'takeBtn': {
+    takeBtn: {
       type: 'button',
       sprite: 'UseBoxOFF',
-      position: [346, 300],
+      position: [346, 300]
     },
-    'dropBtn': {
+    dropBtn: {
       type: 'button',
       sprite: 'DropOFF',
-      position: [346, 350],
+      position: [346, 350]
     },
-    "inventor": {
-      type: "inventory",
+    inventor: {
+      type: 'inventory',
       position: [9, 9],
       size: [315, 377],
-      style: "border: 1px solid #fff; z-index: 2",
+      style: { border: '1px solid #fff', zIndex: 2 },
       components: {
-        "test": {
-          "type": "image",
-          "sprite": "MagicksIcon",
+        test: {
+          type: 'image',
+          sprite: 'MagicksIcon'
         },
-        "test2": {
-          "type": "image",
-          "sprite": "MagicRingIcon"
+        test2: {
+          type: 'image',
+          sprite: 'MagicRingIcon'
         },
-        "test3": {
-          "type": "image",
-          "sprite": "MagicClothesIcon"
+        test3: {
+          type: 'image',
+          sprite: 'MagicClothesIcon'
         },
-        "test4": {
-          "type": "image",
-          "sprite": "MagicBowsIcon"
+        test4: {
+          type: 'image',
+          sprite: 'MagicBowsIcon'
         },
-        "test5": {
-          "type": "image",
-          "sprite": "MagicMeleeIcon"
+        test5: {
+          type: 'image',
+          sprite: 'MagicMeleeIcon'
         },
-        "test6": {
-          "type": "image",
-          "sprite": "MagicBowsIcon"
+        test6: {
+          type: 'image',
+          sprite: 'MagicBowsIcon'
         }
       }
     }
-  },
-
-};
+  }
+}

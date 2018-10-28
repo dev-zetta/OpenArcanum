@@ -9,16 +9,31 @@ module.exports = {
   },
   plugins: [
     'ember',
+    "prettier",
     'require-path-exists'
   ],
   extends: [
     'eslint:recommended',
-    'plugin:ember/recommended'
+    'plugin:ember/recommended',
+    'prettier/flowtype',
+    "prettier/standard"
   ],
   env: {
-    browser: true
+    browser: false,
+    node: true
   },
-  "rules": {
+  rules: {
+    semi: [2, 'never'],
+    'no-return-await': 2,
+  'prettier/prettier': ['error', {
+    singleQuote: true,
+    trailingComma: 'none',
+    semi: false,
+    bracketSpacing: true,
+    printWidth: 80,
+    tabWidth: 2,
+    useTabs: false
+  }],
     "no-unused-vars": "off",
     "no-console": "off",
     "no-mixed-spaces-and-tabs": "off",
@@ -28,15 +43,13 @@ module.exports = {
       "extensions": [
         "",
         ".jsx",
-        ".es.js",
         ".jsx",
         ".json5",
         ".es",
-        ".es6",
-        ".coffee"
+        ".es6"
       ]
     }]
-},
+  },
   overrides: [
     // node files
     {

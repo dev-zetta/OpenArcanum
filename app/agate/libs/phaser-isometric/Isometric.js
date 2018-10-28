@@ -1,5 +1,5 @@
-import { Projector } from './Projector';
-import { IsoPhysics } from './IsoPhysics';
+import { Projector } from './Projector'
+import { IsoPhysics } from './IsoPhysics'
 
 /**
 * The MIT License (MIT)
@@ -47,32 +47,31 @@ import { IsoPhysics } from './IsoPhysics';
  * @param {number} isometricType - the isometric projection angle to use.
  */
 export class Isometric {
-    constructor(scene, parent, isometricType = Isometric.ISOMETRIC) {
-        this.scene = scene;
-        //this.scene.physics.system = new IsoPhysics(this.scene.physics);
+  constructor(scene, parent, isometricType = Isometric.ISOMETRIC) {
+    this.scene = scene
+    //this.scene.physics.system = new IsoPhysics(this.scene.physics);
 
-        this.projector = new Projector(this.scene, isometricType);
+    this.projector = new Projector(this.scene, isometricType)
 
-        this.scene.iso = this.projector;
-    }
+    this.scene.iso = this.projector
+  }
 }
 
-Isometric.VERSION = '0.9.3';
+Isometric.VERSION = '0.9.3'
 
 //  Directional consts
-Isometric.UP = 0;
-Isometric.DOWN = 1;
-Isometric.FORWARDX = 2;
-Isometric.FORWARDY = 3;
-Isometric.BACKWARDX = 4;
-Isometric.BACKWARDY = 5;
+Isometric.UP = 0
+Isometric.DOWN = 1
+Isometric.FORWARDX = 2
+Isometric.FORWARDY = 3
+Isometric.BACKWARDX = 4
+Isometric.BACKWARDY = 5
 
 //  Type consts
-Isometric.ISOSPRITE = 'isosprite';
-Isometric.ISOARCADE = 'isoarcade';
-
+Isometric.ISOSPRITE = 'isosprite'
+Isometric.ISOARCADE = 'isoarcade'
 
 //  Projection angles
-Isometric.CLASSIC = Math.atan(0.5);
-Isometric.ISOMETRIC = Math.PI / 6;
-Isometric.MILITARY = Math.PI / 4;
+Isometric.CLASSIC = Math.atan(0.5)
+Isometric.ISOMETRIC = Math.PI / 6
+Isometric.MILITARY = Math.PI / 4

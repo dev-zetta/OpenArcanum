@@ -2,28 +2,28 @@
 
 // https://www.npmjs.com/package/utility-ai
 
-const UtilityAi = AGate.requireNode('utility-ai');
+const UtilityAi = AGate.requireNode('utility-ai')
 
 export class Evaluator {
   constructor(system) {
-    this.system = system;
-    this.utilityAi = new UtilityAi();
+    this.system = system
+    this.utilityAi = new UtilityAi()
   }
 
   addAction(name, options) {
-    let config = this.system.actions.get(name);
+    let config = this.system.actions.get(name)
     if (!config) {
-      AGate.logError(`No AI action: ${name}`);
-      return;
+      AGate.logError(`No AI action: ${name}`)
+      return
     }
 
     // Add actions to the AI
     this.utilityAi.addAction(name, action => {
-      console.log(`Processing action: ${name}`);
+      console.log(`Processing action: ${name}`)
 
       // Add scores to the action
       for (let key in config.scores) {
-        action.score(key, config.scores[key]);
+        action.score(key, config.scores[key])
       }
     })
   }
@@ -33,13 +33,15 @@ export class Evaluator {
    * @param data
    */
   process(data) {
-    data = Object.assign({
-      evaluator: this
-    }, data)
+    data = Object.assign(
+      {
+        evaluator: this
+      },
+      data
+    )
 
-    let result = this.utilityAi.evaluate(data);
+    let result = this.utilityAi.evaluate(data)
 
-    return result;
+    return result
   }
-
 }

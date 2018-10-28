@@ -2,7 +2,7 @@
  * @module  ecs
  */
 
-import { fastSplice } from './utils';
+import { fastSplice } from './utils'
 
 // forced to disable this check for abstract methods
 // jshint unused:false
@@ -19,20 +19,20 @@ class System {
    * @constructor
    * @param [frequency=1] {Number} Frequency of execution.
    */
-  constructor(frequency=1) {
+  constructor(frequency = 1) {
     /**
      * Frequency of update execution, a frequency of `1` run the system every
      * update, `2` will run the system every 2 updates, ect.
      * @property {Number} frequency
      */
-    this.frequency = frequency;
+    this.frequency = frequency
 
     /**
      * Entities of the system.
      *
      * @property {Array[Entity]} entities
      */
-    this.entities = [];
+    this.entities = []
   }
   /**
    * Add an entity to the system entities.
@@ -40,10 +40,10 @@ class System {
    * @param {Entity} entity The entity to add to the system.
    */
   addEntity(entity) {
-    entity.addSystem(this);
-    this.entities.push(entity);
+    entity.addSystem(this)
+    this.entities.push(entity)
 
-    this.enter(entity);
+    this.enter(entity)
   }
   /**
    * Remove an entity from the system entities. exit() handler is executed
@@ -52,13 +52,13 @@ class System {
    * @param  {Entity} entity Reference of the entity to remove.
    */
   removeEntity(entity) {
-    let index = this.entities.indexOf(entity);
+    let index = this.entities.indexOf(entity)
 
     if (index !== -1) {
-      entity.removeSystem(this);
-      fastSplice(this.entities, index, 1);
+      entity.removeSystem(this)
+      fastSplice(this.entities, index, 1)
 
-      this.exit(entity);
+      this.exit(entity)
     }
   }
   /**
@@ -67,13 +67,13 @@ class System {
    * @method  updateAll
    */
   updateAll(elapsed) {
-    this.preUpdate();
+    this.preUpdate()
 
-    for (let i = 0, entity; entity = this.entities[i]; i += 1) {
-      this.update(entity, elapsed);
+    for (let i = 0, entity; (entity = this.entities[i]); i += 1) {
+      this.update(entity, elapsed)
     }
 
-    this.postUpdate();
+    this.postUpdate()
   }
   /**
    * dispose the system by exiting all the entities
@@ -81,9 +81,9 @@ class System {
    * @method  dispose
    */
   dispose() {
-    for (let i = 0, entity; entity = this.entities[i]; i += 1) {
-      entity.removeSystem(this);
-      this.exit(entity);
+    for (let i = 0, entity; (entity = this.entities[i]); i += 1) {
+      entity.removeSystem(this)
+      this.exit(entity)
     }
   }
   // methods to be extended by subclasses
@@ -109,7 +109,7 @@ class System {
    * @param  {Entity} entity The entity to test.
    */
   test(entity) {
-    return false;
+    return false
   }
   /**
    * Abstract method to subclass. Called when an entity is added to the system.
@@ -136,4 +136,4 @@ class System {
 }
 // jshint unused:true
 
-export default System;
+export default System

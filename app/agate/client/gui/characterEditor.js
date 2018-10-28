@@ -1,73 +1,76 @@
-exports.widget = {
+module.exports = {
   type: 'window',
   sprite: 'CharMaint',
-  align: "left-center",
+  align: 'left-center',
   visible: false,
   events: {
     created() {
-      this.emitEvent('characterEditor:switchTab', 'disciplinesTab');
+      //this.emitEvent('characterEditor:switchTab', 'disciplinesTab')
     }
   },
   listeners: {
-    'inventory:open': (event) => {
-      this.toggle();
+    'inventory:open': event => {
+      this.toggle()
     },
 
-    'characterEditor:switchTab': (id) => {
+    'characterEditor:switchTab': id => {
       if (this.currentTab) {
-
-        this.currentTab.hide();
-        this.currentTab.bringToBack();
+        this.currentTab.hide()
+        this.currentTab.bringToBack()
       }
 
-      let tab = this.getChild(id);
-      tab.show();
-      tab.bringToFront();
+      let tab = this.getChild(id)
+      tab.show()
+      tab.bringToFront()
 
-      this.currentTab = tab;
+      this.currentTab = tab
     }
   },
 
   components: {
-    'skillsTabBtn': {
+    skillsTabBtn: {
       type: 'button',
       position: [527, 11],
       sprite: 'charCommonSkills',
       events: {
         click() {
-          this.emitEvent('characterEditor:switchTab', 'skillsTab');
+          //this.emitEvent('characterEditor:switchTab', 'skillsTab')
         }
       }
     },
 
-    'skillsTab': {
-      type: 'window',
+    skillsTab: {
+      type: 'group',
       position: [504, 62],
       sprite: 'SkillsWindow',
       events: {
         created() {
-          let x = 21;
+          let x = 21
 
-          let buttons = ['CombatBut', 'ThievingBut', 'SocialBut', 'TechnologicalBut']
+          let buttons = [
+            'CombatBut',
+            'ThievingBut',
+            'SocialBut',
+            'TechnologicalBut'
+          ]
           for (let i = 0; i < buttons.length; i++) {
-            let item = buttons[i];
+            let item = buttons[i]
 
             let model = this.createChild({
               id: `skillTabBtn${i}`,
               type: 'button',
               position: [x, 17],
               sprite: `${item}`
+            })
 
-            });
-
-            x += 54;
+            x += 54
           }
 
-          let props = ['Bow', 'Dodge', 'Melee', 'Throwing'];
+          let props = ['Bow', 'Dodge', 'Melee', 'Throwing']
 
-          let y = 84;
+          let y = 84
           for (let i = 0; i < props.length; i++) {
-            let prop = props[i];
+            let prop = props[i]
 
             let model = this.createChild({
               id: `skillTabGauge${i}`,
@@ -76,38 +79,36 @@ exports.widget = {
               options: {
                 text: prop
               }
-            });
+            })
 
-            y += 66;
+            y += 66
           }
-
         }
       }
     },
 
-    'disciplinesTabBtn': {
+    disciplinesTabBtn: {
       type: 'button',
       position: [595, 11],
       sprite: 'SchematicsButton',
       events: {
         click() {
-          this.emitEvent('characterEditor:switchTab', 'disciplinesTab');
+          this.emitEvent('characterEditor:switchTab', 'disciplinesTab')
         }
       }
     },
 
-    'disciplinesTab': {
-      type: 'window',
+    disciplinesTab: {
+      type: 'group',
       position: [504, 62],
       sprite: 'DisciplinesWindow',
       components: {
-        'disciplinesGroup': {
+        disciplinesGroup: {
           type: 'group',
           position: [0, 0],
 
           events: {
             created() {
-
               let disciplines = [
                 {
                   name: 'Herbology',
@@ -149,37 +150,33 @@ exports.widget = {
                   sprite: 'TherapeuticsBut',
                   button: 'TTITheru'
                 }
-              ];
+              ]
 
+              let self = this
 
-              let self = this;
+              this.currentDiscipline = disciplines[0]
 
-              this.currentDiscipline = disciplines[0];
-
-              this.switchTo = (index) => {
-
-                this.currentDiscipline = disciplines[index];
+              this.switchTo = index => {
+                this.currentDiscipline = disciplines[index]
 
                 for (let i = 1; i <= 7; i++) {
-                  let disciplineBtn = this.getChild(`disciplinesTabBtn${i}`);
+                  let disciplineBtn = this.getChild(`disciplinesTabBtn${i}`)
 
-                  disciplineBtn.setSprite(`${disciplines[index].button}`);
+                  disciplineBtn.setSprite(`${disciplines[index].button}`)
                 }
-              };
+              }
 
-              this.onDisciplineClick = (index) => {
+              this.onDisciplineClick = index => {}
 
-              };
-
-              let x = 10;
-              let y = 10;
+              let x = 10
+              let y = 10
 
               for (let i = 0; i < disciplines.length; i++) {
-                let discipline = disciplines[i];
+                let discipline = disciplines[i]
 
                 if (i == 4) {
-                  x = 36;
-                  y = 32;
+                  x = 36
+                  y = 32
                 }
 
                 let model = this.createChild({
@@ -189,17 +186,16 @@ exports.widget = {
                   sprite: `${discipline.sprite}`,
                   events: {
                     click() {
-                      self.switchTo(i);
+                      self.switchTo(i)
                     }
                   }
-                });
+                })
 
-                x += 54;
-
+                x += 54
               }
 
-              x = 7;
-              y = 95;
+              x = 7
+              y = 95
 
               for (let i = 1; i <= 7; i++) {
                 let model = this.createChild({
@@ -209,80 +205,109 @@ exports.widget = {
                   sprite: `${disciplines[0].button}`,
                   events: {
                     click() {
-                      self.onDisciplineClick(i);
+                      self.onDisciplineClick(i)
                     }
                   }
-                });
+                })
 
                 this.createChild({
                   id: `disciplinesTabText${i}`,
                   type: 'text',
                   position: [x + 50, y]
-                });
+                })
 
-                y += 32.5;
-
+                y += 32.5
               }
-
             }
           }
-        },
+        }
       }
     },
 
-    'spellsTabBtn': {
+    spellsTabBtn: {
       type: 'button',
       position: [662, 11],
       sprite: 'SpellsButton',
       events: {
         click() {
-          this.emitEvent('characterEditor:switchTab', 'spellsTab');
+          this.emitEvent('characterEditor:switchTab', 'spellsTab')
         }
       }
     },
 
-    'spellsTab': {
-      type: 'window',
+    spellsTab: {
+      type: 'group',
       position: [504, 62],
       sprite: 'CharSpells',
       components: {
-        'spellsGroup': {
+        spellsGroup: {
           type: 'group',
           position: [13, 16],
 
           events: {
             created() {
-              let colleges = ['Conveyance', 'Divination', 'Air', 'Earth', 'Fire', 'Water', 'Force', 'Mental', 'Meta', 'Morph', 'Nature', 'GoodNecro', 'EvilNecro', 'Phantasm', 'Summoning', 'Temporal'];
-              let sprites = ['SConveyance', 'SDivination', 'SAir', 'SEarth', 'SFire', 'SWater', 'SForc', 'SMental', 'SMeta', 'smorph', 'SNature', 'SGoodNecro', 'SEvilNecro', 'sphantasm', 'SSummoning', 'STemporal'];
+              let colleges = [
+                'Conveyance',
+                'Divination',
+                'Air',
+                'Earth',
+                'Fire',
+                'Water',
+                'Force',
+                'Mental',
+                'Meta',
+                'Morph',
+                'Nature',
+                'GoodNecro',
+                'EvilNecro',
+                'Phantasm',
+                'Summoning',
+                'Temporal'
+              ]
+              let sprites = [
+                'SConveyance',
+                'SDivination',
+                'SAir',
+                'SEarth',
+                'SFire',
+                'SWater',
+                'SForc',
+                'SMental',
+                'SMeta',
+                'smorph',
+                'SNature',
+                'SGoodNecro',
+                'SEvilNecro',
+                'sphantasm',
+                'SSummoning',
+                'STemporal'
+              ]
 
-              let self = this;
+              let self = this
 
-              this.currentCollege = colleges[0];
+              this.currentCollege = colleges[0]
 
-              this.switchTo = (name) => {
-
-                this.currentCollege = name;
+              this.switchTo = name => {
+                this.currentCollege = name
 
                 for (let i = 1; i <= 5; i++) {
-                  let spellBtn = this.getChild(`spellsTabBtn${i}`);
+                  let spellBtn = this.getChild(`spellsTabBtn${i}`)
 
-                  spellBtn.setSprite(`S${name}${i}`);
+                  spellBtn.setSprite(`S${name}${i}`)
                 }
-              };
+              }
 
-              this.onSpellClick = (index) => {
+              this.onSpellClick = index => {}
 
-              };
-
-              let x = 0;
-              let y = 0;
+              let x = 0
+              let y = 0
 
               for (let i = 0; i < colleges.length; i++) {
-                let college = colleges[i];
+                let college = colleges[i]
 
-                if (i == 8) {
-                  x = 12;
-                  y = 25;
+                if (i === 8) {
+                  x = 12
+                  y = 25
                 }
 
                 let model = this.createChild({
@@ -292,17 +317,16 @@ exports.widget = {
                   sprite: `${sprites[i]}`,
                   events: {
                     click() {
-                      self.switchTo(college);
+                      self.switchTo(college)
                     }
                   }
-                });
+                })
 
-                x += 25;
-
+                x += 25
               }
 
-              x = 5;
-              y = 67;
+              x = 5
+              y = 67
 
               for (let i = 1; i <= 5; i++) {
                 let model = this.createChild({
@@ -312,10 +336,10 @@ exports.widget = {
                   sprite: `${sprites[0]}${i}`,
                   events: {
                     click() {
-                      self.onSpellClick(i);
+                      self.onSpellClick(i)
                     }
                   }
-                });
+                })
 
                 this.createChild({
                   id: `spellsTabText${i}`,
@@ -323,128 +347,115 @@ exports.widget = {
                   position: [x + 50, y],
                   events: {
                     click() {
-                      self.onSpellClick(i);
+                      self.onSpellClick(i)
                     }
                   }
-                });
+                })
 
-                y += 47.5;
-
+                y += 47.5
               }
-
             }
           }
-        },
-
-
+        }
       }
     },
 
-
-    'alignmentValue': {
+    alignmentValue: {
       type: 'text',
-      position: [43, 196],
+      position: [43, 196]
       //size: [100, 100]
     },
 
-    'magicApt': {
+    magicApt: {
       type: 'text',
-      position: [755, 65],
+      position: [755, 65]
       //size: [100, 100]
     },
 
-    'techApt': {
+    techApt: {
       type: 'text',
-      position: [755, 365],
+      position: [755, 365]
       //size: [100, 100]
     },
 
-
-
-
-
-    'schemaSkillsTabBtn': {
+    schemaSkillsTabBtn: {
       type: 'button',
       position: [754, 21],
-      sprite: 'charSchemSkills',
+      sprite: 'charSchemSkills'
     },
 
-    'derivedStatsLabel': {
+    derivedStatsLabel: {
       type: 'text',
-      position: [54, 283],
+      position: [54, 283]
       //size: [100, 100]
     },
 
-    'derivedStatsInfo': {
+    derivedStatsInfo: {
       type: 'text',
-      position: [54, 295],
+      position: [54, 295]
       //size: [100, 100]
     },
 
-    'resistanceLabel': {
+    resistanceLabel: {
       type: 'text',
-      position: [326, 283],
+      position: [326, 283]
       //size: [100, 100]
     },
 
-    'resistanceInfo': {
+    resistanceInfo: {
       type: 'text',
-      position: [326, 283],
+      position: [326, 283]
       //size: [100, 100]
     },
 
-    'strengthSpinner': {
+    strengthSpinner: {
       type: 'number-spinner',
       position: [170, 117]
     },
 
-    'constitutionSpinner': {
+    constitutionSpinner: {
       type: 'number-spinner',
       position: [170, 157]
     },
 
-    'dexteritySpinner': {
+    dexteritySpinner: {
       type: 'number-spinner',
       position: [170, 197]
     },
 
-    'beautySpinner': {
+    beautySpinner: {
       type: 'number-spinner',
       position: [170, 237]
     },
 
-    'intelligenceSpinner': {
+    intelligenceSpinner: {
       type: 'number-spinner',
       position: [314, 117]
     },
 
-    'willpowerSpinner': {
+    willpowerSpinner: {
       type: 'number-spinner',
       position: [314, 157]
     },
 
-    'perceptionSpinner': {
+    perceptionSpinner: {
       type: 'number-spinner',
       position: [314, 197]
     },
 
-    'characterSpinner': {
+    characterSpinner: {
       type: 'number-spinner',
       position: [314, 237]
     },
 
-    'healthSpinner': {
+    healthSpinner: {
       type: 'number-spinner',
       position: [410, 144]
     },
 
-    'fatigueSpinner': {
+    fatigueSpinner: {
       type: 'number-spinner',
       position: [410, 215]
-    },
-
-
-
-  },
-
-};
+    }
+  }
+}

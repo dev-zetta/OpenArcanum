@@ -1,7 +1,7 @@
-exports.widget = {
-  type: "window",
+module.exports = {
+  type: 'window',
   visible: false,
-  align: "center-center",
+  align: 'center-center',
   //size: [800, 600],
   sprite: 'BookMain',
   components: {},
@@ -37,33 +37,29 @@ exports.widget = {
           name: 'Keys',
           button: 'TabKeys'
         }
-      ];
+      ]
 
+      let self = this
 
-      let self = this;
+      this.currentTab = tabs[0]
 
-      this.currentTab = tabs[0];
-
-      this.switchTo = (index) => {
-
-        this.currentTab = tabs[index];
+      this.switchTo = index => {
+        this.currentTab = tabs[index]
 
         /*for (let i = 1; i <= 7; i++) {
           let tabBtn = this.getChild(`bookTabBtn${i}`);
 
           tabBtn.setSprite(`${tabs[index].button}`);
         }*/
-      };
+      }
 
-      this.onTabClick = (index) => {
+      this.onTabClick = index => {}
 
-      };
-
-      let x = 531;
-      let y = 43;
+      let x = 531
+      let y = 43
 
       for (let i = 0; i < tabs.length; i++) {
-        let tab = tabs[i];
+        let tab = tabs[i]
 
         let model = this.createChild({
           id: `${tab.name}Switch`,
@@ -72,15 +68,13 @@ exports.widget = {
           sprite: `${tab.button}`,
           events: {
             click() {
-              self.switchTo(i);
+              self.switchTo(i)
             }
           }
-        });
+        })
 
-        y += 45;
-
+        y += 45
       }
     }
   }
-};
-
+}

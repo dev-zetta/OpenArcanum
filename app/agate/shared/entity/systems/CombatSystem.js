@@ -1,30 +1,19 @@
 /* global AGate */
 
-import {System} from '../System';
-import {Location} from '../../Location';
-import Enums from '../../enums';
+import { System } from '../System'
+import { Location } from '../../Location'
+import Enums from '../../enums'
 
 export class CombatSystem extends System {
-
   test(entity) {
-    return !!entity.npc;
+    return !!entity.npc
   }
 
-  enter(entity) {
+  enter(entity) {}
 
-  }
+  update(entity, elapsed) {}
 
-  update(entity, elapsed) {
+  exit(entity) {}
 
-
-  }
-
-  exit(entity) {
-
-  }
-
-
-  async moveToLocation(entity, location) {
-
-  }
+  async moveToLocation(entity, location) {}
 }

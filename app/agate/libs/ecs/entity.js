@@ -2,8 +2,8 @@
  * @module  ecs
  */
 
-import UID from './uid';
-import { fastSplice } from './utils';
+import UID from './uid'
+import { fastSplice } from './utils'
 
 /**
  * An entity.
@@ -28,14 +28,14 @@ class Entity {
      *
      * @property {Number} id
      */
-    this.id = id || UID.DefaultUIDGenerator.next();
+    this.id = id || UID.DefaultUIDGenerator.next()
 
     /**
      * Systems applied to the entity.
      *
      * @property {Array[System]} systems
      */
-    this.systems = [];
+    this.systems = []
 
     /**
      * Indiquate a change in components (a component was removed or added)
@@ -43,7 +43,7 @@ class Entity {
      *
      * @property {Boolean} systemsDirty
      */
-    this.systemsDirty = false;
+    this.systemsDirty = false
 
     /**
      * Components of the entity stored as key-value pairs.
@@ -71,7 +71,7 @@ class Entity {
      * A reference to parent ECS class.
      * @property {ECS} ecs
      */
-    this.ecs = null;
+    this.ecs = null
   }
   /**
    * Set the parent ecs reference.
@@ -80,8 +80,8 @@ class Entity {
    * @param {ECS} ecs An ECS class instance.
    */
   addToECS(ecs) {
-    this.ecs = ecs;
-    this.setSystemsDirty();
+    this.ecs = ecs
+    this.setSystemsDirty()
   }
   /**
    * Set the systems dirty flag so the ECS knows this entity
@@ -90,10 +90,10 @@ class Entity {
    */
   setSystemsDirty() {
     if (!this.systemsDirty && this.ecs) {
-      this.systemsDirty = true;
+      this.systemsDirty = true
 
       // notify to parent ECS that this entity needs to be tested next tick
-      this.ecs.entitiesSystemsDirty.push(this);
+      this.ecs.entitiesSystemsDirty.push(this)
     }
   }
   /**
@@ -103,7 +103,7 @@ class Entity {
    * @param {System} system The system to add.
    */
   addSystem(system) {
-    this.systems.push(system);
+    this.systems.push(system)
   }
   /**
    * Remove a system from the entity.
@@ -112,10 +112,10 @@ class Entity {
    * @param  {System} system The system reference to remove.
    */
   removeSystem(system) {
-    let index = this.systems.indexOf(system);
+    let index = this.systems.indexOf(system)
 
     if (index !== -1) {
-      fastSplice(this.systems, index, 1);
+      fastSplice(this.systems, index, 1)
     }
   }
   /**
@@ -128,8 +128,8 @@ class Entity {
    * @param {Object} data Component data.
    */
   addComponent(name, data) {
-    this[name] = data || {};
-    this.setSystemsDirty();
+    this[name] = data || {}
+    this.setSystemsDirty()
   }
   /**
    * Remove a component from the entity. To preserve performances, we
@@ -140,11 +140,11 @@ class Entity {
    */
   removeComponent(name) {
     if (!this[name]) {
-      return;
+      return
     }
 
-    this[name] = undefined;
-    this.setSystemsDirty();
+    this[name] = undefined
+    this.setSystemsDirty()
   }
   /**
    * Update a component field by field, NOT recursively. If the component
@@ -160,15 +160,15 @@ class Entity {
    *   // entity.component.pos is '{vel: 0, angle: 90, pos: {y: 1}}'
    */
   updateComponent(name, data) {
-    let component = this[name];
+    let component = this[name]
 
     if (!component) {
-      this.addComponent(name, data);
+      this.addComponent(name, data)
     } else {
-      let keys = Object.keys(data);
+      let keys = Object.keys(data)
 
-      for (let i = 0, key; key = keys[i]; i += 1) {
-        component[key] = data[key];
+      for (let i = 0, key; (key = keys[i]); i += 1) {
+        component[key] = data[key]
       }
     }
   }
@@ -179,7 +179,7 @@ class Entity {
    */
   updateComponents(components) {
     for (let key in components) {
-      this.updateComponent(key, components[key]);
+      this.updateComponent(key, components[key])
     }
   }
   /**
@@ -188,10 +188,10 @@ class Entity {
    * @private
    */
   dispose() {
-    for (var i = 0, system; system = this.systems[0]; i += 1) {
-      system.removeEntity(this);
+    for (var i = 0, system; (system = this.systems[0]); i += 1) {
+      system.removeEntity(this)
     }
   }
 }
 
-export default Entity;
+export default Entity

@@ -1,80 +1,79 @@
-exports.widget = {
-  parent: "middleWin",
+module.exports = {
+  //parent: 'middleWin',
   type: 'inventory',
   sprite: 'PDoll',
-  align: "left-center",
+  align: 'left-center',
   visible: false,
 
   components: {
-    'lens': {
+    lens: {
       type: 'image',
       position: [11, 9],
-      sprite: 'OptionsPCLens',
+      sprite: 'OptionsPCLens'
     },
-    'attackIcon': {
+    attackIcon: {
       type: 'icon',
       position: [27, 320],
-      sprite: 'TotalAttack',
+      sprite: 'TotalAttack'
     },
-    'defenseIcon': {
+    defenseIcon: {
       type: 'icon',
       position: [255, 320],
-      sprite: 'TotalDefens',
+      sprite: 'TotalDefens'
     },
 
-    'gauntletSlot': {
+    gauntletSlot: {
       type: 'slot-button',
       position: [55, 107],
-      sprite: 'CVRGauntlet',
+      sprite: 'CVRGauntlet'
     },
 
-    'helmetSlot': {
+    helmetSlot: {
       type: 'slot-button',
       position: [152, 107],
-      sprite: 'CVRHelmet',
+      sprite: 'CVRHelmet'
     },
 
-    'rintSlot': {
+    rintSlot: {
       type: 'slot-button',
       position: [247, 107],
-      sprite: 'CVRRing1',
+      sprite: 'CVRRing1'
     },
 
-    'ringSlot2': {
+    ringSlot2: {
       type: 'slot-button',
       position: [279, 107],
-      sprite: 'CVRRing2',
+      sprite: 'CVRRing2'
     },
 
-    'medalionSlot': {
+    medalionSlot: {
       type: 'slot-button',
       position: [247, 139],
-      sprite: 'CVRMedalion',
+      sprite: 'CVRMedalion'
     },
 
-    'weaponSlot': {
+    weaponSlot: {
       type: 'slot-button',
       position: [23, 170],
-      sprite: 'CVRWeapon',
+      sprite: 'CVRWeapon'
     },
 
-    'armorSlot': {
+    armorSlot: {
       type: 'slot-button',
       position: [119, 171],
-      sprite: 'CVRArmor',
+      sprite: 'CVRArmor'
     },
 
-    'shieldSlot': {
+    shieldSlot: {
       type: 'slot-button',
       position: [247, 171],
-      sprite: 'CVRShield',
+      sprite: 'CVRShield'
     },
 
-    'bootSlot': {
+    bootSlot: {
       type: 'slot-button',
       position: [150, 331],
-      sprite: 'CVRBoot',
-    },
-
-  },
-};
+      sprite: 'CVRBoot'
+    }
+  }
+}

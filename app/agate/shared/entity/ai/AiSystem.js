@@ -1,96 +1,86 @@
 /* global AGate */
-import {Evaluator} from './Evaluator';
+import { Evaluator } from './Evaluator'
 
 let Evaluators = {
-  'npc': {
+  npc: {
     actions: {
-      'MoveToWaypoint': {
-
-      },
-      'AttackNearby': {
-
-      }
+      MoveToWaypoint: {},
+      AttackNearby: {}
     }
   }
-};
-
+}
 
 export class AiSystem {
-
   constructor(map) {
-    this.map = map;
-    this.actions = new Map();
-    this.evaluators = new Map();
+    this.map = map
+    this.actions = new Map()
+    this.evaluators = new Map()
 
-    this.loadActions();
-    this.loadEvaluators();
+    this.loadActions()
+    this.loadEvaluators()
   }
 
   loadActions() {
     AGate.Utils.loadScripts('shared/entity/ai/actions', (name, script) => {
-      let action = script.action;
+      let action = script.action
 
       let object = {
-        scores: {
-
-        }
-      };
+        scores: {}
+      }
 
       for (let key in action) {
-        let property = action[key];
+        let property = action[key]
 
         if (AGate.Utils.isFunction(property)) {
-          object.scores[key] = property;
+          object.scores[key] = property
         }
       }
 
-      this.actions.set(name, object);
-    });
+      this.actions.set(name, object)
+    })
   }
 
   loadEvaluators() {
     for (let key in Evaluators) {
-      this.newEvaluator(key);
+      this.newEvaluator(key)
     }
   }
 
   getEvaluator(type) {
-    return this.newEvaluator(type);
+    return this.newEvaluator(type)
   }
 
   newEvaluator(type) {
     if (!type) {
-      let evaluator = new Evaluator(this);
+      let evaluator = new Evaluator(this)
 
-      return evaluator;
+      return evaluator
     }
 
-    let evaluator = this.evaluators.get(type);
+    let evaluator = this.evaluators.get(type)
 
-    if (evaluator)
-      return evaluator;
+    if (evaluator) return evaluator
 
-    evaluator = new Evaluator(this);
+    evaluator = new Evaluator(this)
 
-    let data = Evaluators[type];
+    let data = Evaluators[type]
     if (!data) {
-      AGate.Utils.logError(`No data for evaluator: ${type}`);
-      return evaluator;
+      AGate.Utils.logError(`No data for evaluator: ${type}`)
+      return evaluator
     }
 
     for (let key in data.actions) {
-      let action = this.actions.get(key);
+      let action = this.actions.get(key)
       if (!action) {
-        AGate.Utils.logError(`Unknown action: ${key}`);
-        continue;
+        AGate.Utils.logError(`Unknown action: ${key}`)
+        continue
       }
 
-      let options = data.actions[key];
-      evaluator.addAction(key, options);
+      let options = data.actions[key]
+      evaluator.addAction(key, options)
     }
 
-    this.evaluators.set(type, evaluator);
-    return evaluator;
+    this.evaluators.set(type, evaluator)
+    return evaluator
   }
-
 }

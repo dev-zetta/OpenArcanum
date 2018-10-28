@@ -1,6 +1,6 @@
-import Component from '@ember/component';
-import {Engine} from '../agate/shared/Engine';
-import {Manager} from '../agate/client/Gui';
+import Component from '@ember/component'
+import { Engine } from '../agate/shared/Engine'
+import { Manager } from '../agate/client/Gui'
 
 export default Component.extend({
   classNames: ['game-render'],
@@ -8,45 +8,49 @@ export default Component.extend({
   shouldRender: false,
 
   init() {
-    this._super(...arguments);
+    this._super(...arguments)
   },
 
   getElement() {
-    return this.$();
+    return this.$()
   },
 
   getManager() {
-    return this._engine.client.guiManager;
+    return this.engine.client.guiManager
   },
 
   didInsertElement() {
-    this._super(...arguments);
+    this._super(...arguments)
 
-    this._engine = Engine.instance;
+    Engine.instance = new Engine()
+    this.engine = Engine.instance
 
-    let canvas = document.getElementById('render2d');
+    let canvas = document.getElementById('render2d')
 
-    this._engine.createClient(canvas).then(() => {
-      this.get('store').query('gui-widget', {
-        include: 'components',
-        filter: {
-          type: 'window',
-          visible: true
-          //id: ['topWin', 'middleWin', 'bottomWin']
-        }
-      }).then((data) => {
-        let manager = this.getManager();
-        manager.setRootWidget(this);
-        manager.setMouseSprite('cursor');
+    this.engine.createClient(canvas).then(() => {
+      this.get('store')
+        .query('gui-widget', {
+          include: 'components',
+          filter: {
+            type: 'window',
+            //parentView: null
+            //visible: true
+            //id: ['topWin', 'middleWin', 'bottomWin']
+          }
+        })
+        .then(data => {
+          let manager = this.getManager()
+          manager.setRootWidget(this)
+          manager.setMouseSprite('cursor')
 
-        this.set('widgets', data);
-      });
-    });
+          this.set('widgets', data)
+        })
+    })
   },
 
   mouseMove(event) {
     //this.getManager().onMouseMove(event);
   },
 
-  actions: {},
-});
+  actions: {}
+})

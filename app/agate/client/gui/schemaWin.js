@@ -1,138 +1,130 @@
-exports.widget = {
-  //parent: "bottomWin",
+module.exports = {
+  parent: 'bottomWin',
   type: 'window',
   sprite: 'SchematicBase',
-  align: "center-center",
+  align: 'center-center',
   visible: false,
 
   events: {
     created() {
-
       let disciplines = [
         {
           name: 'Anatomical',
-          button: 'AnatomicalTab',
+          button: 'AnatomicalTab'
         },
         {
           name: 'Chemistry',
-          button: 'ChemistryTab',
+          button: 'ChemistryTab'
         },
         {
           name: 'Anatomical',
-          button: 'ElectricalTab',
+          button: 'ElectricalTab'
         },
         {
           name: 'Anatomical',
-          button: 'ExplosivesTab',
+          button: 'ExplosivesTab'
         },
         {
           name: 'Anatomical',
-          button: 'GunSmithyTab',
+          button: 'GunSmithyTab'
         },
         {
           name: 'Anatomical',
-          button: 'MechanicalTab',
+          button: 'MechanicalTab'
         },
         {
           name: 'Anatomical',
-          button: 'SmithyTab',
+          button: 'SmithyTab'
         },
         {
           name: 'Anatomical',
-          button: 'TheraputicsTab',
+          button: 'TheraputicsTab'
         }
-      ];
+      ]
 
-      let x = 707;
-      let y = 17;
+      let x = 707
+      let y = 17
 
       for (let i = 0; i < disciplines.length; i++) {
-        let discipline = disciplines[i];
+        let discipline = disciplines[i]
 
         let model = this.createChild({
           id: `disciplineTabBtn${i}`,
           type: 'button',
           position: [x, y],
           sprite: `${discipline.button}`
+        })
 
-        });
-
-        y += 45;
+        y += 45
       }
-
     }
   },
 
   components: {
-    'lens': {
+    lens: {
       type: 'icon',
       position: [50, 26],
-      sprite: 'SchmPCLens',
+      sprite: 'SchmPCLens'
     },
 
-    'nextBtn': {
+    nextBtn: {
       type: 'button',
       position: [685, 16],
-      sprite: 'SchmRArrow',
+      sprite: 'SchmRArrow'
     },
 
-    'prevBtn': {
+    prevBtn: {
       type: 'button',
       position: [206, 16],
-      sprite: 'SchmLArrow',
+      sprite: 'SchmLArrow'
     },
 
-    'schemeBtn': {
+    schemeBtn: {
       type: 'button',
       position: [29, 160],
-      sprite: 'BGRNBUT',
+      sprite: 'BGRNBUT'
     },
 
-    'schemeBtn2': {
+    schemeBtn2: {
       type: 'button',
       position: [29, 248],
-      sprite: 'BGRNBUT',
+      sprite: 'BGRNBUT'
     },
 
-    'combineBtn': {
+    combineBtn: {
       type: 'button',
       position: [76, 324],
-      sprite: 'CombineButt',
+      sprite: 'CombineButt'
     },
 
-    'combineIndicator': {
+    combineIndicator: {
       type: 'image',
       position: [43, 338],
-      sprite: 'CombineIndicator3',
+      sprite: 'CombineIndicator3'
     },
 
-    'schemeImage': {
+    schemeImage: {
       type: 'image',
       position: [240, 146],
-      sprite: 'Schargedring',
+      sprite: 'Schargedring'
     },
 
-    'schemeItem1': {
+    schemeItem1: {
       type: 'image',
       position: [579, 181],
-      sprite: 'SchemHaveItem',
+      sprite: 'SchemHaveItem'
     },
 
-    'schemeItemIco': {
+    schemeItemIco: {
       type: 'icon',
       position: [579, 181],
-      sprite: 'SchemHaveItem',
+      sprite: 'SchemHaveItem'
     },
 
-
-
-    'schemeItem2': {
+    schemeItem2: {
       type: 'image',
       position: [579, 277],
-      sprite: 'SchemHaveItem',
-    },
-
-  },
-};
-
-
+      sprite: 'SchemHaveItem'
+    }
+  }
+}

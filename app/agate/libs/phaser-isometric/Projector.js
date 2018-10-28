@@ -1,8 +1,8 @@
-import {Phaser} from './Phaser';
-import {Point3} from './Point3';
-import {Isometric} from './Isometric';
-import {Math} from './Math';
-import {Sector} from '../../shared/map/Sector';
+import { Phaser } from './Phaser'
+import { Point3 } from './Point3'
+import { Isometric } from './Isometric'
+import { Math } from './Math'
+import { Sector } from '../../shared/map/Sector'
 
 /**
  * @class Projector
@@ -18,23 +18,23 @@ import {Sector} from '../../shared/map/Sector';
 
 export class Projector {
   constructor(scene, projectionAngle) {
-    console.log(Phaser);
+    console.log(Phaser)
     /**
      * @property {Phaser.Game} game - The current game object.
      */
-    this.scene = scene;
+    this.scene = scene
 
     /**
      * @property {array} _transform - The pre-calculated axonometric transformation values.
      * @private
      */
-    this._transform = null;
+    this._transform = null
 
     /**
      * @property {number} _projectionAngle - The cached angle of projection in radians.
      * @private
      */
-    this._projectionAngle = 0;
+    this._projectionAngle = 0
 
     /**
      * @property {number} projectionAngle - The angle of projection in radians.
@@ -46,7 +46,7 @@ export class Projector {
      * @property {Phaser.Geom.Point} anchor - The x and y offset multipliers as a ratio of the game world size.
      * @default
      */
-    this.anchor = new Phaser.Geom.Point(0.0, 0.0);
+    this.anchor = new Phaser.Geom.Point(0.0, 0.0)
   }
 
   /**
@@ -54,16 +54,15 @@ export class Projector {
    * @property {number} projectionAngle - The angle of axonometric projection.
    */
   get projectionAngle() {
-    return this._projectionAngle;
+    return this._projectionAngle
   }
 
   set projectionAngle(value) {
-
     if (value === this._projectionAngle) {
-      return;
+      return
     }
 
-    this._projectionAngle = value;
+    this._projectionAngle = value
 
     //this._transform = [Math.cos(this._projectionAngle), Math.sin(this._projectionAngle)];
 
@@ -71,7 +70,7 @@ export class Projector {
 
     //this._transform = [Math.cos(this._projectionAngle * Math.PI / 180), Math.sin(this._projectionAngle * Math.PI / 180)];
 
-    this._transform = [0.975, 0.5];
+    this._transform = [0.975, 0.5]
   }
 
   /**
@@ -83,16 +82,16 @@ export class Projector {
    */
   project(point3, out) {
     if (typeof out === 'undefined') {
-      out = new Phaser.Geom.Point();
+      out = new Phaser.Geom.Point()
     }
 
-    out.x = (point3.x - point3.y) * this._transform[0];
-    out.y = ((point3.x + point3.y) * this._transform[1]) - point3.z;
+    out.x = (point3.x - point3.y) * this._transform[0]
+    out.y = (point3.x + point3.y) * this._transform[1] - point3.z
 
-    out.x += this.scene.cameras.main.width * this.anchor.x;
-    out.y += this.scene.cameras.main.height * this.anchor.y;
+    out.x += this.scene.cameras.main.width * this.anchor.x
+    out.y += this.scene.cameras.main.height * this.anchor.y
 
-    return out;
+    return out
   }
 
   /**
@@ -104,16 +103,16 @@ export class Projector {
    */
   projectXY(point3, out) {
     if (typeof out === 'undefined') {
-      out = new Phaser.Geom.Point();
+      out = new Phaser.Geom.Point()
     }
 
-    out.x = (point3.x - point3.y) * this._transform[0];
-    out.y = (point3.x + point3.y) * this._transform[1];
+    out.x = (point3.x - point3.y) * this._transform[0]
+    out.y = (point3.x + point3.y) * this._transform[1]
 
-    out.x += this.scene.cameras.main.width * this.anchor.x;
-    out.y += this.scene.cameras.main.height * this.anchor.y;
+    out.x += this.scene.cameras.main.width * this.anchor.x
+    out.y += this.scene.cameras.main.height * this.anchor.y
 
-    return out;
+    return out
   }
 
   /**
@@ -126,21 +125,26 @@ export class Projector {
    */
   unproject(point, out, z) {
     if (typeof out === 'undefined') {
-      out = new Point3();
+      out = new Point3()
     }
 
-    z = z || 0;
+    z = z || 0
 
-    const x = point.x - this.scene.cameras.main.x -
-      (this.scene.cameras.main.width * this.anchor.x);
-    const y = point.y - this.scene.cameras.main.y -
-      (this.scene.cameras.main.height * this.anchor.y) + z;
+    const x =
+      point.x -
+      this.scene.cameras.main.x -
+      this.scene.cameras.main.width * this.anchor.x
+    const y =
+      point.y -
+      this.scene.cameras.main.y -
+      this.scene.cameras.main.height * this.anchor.y +
+      z
 
-    out.x = x / (2 * this._transform[0]) + y / (2 * this._transform[1]);
-    out.y = -(x / (2 * this._transform[0])) + y / (2 * this._transform[1]);
-    out.z = z;
+    out.x = x / (2 * this._transform[0]) + y / (2 * this._transform[1])
+    out.y = -(x / (2 * this._transform[0])) + y / (2 * this._transform[1])
+    out.z = z
 
-    return out;
+    return out
   }
 
   /**
@@ -153,19 +157,19 @@ export class Projector {
    */
   unprojectAbsolute(point, out, z) {
     if (typeof out === 'undefined') {
-      out = new Point3();
+      out = new Point3()
     }
 
-    z = z || 0;
+    z = z || 0
 
-    const x = point.x;// - (this.scene.cameras.main.width * this.anchor.x);
-    const y = point.y;// - (this.scene.cameras.main.height * this.anchor.y) + z;
+    const x = point.x // - (this.scene.cameras.main.width * this.anchor.x);
+    const y = point.y // - (this.scene.cameras.main.height * this.anchor.y) + z;
 
-    out.x = x / (2 * this._transform[0]) + y / (2 * this._transform[1]);
-    out.y = -(x / (2 * this._transform[0])) + y / (2 * this._transform[1]);
-    out.z = z;
+    out.x = x / (2 * this._transform[0]) + y / (2 * this._transform[1])
+    out.y = -(x / (2 * this._transform[0])) + y / (2 * this._transform[1])
+    out.z = z
 
-    return out;
+    return out
   }
 
   /**
@@ -175,7 +179,7 @@ export class Projector {
    * @param {Phaser.Group} group - A group of IsoSprites to sort.
    */
   simpleSort(group) {
-    group.sort('depth');
+    group.sort('depth')
   }
 
   /**
@@ -188,105 +192,101 @@ export class Projector {
    * @param {string} [prop] - The property to store the depth information on. If not specified, it will default to 'isoDepth'.
    */
   topologicalSort(groups, padding, prop) {
-    let objectLists = [];
+    let objectLists = []
 
     for (let i = 0; i < groups.length; i++) {
-      let group = groups[i];
-      if (!group)
-        continue;
+      let group = groups[i]
+      if (!group) continue
 
       if (group instanceof Phaser.GameObjects.Group) {
-        objectLists.push(group.getChildren());
-      }
-      else if (group.length) {
-        objectLists.push(group);
-      }
-      else {
-        console.log(group);
+        objectLists.push(group.getChildren())
+      } else if (group.length) {
+        objectLists.push(group)
+      } else {
+        console.log(group)
       }
     }
 
-    prop = prop || 'isoDepth';
+    prop = prop || 'isoDepth'
 
     if (typeof padding === 'undefined') {
-      padding = 0.1;
+      padding = 0.1
     }
 
     for (let o = 0; o < objectLists.length; o++) {
-      let children = objectLists[o];
-      const len = children.length;
+      let children = objectLists[o]
+      const len = children.length
 
       for (let i = 0; i < len; i++) {
-        let a = children[i];
-        let behindIndex = 0;
+        let a = children[i]
+        let behindIndex = 0
         if (!a.isoSpritesBehind) {
-          a.isoSpritesBehind = [];
+          a.isoSpritesBehind = []
         }
 
         for (let j = 0; j < len; j++) {
-          if (i == j)
-            continue;
+          if (i == j) continue
 
-          let b = children[j];
-          let bounds = /*a.body ||*/ a.isoBounds;
+          let b = children[j]
+          let bounds = /*a.body ||*/ a.isoBounds
 
-          if (b._isoPosition.x + padding < bounds.frontX - padding &&
+          if (
+            b._isoPosition.x + padding < bounds.frontX - padding &&
             b._isoPosition.y + padding < bounds.frontY - padding &&
-            b._isoPosition.z + padding < bounds.top - padding) {
-            a.isoSpritesBehind[behindIndex++] = b;
+            b._isoPosition.z + padding < bounds.top - padding
+          ) {
+            a.isoSpritesBehind[behindIndex++] = b
             //console.log(bounds)
           }
         }
-        a.isoVisitedFlag = false;
+        a.isoVisitedFlag = false
       }
     }
 
-    let _sortDepth = 0;
+    let _sortDepth = 0
 
     function visitNode(node) {
-      if (node.isoVisitedFlag !== false)
-        return;
+      if (node.isoVisitedFlag !== false) return
 
-      node.isoVisitedFlag = true;
-      const spritesBehindLength = node.isoSpritesBehind.length;
+      node.isoVisitedFlag = true
+      const spritesBehindLength = node.isoSpritesBehind.length
       for (let k = 0; k < spritesBehindLength; k++) {
         if (node.isoSpritesBehind[k] === null) {
-          break;
-        }
-        else {
-          visitNode(node.isoSpritesBehind[k]);
-          node.isoSpritesBehind[k] = null;
+          break
+        } else {
+          visitNode(node.isoSpritesBehind[k])
+          node.isoSpritesBehind[k] = null
         }
       }
 
-      node[prop] = _sortDepth++;
+      node[prop] = _sortDepth++
     }
 
     for (let o = 0; o < objectLists.length; o++) {
-      let children = objectLists[o];
-      const len = children.length;
+      let children = objectLists[o]
+      const len = children.length
 
       for (let i = 0; i < len; i++) {
-        visitNode(children[i]);
+        visitNode(children[i])
       }
 
       for (let i = 0; i < len; i++) {
-        let child = children[i];
+        let child = children[i]
 
-        child.postUpdate();
+        child.postUpdate()
 
-        let pos = child._isoPosition;
+        let pos = child._isoPosition
         //let x = (pos.x - pos.y) - child.displayOriginX;
         //let y = ((pos.x + pos.y) / 2) - child.displayOriginY;
 
-
         //child.depth = x * y; //Math.round((child._isoPosition.x * (child._isoPosition.y * 64)) / 40);
-        child.depth = (child._isoPosition.x * (child._isoPosition.y * 64)) - child.displayOriginY;
+        child.depth =
+          child._isoPosition.x * (child._isoPosition.y * 64) -
+          child.displayOriginY
         //child.depth = children[i][prop];
 
         //child.debug();
       }
     }
-
   }
 }

@@ -1,5 +1,5 @@
 {{yield}}
 
 {{#each widget.components as |child|}}
-  {{component child.componentName widget=child}}
+  {{component child.componentName widget=child data-id=child.id}}
 {{/each}}

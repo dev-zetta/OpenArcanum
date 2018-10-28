@@ -1,26 +1,23 @@
 /* global requireNode */
 /* global AGate */
 
-class Enums {
-
-}
+class Enums {}
 
 Enums.AiState = new AGate.Enum([
   'PreparingToAttack',
   'Attacking',
   'Moving',
   'MovingToWaypoint',
-  'PlanningToMove',
-
-]);
+  'PlanningToMove'
+])
 
 Enums.SpriteState = new AGate.Enum([
   'Current',
   'Normal',
   'Destroyed',
   'Light',
-  'Shadow',
-]);
+  'Shadow'
+])
 
 Enums.Direction = new AGate.Enum([
   'North',
@@ -30,8 +27,8 @@ Enums.Direction = new AGate.Enum([
   'South',
   'SouthWest',
   'West',
-  'NorthWest',
-]);
+  'NorthWest'
+])
 
 Enums.Wall = new AGate.Enum([
   'RawBrick',
@@ -77,8 +74,8 @@ Enums.Wall = new AGate.Enum([
   'Ruins',
   'Prison',
   'Void',
-  'JungleTrees',
-]);
+  'JungleTrees'
+])
 
 Enums.WallType = new AGate.Enum([
   'Base',
@@ -138,12 +135,10 @@ Enums.WallType = new AGate.Enum([
   'Kitchen5A',
   'Kitchen5B',
   'Kitchen5C',
-  'Kitchen5Right',
-]);
+  'Kitchen5Right'
+])
 
-Enums.WallSide = new AGate.Enum([
-  'Universal', 'Left', 'Right',
-]);
+Enums.WallSide = new AGate.Enum(['Universal', 'Left', 'Right'])
 
 Enums.TileName = new AGate.Enum([
   // Outdoor flippable tile names start here, at 0
@@ -205,16 +200,17 @@ Enums.TileName = new AGate.Enum([
   'DungeonFloors',
   'VoidFloors',
   'JungleDirtInside',
-  'Base',
-]);
+  'Base'
+])
 
-Enums.EyeCandyLayer = new AGate.Enum([
-  'Foreground', 'Background', 'Underlay',
-]);
+Enums.EyeCandyLayer = new AGate.Enum(['Foreground', 'Background', 'Underlay'])
 
 Enums.ItemDisplay = new AGate.Enum([
-  'Ground', 'Inventory', 'Paper', 'Schematic',
-]);
+  'Ground',
+  'Inventory',
+  'Paper',
+  'Schematic'
+])
 
 Enums.PortalType = new AGate.Enum([
   // Doors
@@ -275,8 +271,8 @@ Enums.PortalType = new AGate.Enum([
   'DwarvenDwelling',
   'TullaExterior',
   'TullaInterior',
-  'Prison',
-]);
+  'Prison'
+])
 
 Enums.MonsterSpecie = new AGate.Enum([
   'Wolf',
@@ -310,8 +306,8 @@ Enums.MonsterSpecie = new AGate.Enum([
   'AirElemental',
   'DeathKnight',
   'SpiderQueen',
-  'Werewolf',
-]);
+  'Werewolf'
+])
 
 Enums.UniqueNpc = new AGate.Enum([
   'HumanBarbarian',
@@ -353,12 +349,10 @@ Enums.UniqueNpc = new AGate.Enum([
   'PhantomKnight3',
   'StillwaterGiant',
   'NakedHalfling',
-  'VoormanMonster',
-]);
+  'VoormanMonster'
+])
 
-Enums.Race = new AGate.Enum([
-  'Human', 'Dwarf', 'Gnome', 'Halfling', 'Elf',
-]);
+Enums.Race = new AGate.Enum(['Human', 'Dwarf', 'Gnome', 'Halfling', 'Elf'])
 
 Enums.Armor = new AGate.Enum([
   'Underwear',
@@ -370,8 +364,8 @@ Enums.Armor = new AGate.Enum([
   'PlateClassic',
   'Barbarian',
   'CityDweller',
-  'NoArmor',
-]);
+  'NoArmor'
+])
 
 Enums.Weapon = new AGate.Enum([
   'Unarmed',
@@ -388,8 +382,8 @@ Enums.Weapon = new AGate.Enum([
   'Unknown2',
   'Unknown3',
   'Staff',
-  'Unknown4',
-]);
+  'Unknown4'
+])
 
 Enums.Animation = new AGate.Enum([
   'Stand',
@@ -417,16 +411,12 @@ Enums.Animation = new AGate.Enum([
   'Unknown6',
   'Stunned',
   'Explode',
-  'Special',
-]);
+  'Special'
+])
 
-Enums.Gender = new AGate.Enum([
-  'Female', 'Male', 'Both',
-]);
+Enums.Gender = new AGate.Enum(['Female', 'Male', 'Both'])
 
-Enums.Shield = new AGate.Enum([
-  'NoShield', 'Shield',
-]);
+Enums.Shield = new AGate.Enum(['NoShield', 'Shield'])
 
 Enums.Entity = new AGate.Enum([
   'Wall',
@@ -446,15 +436,15 @@ Enums.Entity = new AGate.Enum([
   'Generic',
   'Pc',
   'Npc',
-  'Trap',
-]);
+  'Trap'
+])
 
 Enums.EntitySource = new AGate.Enum([
   'Mobile',
   'Prototype',
   'Savegame',
-  'Character',
-]);
+  'Character'
+])
 
 Enums.SpellCollege = new AGate.Enum([
   'Conveyance',
@@ -472,8 +462,8 @@ Enums.SpellCollege = new AGate.Enum([
   'NecroGood',
   'Phantasm',
   'Summoning',
-  'Temporal',
-]);
+  'Temporal'
+])
 
 Enums.Spell = new AGate.Enum([
   'Disarm',
@@ -555,8 +545,8 @@ Enums.Spell = new AGate.Enum([
   'CongealTime',
   'Hasten',
   'Stasis',
-  'TempusFugit',
-]);
+  'TempusFugit'
+])
 
 Enums.Skill = new AGate.Enum([
   'Bow',
@@ -574,16 +564,16 @@ Enums.Skill = new AGate.Enum([
   'Repair',
   'Firearms',
   'Picklock',
-  'DisarmTrap',
-]);
+  'DisarmTrap'
+])
 
 Enums.Damage = new AGate.Enum([
   'Normal',
   'Poison',
   'Electrical',
   'Fire',
-  'Fatigue',
-]);
+  'Fatigue'
+])
 
 Enums.QuestState = new AGate.Enum([
   'Unknown',
@@ -592,8 +582,8 @@ Enums.QuestState = new AGate.Enum([
   'Achieved',
   'Completed',
   'Other',
-  'Botched',
-]);
+  'Botched'
+])
 
 Enums.SocialClass = new AGate.Enum([
   'Noble',
@@ -606,8 +596,8 @@ Enums.SocialClass = new AGate.Enum([
   'Villager',
   'Beggar',
   'Thief',
-  'Bandit',
-]);
+  'Bandit'
+])
 
 Enums.EffectCause = new AGate.Enum([
   'Race',
@@ -619,8 +609,8 @@ Enums.EffectCause = new AGate.Enum([
   'Spell',
   'Injury',
   'Tech',
-  'Gender',
-]);
+  'Gender'
+])
 
 Enums.Armor = new AGate.Enum([
   'Underwear',
@@ -631,8 +621,8 @@ Enums.Armor = new AGate.Enum([
   'Robe',
   'PlateClassic',
   'Barbarian',
-  'CityDweller',
-]);
+  'CityDweller'
+])
 
 Enums.ArmorCoverage = new AGate.Enum([
   'Torso',
@@ -641,8 +631,8 @@ Enums.ArmorCoverage = new AGate.Enum([
   'Gauntlets',
   'Boots',
   'Ring',
-  'Medallion',
-]);
+  'Medallion'
+])
 
 Enums.Container = new AGate.Enum([
   'JunkPile',
@@ -652,14 +642,14 @@ Enums.Container = new AGate.Enum([
   'Box',
   'Furniture',
   'Bookstand',
-  'Misc',
-]);
+  'Misc'
+])
 
 Enums.ContainerState = new AGate.Enum([
   'Unlocked',
   'Locked',
-  'UnlockedPermanently',
-]);
+  'UnlockedPermanently'
+])
 
 Enums.Item = new AGate.Enum([
   'Weapon',
@@ -671,18 +661,12 @@ Enums.Item = new AGate.Enum([
   'Key',
   'KeyRing',
   'Written',
-  'Generic',
-]);
+  'Generic'
+])
 
-Enums.Gender = new AGate.Enum([
-  'Male',
-  'Female',
-]);
+Enums.Gender = new AGate.Enum(['Male', 'Female'])
 
-Enums.Shield = new AGate.Enum([
-  'ShieldNone',
-  'ShieldAttached',
-]);
+Enums.Shield = new AGate.Enum(['ShieldNone', 'ShieldAttached'])
 
 Enums.Race = new AGate.Enum([
   'Human',
@@ -699,8 +683,8 @@ Enums.Race = new AGate.Enum([
 
   'Undead',
   'Animal',
-  'Monster',
-]);
+  'Monster'
+])
 
 Enums.Animation = new AGate.Enum([
   'Stand',
@@ -728,16 +712,16 @@ Enums.Animation = new AGate.Enum([
   'Unknown6',
   'Stunned',
   'Explode',
-  'Special',
-]);
+  'Special'
+])
 
 Enums.HitChart = new AGate.Enum([
   'Cutting',
   'Crushing',
   'Impaling',
   'Electrical',
-  'Fire',
-]);
+  'Fire'
+])
 
 Enums.MissChart = new AGate.Enum([
   'Bladed',
@@ -748,8 +732,8 @@ Enums.MissChart = new AGate.Enum([
   'Hands',
   'Explosive',
   'Fire',
-  'Electrical',
-]);
+  'Electrical'
+])
 
 Enums.BodyType = new AGate.Enum([
   'Biped',
@@ -757,8 +741,8 @@ Enums.BodyType = new AGate.Enum([
   'Amorphous',
   'Insect',
   'Snake',
-  'Avian',
-]);
+  'Avian'
+])
 
 Enums.Reaction = new AGate.Enum([
   'Love',
@@ -767,8 +751,8 @@ Enums.Reaction = new AGate.Enum([
   'Neutral',
   'Suspicious',
   'Dislike',
-  'Hatred',
-]);
+  'Hatred'
+])
 
 Enums.Stat = new AGate.Enum([
   'Strength',
@@ -798,8 +782,8 @@ Enums.Stat = new AGate.Enum([
   'PoisonLevel',
   'Age',
   'Gender',
-  'Race',
-]);
+  'Race'
+])
 
 Enums.Monster = new AGate.Enum([
   'Wolf',
@@ -833,8 +817,8 @@ Enums.Monster = new AGate.Enum([
   'AirElemental',
   'DeathKnight',
   'SpiderQueen',
-  'Werewolf',
-]);
+  'Werewolf'
+])
 
 Enums.Scenery = new AGate.Enum([
   'Projectile',
@@ -859,8 +843,8 @@ Enums.Scenery = new AGate.Enum([
   'MachineMedium',
   'TeleportFacade',
   'LightSource',
-  'Bed',
-]);
+  'Bed'
+])
 
 Enums.Written = new AGate.Enum([
   'Book',
@@ -869,8 +853,8 @@ Enums.Written = new AGate.Enum([
   'Telegram',
   'Image',
   'Schematic',
-  'Plague',
-]);
+  'Plague'
+])
 
 Enums.Weapon = new AGate.Enum([
   'Unarmed',
@@ -887,14 +871,9 @@ Enums.Weapon = new AGate.Enum([
   'Unknown2',
   'Unknown3',
   'Staff',
-  'Unknown4',
-]);
+  'Unknown4'
+])
 
-Enums.Ammo = new AGate.Enum([
-  'Arrows',
-  'Bullets',
-  'Charges',
-  'Fuel',
-]);
+Enums.Ammo = new AGate.Enum(['Arrows', 'Bullets', 'Charges', 'Fuel'])
 
-export default Enums;
+export default Enums

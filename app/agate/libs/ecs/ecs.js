@@ -4,11 +4,11 @@
  * @module ecs
  */
 
-import Entity from './entity';
-import System from './system';
-import performance from './performance';
-import uid from './uid';
-import { fastSplice } from './utils';
+import Entity from './entity'
+import System from './system'
+import performance from './performance'
+import uid from './uid'
+import { fastSplice } from './utils'
 
 /**
  * @class  ECS
@@ -25,7 +25,7 @@ class ECS {
      * @property entities
      * @type {Array}
      */
-    this.entities = new Map();
+    this.entities = new Map()
 
     /**
      * Store entities which need to be tested at beginning of next tick.
@@ -33,7 +33,7 @@ class ECS {
      * @property entitiesSystemsDirty
      * @type {Array}
      */
-    this.entitiesSystemsDirty = [];
+    this.entitiesSystemsDirty = []
 
     /**
      * Store all systems of the ECS.
@@ -41,7 +41,7 @@ class ECS {
      * @property systems
      * @type {Array}
      */
-    this.systems = [];
+    this.systems = []
 
     /**
      * Count how many updates have been done.
@@ -49,9 +49,9 @@ class ECS {
      * @property updateCounter
      * @type {Number}
      */
-    this.updateCounter = 0;
+    this.updateCounter = 0
 
-    this.lastUpdate = performance.now();
+    this.lastUpdate = performance.now()
   }
   /**
    * Retrieve an entity by id
@@ -59,7 +59,7 @@ class ECS {
    * @return {Entity} The entity if found null otherwise
    */
   getEntityById(id) {
-    return this.entities.get(id);
+    return this.entities.get(id)
   }
   /**
    * Add an entity to the ecs.
@@ -68,8 +68,8 @@ class ECS {
    * @param {Entity} entity The entity to add.
    */
   addEntity(entity) {
-    this.entities.set(entity.id, entity);
-    entity.addToECS(this);
+    this.entities.set(entity.id, entity)
+    entity.addToECS(this)
   }
   /**
    * Remove an entity from the ecs by reference.
@@ -79,10 +79,10 @@ class ECS {
    * @return {Entity}        the remove entity if any
    */
   removeEntity(entity) {
-    this.entities.remove(entity.id);
+    this.entities.remove(entity.id)
 
-    entity.dispose();
-    this.removeEntityIfDirty(entity);
+    entity.dispose()
+    this.removeEntityIfDirty(entity)
   }
   /**
    * Remove an entity from the ecs by entity id.
@@ -92,13 +92,12 @@ class ECS {
    * @return {Entity}          removed entity if any
    */
   removeEntityById(entityId) {
-    let entity = this.entities.get(entityId);
-    if (!entity)
-      return null;
+    let entity = this.entities.get(entityId)
+    if (!entity) return null
 
-    this.removeEntity(entity);
+    this.removeEntity(entity)
 
-    return entity;
+    return entity
   }
   /**
    * Remove an entity from dirty entities by reference.
@@ -108,10 +107,10 @@ class ECS {
    * @param  {[type]} entity entity to remove
    */
   removeEntityIfDirty(entity) {
-    let index = this.entitiesSystemsDirty.indexOf(entity);
+    let index = this.entitiesSystemsDirty.indexOf(entity)
 
     if (index !== -1) {
-      this.entities.remove(entity.id);
+      this.entities.remove(entity.id)
     }
   }
   /**
@@ -121,12 +120,12 @@ class ECS {
    * @param {System} system system to add
    */
   addSystem(system) {
-    this.systems.push(system);
+    this.systems.push(system)
 
     // iterate over all entities to eventually add system
     for (let [key, value] of this.entities) {
       if (system.test(value)) {
-        system.addEntity(value);
+        system.addEntity(value)
       }
     }
   }
@@ -137,11 +136,11 @@ class ECS {
    * @param  {System} system system reference
    */
   removeSystem(system) {
-    let index = this.systems.indexOf(system);
+    let index = this.systems.indexOf(system)
 
     if (index !== -1) {
-      fastSplice(this.systems, index, 1);
-      system.dispose();
+      fastSplice(this.systems, index, 1)
+      system.dispose()
     }
   }
   /**
@@ -154,27 +153,27 @@ class ECS {
   cleanDirtyEntities() {
     // jshint maxdepth: 4
 
-    for (let i = 0, entity; entity = this.entitiesSystemsDirty[i]; i += 1) {
-      for (let s = 0, system; system = this.systems[s]; s += 1) {
+    for (let i = 0, entity; (entity = this.entitiesSystemsDirty[i]); i += 1) {
+      for (let s = 0, system; (system = this.systems[s]); s += 1) {
         // for each dirty entity for each system
-        let index = entity.systems.indexOf(system);
-        let entityTest = system.test(entity);
+        let index = entity.systems.indexOf(system)
+        let entityTest = system.test(entity)
 
         if (index === -1 && entityTest) {
           // if the entity is not added to the system yet and should be, add it
-          system.addEntity(entity);
+          system.addEntity(entity)
         } else if (index !== -1 && !entityTest) {
           // if the entity is added to the system but should not be, remove it
-          system.removeEntity(entity);
+          system.removeEntity(entity)
         }
         // else we do nothing the current state is OK
       }
 
-      entity.systemsDirty = false;
+      entity.systemsDirty = false
     }
     // jshint maxdepth: 3
 
-    this.entitiesSystemsDirty = [];
+    this.entitiesSystemsDirty = []
   }
   /**
    * Update the ecs.
@@ -182,30 +181,30 @@ class ECS {
    * @method update
    */
   update() {
-    let now = performance.now();
-    let elapsed = now - this.lastUpdate;
+    let now = performance.now()
+    let elapsed = now - this.lastUpdate
 
-    for (let i = 0, system; system = this.systems[i]; i += 1) {
+    for (let i = 0, system; (system = this.systems[i]); i += 1) {
       if (this.updateCounter % system.frequency > 0) {
-        break;
+        break
       }
 
       if (this.entitiesSystemsDirty.length) {
         // if the last system flagged some entities as dirty check that case
-        this.cleanDirtyEntities();
+        this.cleanDirtyEntities()
       }
 
-      system.updateAll(elapsed);
+      system.updateAll(elapsed)
     }
 
-    this.updateCounter += 1;
-    this.lastUpdate = now;
+    this.updateCounter += 1
+    this.lastUpdate = now
   }
 }
 
 // expose user stuff
-ECS.Entity = Entity;
-ECS.System = System;
-ECS.uid = uid;
+ECS.Entity = Entity
+ECS.System = System
+ECS.uid = uid
 
-export default ECS;
+export default ECS

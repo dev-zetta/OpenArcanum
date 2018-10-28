@@ -1,65 +1,102 @@
-/* global AGate */
+/* global AGate, window */
 
-import Phaser from '../libs/phaser';
-
-/*
-import Boot from './states/boot'
-import Game from './states/game'
-import Menu from './states/menu'
-import Preloader from './states/preloader'
-import Gameover from './states/gameover'
-*/
-
+import Phaser from '../libs/phaser'
 //import {AssetServer} from '../server/AssetServer';
-import {Scene} from './Scene';
-import {Manager} from './Gui';
+import Lance from '../libs/lance'
+import { Scene } from './Scene'
+import { Manager } from './Gui'
+import { Renderer } from './Renderer'
 
-export class Client {
-  constructor(engine, canvas) {
-    //super({ key: 'BootScene' })
+export class Client extends Lance.ClientEngine {
+  /**
+   *
+   * @param engine
+   * @param canvas
+   */
+  constructor(engine, options, canvas) {
+    super(engine, options, Renderer)
 
-    this.engine = engine;
-    this._canvas = canvas;
+    this.engine = engine
+    this._canvas = canvas
     //this.assetServer = new AssetServer();
     //this.assetServer.start(AGate.getDataPath());
-    this.guiManager = new Manager(engine);
+    this.guiManager = new Manager(engine)
 
-    /*game.state.add('boot', new Boot())
-    game.state.add('game', new Game())
-    game.state.add('menu', new Menu())
-    game.state.add('preloader', new Preloader())
-    game.state.add('gameover', new Gameover())*/
+    this.player = null
   }
 
+  /**
+   *
+   * @returns {Promise<void>}
+   */
   async create() {
-    await this.guiManager.loadAssets();
+    await this.guiManager.loadAssets()
 
-    let self = this;
+    var contextCreationConfig = {
+      alpha: false,
+      depth: false,
+      antialias: true,
+      premultipliedAlpha: true,
+      stencil: true,
+      preserveDrawingBuffer: false,
+      failIfMajorPerformanceCaveat: false,
+      powerPreference: 'default'
+    }
+
+    var myCustomContext = this._canvas.getContext(
+      'webgl2',
+      contextCreationConfig
+    )
+
+    let self = this
     this.game = new Phaser.Game({
-      parent: this._canvas,
+      width: window.innerWidth * window.devicePixelRatio,
+      height: window.innerHeight * window.devicePixelRatio,
+      canvas: this._canvas,
+      context: myCustomContext,
       renderType: Phaser.WEBGL,
       transparent: true,
       //antialias: true,
       multiTexture: false,
-      enableDebug: false,
-    });
+      enableDebug: false
+    })
 
-    this.scene = new Scene(this);
-    this.game.scene.add('default', this.scene);
-    this.game.scene.start('default');
+    this.scene = new Scene(this)
+    this.game.scene.add('default', this.scene)
+    this.game.scene.start('default')
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   get canvas() {
-    return this._canvas;
+    return this._canvas
   }
 
+  /**
+   *
+   * @param map
+   */
   onMapLoading(map) {
-    this.scene.onMapLoading(map);
+    this.scene.onMapLoading(map)
   }
 
+  /**
+   *
+   * @param map
+   */
   onMapLoaded(map) {
-    this.scene.onMapLoaded(map);
-    map.placeToScene(this.scene);
+    this.scene.onMapLoaded(map)
+    map.placeToScene(this.scene)
+
+    let location = map.getCenterLocation()
+    map.addPlayer(location).then(player => {
+      this.player = player
+
+      this.player.placeToScene(map.rootGroup)
+    })
   }
 
+  update() {}
 }
