@@ -214,7 +214,7 @@ module.exports = {
         file
       );
       if (writeAlsoToSingleFiles) {
-        readerHelper.writeJsonObjectToFile(generated, outputFolder + file.name + '.json');
+        readerHelper.writeJsonObjectToFile(generated[file.name], outputFolder + file.name + '.json');
       }
     }
     readerHelper.writeJsonObjectToFile(generated, outputFolder + parserFilename);
