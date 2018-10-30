@@ -1,15 +1,19 @@
 module.exports = {
   type: 'window',
   sprite: 'CharMaint',
-  align: 'left-center',
+  align: 'center-center',
   visible: false,
+  options: {
+    toolbar: true,
+    tooltip: 'Character Editor'
+  },
   events: {
     created() {
-      //this.emitEvent('characterEditor:switchTab', 'disciplinesTab')
+      this.emitEvent('characterEditor:switchTab', 'disciplinesTab')
     }
   },
   listeners: {
-    'inventory:open': event => {
+    'inventory:show': event => {
       this.toggle()
     },
 
@@ -29,41 +33,63 @@ module.exports = {
 
   components: {
     skillsTabBtn: {
+      options: {
+        tooltip: 'hrdfsf'
+      },
       type: 'button',
       position: [527, 11],
       sprite: 'charCommonSkills',
       events: {
         click() {
-          //this.emitEvent('characterEditor:switchTab', 'skillsTab')
+          this.emitEvent('characterEditor:switchTab', 'skillsTab')
         }
       }
     },
 
     skillsTab: {
       type: 'group',
-      position: [504, 62],
+      position: [503, 62],
       sprite: 'SkillsWindow',
       events: {
         created() {
           let x = 21
 
-          let buttons = [
-            'CombatBut',
-            'ThievingBut',
-            'SocialBut',
-            'TechnologicalBut'
-          ]
-          for (let i = 0; i < buttons.length; i++) {
-            let item = buttons[i]
+          // top
+          const disciplines = {
+          'Combat': {
+            button: 'CombatBut',
+          }
+     ,
+          'Thieving': {
+            button: 'ThievingBut',
+          }
+        ,
+          'Social':{
+            button: 'SocialBut',
+          }
+        ,
+            'Technological': {
+            button: 'TechnologicalBut',
+          }
+        ,
+
+        }
+          let i = 0
+          for (let name in disciplines) {
+            let item = disciplines[name]
 
             let model = this.createChild({
               id: `skillTabBtn${i}`,
               type: 'button',
               position: [x, 17],
-              sprite: `${item}`
+              sprite: `${item.button}`,
+              options: {
+                tooltip: name
+              }
             })
 
             x += 54
+            i++
           }
 
           let props = ['Bow', 'Dodge', 'Melee', 'Throwing']
@@ -76,6 +102,7 @@ module.exports = {
               id: `skillTabGauge${i}`,
               type: 'property-gauge',
               position: [19, y],
+              size: [200, 30],
               options: {
                 text: prop
               }
@@ -100,12 +127,17 @@ module.exports = {
 
     disciplinesTab: {
       type: 'group',
-      position: [504, 62],
+      position: [503, 62],
       sprite: 'DisciplinesWindow',
+      events: {
+        created() {}
+      },
+
       components: {
         disciplinesGroup: {
           type: 'group',
           position: [0, 0],
+          parent: 'disciplinesTab',
 
           events: {
             created() {
@@ -174,7 +206,7 @@ module.exports = {
               for (let i = 0; i < disciplines.length; i++) {
                 let discipline = disciplines[i]
 
-                if (i == 4) {
+                if (i === 4) {
                   x = 36
                   y = 32
                 }
@@ -237,7 +269,7 @@ module.exports = {
 
     spellsTab: {
       type: 'group',
-      position: [504, 62],
+      position: [503, 62],
       sprite: 'CharSpells',
       components: {
         spellsGroup: {
@@ -381,7 +413,12 @@ module.exports = {
     schemaSkillsTabBtn: {
       type: 'button',
       position: [754, 21],
-      sprite: 'charSchemSkills'
+      sprite: 'charSchemSkills',
+      events: {
+        click() {
+          this.emitEvent('schemaWin:toggle')
+        }
+      }
     },
 
     derivedStatsLabel: {

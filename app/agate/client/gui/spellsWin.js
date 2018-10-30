@@ -1,6 +1,6 @@
 module.exports = {
   parent: 'bottomWin',
-  type: 'window',
+  type: 'group',
   position: [196, 54],
   sprite: 'DialogueWindow',
   visible: false,

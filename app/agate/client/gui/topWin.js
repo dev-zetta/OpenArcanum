@@ -18,8 +18,7 @@ module.exports = {
       sprite: 'CharBut',
       events: {
         click(event) {
-          // this.getWidget('topWin').toggle();
-          this.emitEvent('charWin:show')
+          this.emitEvent('characterEditor:toggle')
         }
       }
     },
@@ -29,12 +28,7 @@ module.exports = {
       sprite: 'LogBut',
       events: {
         click(event) {
-          this.emitEvent('logbookWin:show')
-        }
-      },
-      listeners: {
-        click(event) {
-          this.emitEvent('logbookWin:show')
+          this.emitEvent('bookWin:toggle')
         }
       }
     },
@@ -44,7 +38,7 @@ module.exports = {
       sprite: 'TMapBut' /* WMapBut */,
       events: {
         click(event) {
-          this.emitEvent('mapWin:show')
+          this.emitEvent('mapWin:toggle')
         }
       }
     },
@@ -54,7 +48,7 @@ module.exports = {
       sprite: 'InvnBut',
       events: {
         click(event) {
-          this.emitEvent('openInventory')
+          this.emitEvent('inventoryWin:toggle')
         }
       }
     },

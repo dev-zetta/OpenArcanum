@@ -24,7 +24,6 @@ class Manager {
 
     AGate.Utils.loadScripts('client/gui', (name, script) => {
       let widget = script
-
       if (widget.parent) {
         resolve[name] = widget
       } else {
@@ -34,7 +33,6 @@ class Manager {
 
     for (let key in resolve) {
       let widget = resolve[key]
-
       result[widget.parent]['components'][key] = widget
     }
 

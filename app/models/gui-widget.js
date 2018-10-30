@@ -1,5 +1,5 @@
-import DS from 'ember-data';
-import { computed } from '@ember/object';
+import DS from 'ember-data'
+import { computed } from '@ember/object'
 /*
 import {
   fragment
@@ -7,15 +7,15 @@ import {
   //array
 } from 'ember-data-model-fragments/attributes';*/
 
-const { Model, attr, hasMany, belongsTo } = DS;
+const { Model, attr, hasMany, belongsTo } = DS
 
 // https://andycrum.github.io/ember-data-model-maker/
 
 export default Model.extend({
   type: attr('string'),
   componentName: computed('type', function() {
-    let type = this.get('type');
-    return `gui-${type ? type : 'widget'}`;
+    let type = this.get('type')
+    return `gui-${type ? type : 'widget'}`
   }),
 
   sprite: attr('string'),
@@ -31,13 +31,6 @@ export default Model.extend({
 
   options: attr(),
 
-  /*orientation: attr('string'),
-  value: attr(),
-  placeholder: attr(),
-
-  max: attr(),
-  min: attr(),*/
-
   parent: belongsTo('gui-widget', { inverse: 'components' }),
   components: hasMany('gui-widget', { inverse: 'parent' })
-});
+})

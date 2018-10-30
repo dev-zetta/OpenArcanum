@@ -1,5 +1,4 @@
 module.exports = {
-  parent: 'bottomWin',
   type: 'window',
   sprite: 'SchematicBase',
   align: 'center-center',

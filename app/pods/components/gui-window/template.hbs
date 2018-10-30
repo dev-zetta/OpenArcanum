@@ -1,0 +1,13 @@
+{{yield}}
+
+<div class="toolbar">
+
+</div>
+
+{{#each widget.components as |child|}}
+  {{#component child.componentName widget=child data-id=child.id}}
+
+  {{/component}}
+{{/each}}
+
+{{outlet}}

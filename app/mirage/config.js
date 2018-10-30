@@ -1,5 +1,4 @@
 export default function() {
-
   // These comments are here to help you get started. Feel free to delete them.
 
   /*
@@ -29,30 +28,26 @@ export default function() {
   });*/
 
   function parseFilterQueryParams(queryParams) {
-    let filterQueryParams = {};
+    let filterQueryParams = {}
     for (var key in queryParams) {
       if (key.startsWith('filter')) {
-        let field = key.slice(7, key.indexOf(']'));
-        filterQueryParams[field] = queryParams[key];
+        let field = key.slice(7, key.indexOf(']'))
+        filterQueryParams[field] = queryParams[key]
       }
     }
-    return filterQueryParams;
+    return filterQueryParams
   }
 
   this.get('/gui-widgets', (schema, request) => {
-    let filter = parseFilterQueryParams(request.queryParams);
-    return schema.guiWidgets.where(filter);
-  });
-
+    let filter = parseFilterQueryParams(request.queryParams)
+    return schema.guiWidgets.where(filter)
+  })
 
   this.get('/gui-widgets/:id', ({ guiWidgets }, request) => {
-    let id = request.params.id;
+    let id = request.params.id
 
-    return guiWidgets.find(id); // users in the second case
-  });
-
+    return guiWidgets.find(id) // users in the second case
+  })
 
   /*this.get('/gui-widgets');*/
-
-
 }

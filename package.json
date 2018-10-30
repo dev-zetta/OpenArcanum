@@ -21,8 +21,7 @@
     "@babel/preset-env": "^7.1.0",
     "babel-eslint": "^10.0.1",
     "babel-plugin-dynamic-import-node-babel-7": "^2.0.7",
-    "bootstrap": "^4.0.0",
-    "broccoli-asset-rev": "^3.0.0",
+    "bootstrap": "^4.1.3",
     "electron-forge": "^5.2.2",
     "electron-prebuilt-compile": "3.0.6",
     "ember-ajax": "^4.0.0",
@@ -37,20 +36,23 @@
     "ember-cli-mirage": "^0.4.2",
     "ember-cli-qunit": "^4.3.2",
     "ember-cli-sass": "^8.0.1",
-    "ember-cli-shims": "^1.2.0",
     "ember-cli-sri": "^2.1.0",
     "ember-cli-uglify": "^2.0.2",
     "ember-component-css": "^0.6.5",
     "ember-data": "^3.5.0",
     "ember-data-model-fragments": "^3.3.0",
     "ember-electron": "^2.7.3",
-    "ember-export-application-global": "^2.0.0",
+    "ember-engines": "^0.5.24",
     "ember-load-initializers": "^1.0.0",
     "ember-resolver": "^5.0.1",
     "ember-source": "^3.5.0",
     "eslint": "^5.8.0",
+    "eslint-config-prettier": "^3.1.0",
     "eslint-config-standard": "^12.0.0",
     "eslint-plugin-ember": "^5.2.0",
+    "eslint-plugin-flowtype": "^3.1.4",
+    "eslint-plugin-prettier": "^3.0.0",
+    "eslint-plugin-standard": "^4.0.0",
     "loader.js": "^4.2.3",
     "sass": "^1.14.3"
   },
@@ -69,14 +71,11 @@
     "electron-squirrel-startup": "^1.0.0",
     "ember-bootstrap": "^2.2.0",
     "enum": "^2.5.0",
-    "eslint-config-prettier": "^3.1.0",
-    "eslint-plugin-prettier": "^3.0.0",
-    "eslint-plugin-require-path-exists": "^1.1.7",
     "find": "^0.2.9",
     "hammerjs": "^2.0.8",
     "jsonpath": "^1.0.0",
     "kiwi-schema": "^0.3.8",
-    "lance-gg": "^3.0.9",
+    "lance-gg": "^3.0.10",
     "liquidfun": "file:vendor/liquidfun",
     "lodash": "^4.17.5",
     "mime-types": "^2.1.18",
@@ -101,5 +100,10 @@
   },
   "config": {
     "forge": "./ember-electron/electron-forge-config.js"
+  },
+  "ember-addon": {
+    "paths": [
+      "lib/game-core"
+    ]
   }
 }

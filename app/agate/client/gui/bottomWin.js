@@ -226,8 +226,8 @@ module.exports = {
               sprite: `APGreen`
             })
 
-            if (i % 5 == 4) x += 19
-            else x += 13
+            if (i % 5 === 4) {x += 19}
+            else {x += 13}
           }
         }
       }

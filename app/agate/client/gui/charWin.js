@@ -1,9 +1,14 @@
 module.exports = {
-  //parent: 'middleWin',
-  type: 'inventory',
+  type: 'window',
   sprite: 'PDoll',
   align: 'left-center',
   visible: false,
+
+  listeners: {
+    'inventoryWin:toggle': () => {
+      this.toggle()
+    }
+  },
 
   components: {
     lens: {

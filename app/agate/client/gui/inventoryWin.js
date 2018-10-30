@@ -6,10 +6,10 @@ module.exports = {
   visible: false,
 
   listeners: {
-    openInventory(event) {
+    /*openInventory(event) {
       console.log('test')
       this.toggle()
-    }
+    }*/
   },
 
   components: {
@@ -28,7 +28,7 @@ module.exports = {
       sprite: 'DropOFF',
       position: [346, 350]
     },
-    inventor: {
+    inventory: {
       type: 'inventory',
       position: [9, 9],
       size: [315, 377],

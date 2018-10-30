@@ -10,11 +10,14 @@ module.exports = {
   plugins: [
     'ember',
     "prettier",
-    'require-path-exists'
+    "flowtype",
+    'standard'
+    //'require-path-exists'
   ],
   extends: [
     'eslint:recommended',
     'plugin:ember/recommended',
+    "prettier",
     'prettier/flowtype',
     "prettier/standard"
   ],
@@ -37,7 +40,7 @@ module.exports = {
     "no-unused-vars": "off",
     "no-console": "off",
     "no-mixed-spaces-and-tabs": "off",
-    "require-path-exists/notEmpty": 2,
+    /*"require-path-exists/notEmpty": 2,
     "require-path-exists/tooManyArguments": 2,
     "require-path-exists/exists": [ 2, {
       "extensions": [
@@ -48,7 +51,7 @@ module.exports = {
         ".es",
         ".es6"
       ]
-    }]
+    }]*/
   },
   overrides: [
     // node files

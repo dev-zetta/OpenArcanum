@@ -38,7 +38,7 @@ module.exports = {
     },
 
     mapView: {
-      type: 'widget',
+      type: 'group',
       position: [150, 11],
       size: [501, 365],
       style: { background: 'rgba(255, 255, 255, 0.7)', zIndex: 0 }

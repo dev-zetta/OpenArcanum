@@ -18,7 +18,8 @@ protocolServe({
 //     submitURL: 'https://your-domain.com/url-to-submit',
 //     autoSubmit: true
 // });
-app.commandLine.appendSwitch('--ignore-gpu-blacklist');
+app.commandLine.appendSwitch('--disable-gpu') // --ignore-gpu-blacklist
+
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
@@ -32,10 +33,16 @@ app.on('ready', () => {
         resizable: true,
         transparent: true,
         title: "OpenArcanum",
+      alwaysOnTop: 'true',
+      //kiosk: true,
+      autoHideMenuBar: true,
+      devTools: true,
         webPreferences: {
             //nodeIntegration: true,
             webSecurity: false,
-            experimentalFeatures: true
+            experimentalFeatures: true,
+
+          nodeIntegrationInWorker: true,
         }
     });
     //mainWindow.webContents.openDevTools();

@@ -1,10 +1,9 @@
-'use strict';
+'use strict'
 
-const EmberApp = require('ember-cli/lib/broccoli/ember-app');
+const EmberApp = require('ember-cli/lib/broccoli/ember-app')
 
 module.exports = function(defaults) {
   let app = new EmberApp(defaults, {
-
     /*outputPaths: {
         app: {
             css: {
@@ -13,7 +12,7 @@ module.exports = function(defaults) {
             }
         }
     },*/
-    'babel': {
+    babel: {
       //debug: true
       loose: false,
       //useBuiltIns: true,
@@ -28,7 +27,7 @@ module.exports = function(defaults) {
           }
         ]
       ],*/
-      "plugins": [["dynamic-import-node-babel-7", { "noInterop": false }]]
+      plugins: [['dynamic-import-node-babel-7', { noInterop: false }]]
     },
 
     'ember-cli-babel': {
@@ -36,11 +35,11 @@ module.exports = function(defaults) {
     },
 
     'ember-bootstrap': {
-      'bootstrapVersion': 4,
-      'importBootstrapFont': false,
-      'importBootstrapCSS': false
+      bootstrapVersion: 4,
+      importBootstrapFont: false,
+      importBootstrapCSS: false
     }
-  });
+  })
 
   // Use `app.import` to add additional libraries to the generated
   // output files.
@@ -55,7 +54,7 @@ module.exports = function(defaults) {
   // please specify an object with the list of modules as keys
   // along with the exports of each module as its value.
 
-  app.import("vendor/iziModal.min.js");
+  app.import('vendor/iziModal.min.js')
 
-  return app.toTree();
-};
+  return app.toTree()
+}

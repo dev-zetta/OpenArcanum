@@ -1,0 +1,25 @@
+&.has-toolbar {
+  position: relative;
+  outline: 2px solid #2c2c2c;
+  /*background-clip: content-box;*/
+
+  .toolbar {
+    position: absolute;
+    width: 100%;
+    height: 30px;
+    top: -30px;
+    left: 0px;
+    background-color: #2c2c2c;
+    outline: 3px solid #000;
+    opacity: 0.9;
+  }
+}
+
+& {
+  border: 1px solid #2c2c2c;
+  box-shadow: 0px 0px 10px 4px rgba(255,187,0,0.62);
+
+  //clip-path: polygon(5% 0%, 95% 0%, 100% 5%, 100% 95%, 95% 100%, 5% 100%, 0% 95%, 0% 5%);
+  -webkit-transform: translateZ(0); /* Bugfix for chrome https://github.com/marceljuenemann/angular-drag-and-drop-lists/issues/256 */
+}
+
