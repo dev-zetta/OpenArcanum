@@ -1,3 +1,3 @@
 'use strict';
 
-module.exports = {};
+module.exports = { executor: require('./src/GlobalConveterExecutor.js') };

@@ -1,7 +1,21 @@
 const globalConverter = require('./converters/GlobalConverter');
-var patterns = './resources/patterns/';
-var arcanumPath = './resources/sourceFiles/';
-var output = './resources/out/';
 
-globalConverter.prepareAllPatterns(arcanumPath, patterns);
-globalConverter.convertAllFiles(arcanumPath, patterns, output);
+var patterns = './converted/';
+var _arcanumPath = './sourceFiles/';
+var _outputPath = './converted/';
+
+/* Var path = require('path')
+console.log(path.resolve(_outputPath)) */
+
+class Executor {
+  static start(arcanumPath, outputPath) {
+    globalConverter.prepareAllPatterns(arcanumPath || _arcanumPath, patterns);
+    globalConverter.convertAllFiles(
+      arcanumPath || _arcanumPath,
+      patterns,
+      outputPath || _outputPath
+    );
+  }
+}
+
+module.exports = Executor;

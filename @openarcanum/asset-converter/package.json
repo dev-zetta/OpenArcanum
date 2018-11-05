@@ -1,6 +1,6 @@
 {
   "name": "open-arcanum-asset-converter",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Converter tool to convert Arcanum assets to OpenArcanum new format",
   "homepage": "http://arcanum.rocks/",
   "author": {
@@ -31,6 +31,7 @@
     "jest": "^22.0.6"
   },
   "scripts": {
+    "start": "node lib/start.js",
     "prepublish": "nsp check",
     "pretest": "eslint .",
     "precommit": "lint-staged",
@@ -68,7 +69,7 @@
       "prettier"
     ]
   },
-  "repository": "ssh://levnepotraviny_cz__git@replikant617.thinline.cz/~/levnepotraviny.cz",
+  "repository": "ssh://git@gitlab.com:openarcanum/openarcanum-assets.git",
   "jest": {
     "testEnvironment": "node"
   },
