@@ -1,5 +1,5 @@
 'use strict';
 
-var executor = require('./src/GlobalConveterExecutor.js');
+let executor = require('./src/GlobalConveterExecutor.js');
 
 executor.start();

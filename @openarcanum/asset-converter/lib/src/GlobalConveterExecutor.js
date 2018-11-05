@@ -1,8 +1,8 @@
 const globalConverter = require('./converters/GlobalConverter');
 
-var patterns = './converted/';
-var _arcanumPath = './sourceFiles/';
-var _outputPath = './converted/';
+let patterns = './converted/';
+let _arcanumPath = './sourceFiles/';
+let _outputPath = './converted/';
 
 /* Var path = require('path')
 console.log(path.resolve(_outputPath)) */
