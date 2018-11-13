@@ -40,16 +40,16 @@ export class PathFind {
       let startX = start[0] - range
       let startY = start[1] - range
 
-      if (startX < 0) startX = 0
+      if (startX < 0) {startX = 0}
 
-      if (startY < 0) startY = 0
+      if (startY < 0) {startY = 0}
 
       let endX = end[0] + range
       let endY = end[1] + range
 
-      if (endX >= tilesX) endX = tilesX - 1
+      if (endX >= tilesX) {endX = tilesX - 1}
 
-      if (endY >= tilesY) endY = tilesY - 1
+      if (endY >= tilesY) {endY = tilesY - 1}
 
       //console.log(Math.abs(endX - startX) + 1, Math.abs(endY - startY) + 1)
       let width = Math.abs(endX - startX) + 1

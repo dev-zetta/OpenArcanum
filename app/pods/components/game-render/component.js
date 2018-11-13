@@ -1,28 +1,37 @@
 import Component from '@ember/component'
-import { inject as service } from '@ember/service';
 
 import { Engine } from 'open-arcanum/agate/shared/Engine'
 import { Manager } from 'open-arcanum/agate/client/Gui'
 
-export default Component.extend({
-  classNames: ['game-render'],
-  store: service(),
-  shouldRender: false,
+import { classNames, className, attribute } from '@ember-decorators/component'
+import { service } from '@ember-decorators/service'
+
+
+@classNames(`game-render`)
+class GameRender extends Component {
+  @service
+  store
+
+  @attribute
+  shouldRender = false
 
   /**
    *
    */
-  init() {
-    this._super(...arguments)
-    console.log('xxxxxxxxxxxx')
-  },
+  constructor() {
+    super(...arguments)
+
+    this.get('resizeService').on('didResize', event => {
+      this.engine.events.emitUI('window.resize', this.engine.client.getWindowRect())
+    })
+  }
 
   /**
    *
    */
   getElement() {
-    return this.$()
-  },
+    return this.get('element')
+  }
 
   /**
    *
@@ -30,39 +39,40 @@ export default Component.extend({
    */
   getManager() {
     return this.engine.client.guiManager
-  },
+  }
+
+  async loadWindows() {
+    return this.get(`store`).query(`gui-widget`, {
+      include: `components,components.components`,
+      filter: {
+        type: `window`
+        //visible: true
+        //id: ['topWin', 'middleWin', 'bottomWin']
+      }
+    })
+  }
 
   /**
    *
    */
   didInsertElement() {
-
-    this._super(...arguments)
+    super.didInsertElement(...arguments)
 
     Engine.instance = new Engine()
     this.engine = Engine.instance
 
-    let canvas = document.getElementById('render2d')
+    let canvas = document.getElementById(`render2d`)
 
     this.engine.createClient(canvas).then(() => {
-      this.get('store')
-        .query('gui-widget', {
-          include: 'components,components.components',
-          filter: {
-            type: 'window',
-            //visible: true
-            //id: ['topWin', 'middleWin', 'bottomWin']
-          }
-        })
-        .then(data => {
-          let manager = this.getManager()
-          manager.setRootWidget(this)
-          manager.setMouseSprite('cursor')
+      this.loadWindows().then(data => {
+        let manager = this.getManager()
+        manager.setRootWidget(this)
+        //manager.setMouseSprite(`cursor`)
 
-          this.set('widgets', data)
-        })
+        this.set(`widgets`, data)
+      })
     })
-  },
+  }
 
   /**
    *
@@ -70,7 +80,7 @@ export default Component.extend({
    */
   mouseMove(event) {
     //this.getManager().onMouseMove(event);
-  },
+  }
+}
 
-  actions: {}
-})
+export default GameRender

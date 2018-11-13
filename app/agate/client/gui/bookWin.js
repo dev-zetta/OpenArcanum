@@ -1,41 +1,47 @@
 module.exports = {
-  type: 'window',
+  type: `window`,
   visible: false,
-  align: 'center-center',
+  position: `center`,
   //size: [800, 600],
-  sprite: 'BookMain',
+  sprite: `BookMain`,
+  options: {
+    toolbar: true,
+    title: `Logbook`,
+    icon: 'MMSkull'
+  },
+
   components: {},
 
   events: {
     created() {
       let tabs = [
         {
-          name: 'Note',
-          button: 'TabNote'
+          name: `Note`,
+          button: `TabNote`
         },
         {
-          name: 'Quest',
-          button: 'TabQuest'
+          name: `Quest`,
+          button: `TabQuest`
         },
         {
-          name: 'Rep',
-          button: 'TabRep'
+          name: `Rep`,
+          button: `TabRep`
         },
         {
-          name: 'BlessCurse',
-          button: 'TabBlessCurse'
+          name: `BlessCurse`,
+          button: `TabBlessCurse`
         },
         {
-          name: 'EgoInjure',
-          button: 'TabEgoInjure'
+          name: `EgoInjure`,
+          button: `TabEgoInjure`
         },
         {
-          name: 'BackGrnd',
-          button: 'TabBackGrnd'
+          name: `BackGrnd`,
+          button: `TabBackGrnd`
         },
         {
-          name: 'Keys',
-          button: 'TabKeys'
+          name: `Keys`,
+          button: `TabKeys`
         }
       ]
 
@@ -63,9 +69,12 @@ module.exports = {
 
         let model = this.createChild({
           id: `${tab.name}Switch`,
-          type: 'button',
+          type: `button`,
           position: [x, y],
           sprite: `${tab.button}`,
+          options: {
+            tooltip: tab.name
+          },
           events: {
             click() {
               self.switchTo(i)

@@ -4,12 +4,12 @@ import Phaser from '../libs/phaser'
 
 class CUtils {
   stringToColor(value) {
-    if (value.startsWith('rgba') || value.startsWith('rgb')) {
+    if (value.startsWith(`rgba`) || value.startsWith(`rgb`)) {
       let values = value.substring(
-        value.indexOf('(') + 1,
-        value.indexOf(')') - 1
+        value.indexOf(`(`) + 1,
+        value.indexOf(`)`) - 1
       )
-      values = values.split(',')
+      values = values.split(`,`)
 
       let r = AGate.Utils.parseInt(values[0])
       let g = AGate.Utils.parseInt(values[1])
@@ -35,5 +35,5 @@ class CUtils {
   }
 }
 
-var Utils = new CUtils()
+let Utils = new CUtils()
 export { Utils }

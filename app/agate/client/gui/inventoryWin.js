@@ -1,62 +1,80 @@
 module.exports = {
   //parent: 'middleWin',
-  type: 'window',
-  sprite: 'Inventor',
-  align: 'right-center',
-  visible: false,
+  type: `window`,
+  sprite: `Inventor`,
+  position: `right-center`,
+  visible: true,
+  options: {
+    toolbar: true,
+    title: `Backpack Inventory`
+  },
 
   listeners: {
-    /*openInventory(event) {
-      console.log('test')
-      this.toggle()
-    }*/
+    'plugSlots:created': () => {
+      //this.callComponent(`plugSlots`, `createSlots`)
+    },
+
+    'hotSlots:created': () => {
+      console.error('dfdfd')
+      this.callComponent(`hotSlots`, `createSlots`)
+    }
   },
 
   components: {
     sortBtn: {
-      type: 'button',
-      sprite: 'LilGrnBut',
+      type: `button`,
+      sprite: `LilGrnBut`,
       position: [405, 198]
     },
     takeBtn: {
-      type: 'button',
-      sprite: 'UseBoxOFF',
+      type: `button`,
+      sprite: `UseBoxOFF`,
       position: [346, 300]
     },
     dropBtn: {
-      type: 'button',
-      sprite: 'DropOFF',
+      type: `button`,
+      sprite: `DropOFF`,
       position: [346, 350]
     },
     inventory: {
-      type: 'inventory',
-      position: [9, 9],
+      type: `inventory`,
+      position: [10, 8],
       size: [315, 377],
-      style: { border: '1px solid #fff', zIndex: 2 },
-      components: {
-        test: {
-          type: 'image',
-          sprite: 'MagicksIcon'
+      style: { zIndex: 2 },
+      options: {
+        slotSize: 31,
+        connectWith: [`hotSlots`, `plugSlots`]
+      },
+      listeners: {
+        'sortBtn:click': () => {
+          // get current dragged item
         },
-        test2: {
-          type: 'image',
-          sprite: 'MagicRingIcon'
-        },
-        test3: {
-          type: 'image',
-          sprite: 'MagicClothesIcon'
-        },
-        test4: {
-          type: 'image',
-          sprite: 'MagicBowsIcon'
-        },
-        test5: {
-          type: 'image',
-          sprite: 'MagicMeleeIcon'
-        },
-        test6: {
-          type: 'image',
-          sprite: 'MagicBowsIcon'
+        'dropBtn:click': () => {}
+      },
+      events: {
+        created() {
+          this.addItems({
+            test: {
+              sprite: `MagicksIcon`,
+              size: [1, 2]
+            },
+            test2: {
+              sprite: `MagicRingIcon`,
+              size: [2, 2]
+            },
+            test3: {
+              sprite: `MagicClothesIcon`
+            },
+            test4: {
+              sprite: `MagicBowsIcon`
+            },
+            test5: {
+              sprite: `MagicMeleeIcon`
+            },
+            test6: {
+              sprite: `MagicBowsIcon`
+            }
+          })
         }
       }
     }

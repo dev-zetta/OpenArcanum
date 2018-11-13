@@ -22,7 +22,7 @@ class Manager {
     let resolve = {}
     let result = {}
 
-    AGate.Utils.loadScripts('client/gui', (name, script) => {
+    AGate.Utils.loadScripts(`client/gui`, (name, script) => {
       let widget = script
       if (widget.parent) {
         resolve[name] = widget
@@ -33,7 +33,7 @@ class Manager {
 
     for (let key in resolve) {
       let widget = resolve[key]
-      result[widget.parent]['components'][key] = widget
+      result[widget.parent][`components`][key] = widget
     }
 
     return result
@@ -46,8 +46,7 @@ class Manager {
   async loadAssets() {
     await this.generateAssets()
 
-    let assetPath = 'Gui'
-
+    let assetPath = AGate.getAppPath(`gui`)
     let assetLoader = this.engine.assetLoader
 
     let guiMeta = await assetLoader.loadJsonFile(`${assetPath}/gui-images.json`)
@@ -56,7 +55,6 @@ class Manager {
       let imageMeta = guiMeta[key]
 
       let sprite = new Sprite(key, imageMeta)
-
       this.sprites.set(key, sprite)
     }
 
@@ -84,51 +82,55 @@ class Manager {
    * @returns {Promise<void>}
    */
   async generateAssets() {
-    let targetPath = '/media/maxli/Data/dev/OpenArcanum/public/assets'
+    let targetPath = AGate.getAppPath(`gui`)
     let targetCss = `${targetPath}/gui-images.css`
 
+    return
     if (AGate.Utils.isFileExist(targetCss)) {
       return
     }
 
-    let assetLoader = this.engine.assetLoader
-    let guiPath = '/media/maxli/Data/dev/ArcanumAlive/Data/converted/Interface/' //AGate.getDataPath('Interface');
+    console.error('generating assets')
 
-    let files = await assetLoader.findFiles(guiPath, '.json')
+    let assetLoader = this.engine.assetLoader
+    let guiPath = AGate.getAppPath('Interface');
+
+    let files = await assetLoader.findFiles(guiPath, `.json`)
 
     for (let i = 0; i < files.length; i++) {
       let jsonFile = files[i]
 
-      let dotPos = jsonFile.lastIndexOf('.')
-      let imageFile = jsonFile.substr(0, dotPos) + '.gif'
+      let dotPos = jsonFile.lastIndexOf(`.`)
+      let imageFile = jsonFile.substr(0, dotPos)
 
-      let slashPos = jsonFile.lastIndexOf('/')
+      let slashPos = jsonFile.lastIndexOf(`/`)
       let key = jsonFile.substring(slashPos + 1, dotPos)
 
+      //console.log(key, imageFile, jsonFile)
       assetLoader.preload({
-        key: key,
-        type: 'atlas',
-        texture: imageFile,
+        key,
+        type: `atlas`,
+        texture: [`${imageFile}.gif`, `${imageFile}.png`],
         data: jsonFile,
-        output: 'base64'
+        output: `base64`
       })
     }
 
     let json = {}
-    let css = ''
+    let css = ``
 
-    await assetLoader.start(descriptor => {
+    await assetLoader.loadAssets(null, descriptor => {
       // generate css
       let className = AGate.Utils.kebabCase(descriptor.key)
       css += `.${className} {background-image: url('${descriptor.image}');}\n`
 
       // generate json
       let frames = []
-      let jsonFrames = descriptor.meta['frames']
+      let jsonFrames = descriptor.meta[`frames`]
       for (let key in jsonFrames) {
-        let jsonFrame = jsonFrames[key]['frame']
+        let jsonFrame = jsonFrames[key][`frame`]
 
-        let index = key.substr(key.lastIndexOf('/') + 1)
+        let index = key.substr(key.lastIndexOf(`/`) + 1)
 
         frames[index] = {
           left: jsonFrame.x,
@@ -141,8 +143,8 @@ class Manager {
       json[descriptor.key] = frames
     })
 
-    await assetLoader.saveTextFile(targetCss, css)
 
+    await assetLoader.saveTextFile(targetCss, css)
     await assetLoader.saveJsonFile(`${targetPath}/gui-images.json`, json)
   }
 
@@ -153,7 +155,10 @@ class Manager {
    */
   getSprite(key) {
     //key = AGate.Utils.kebabCase(key);
-    return this.sprites.get(key)
+    let sprite = this.sprites.get(key)
+    if (sprite) {
+      return sprite
+    }
   }
 
   /**
@@ -169,7 +174,7 @@ class Manager {
    * @param widget
    */
   addWidget(widget) {
-    this.widgets.set(widget.get('widget.id'), widget)
+    this.widgets.set(widget.get(`widget.id`), widget)
   }
 
   /**
@@ -234,10 +239,7 @@ class Manager {
    */
   getMouseElement() {
     if (!this.mouseElement) {
-      this.mouseElement = $('#mouse-pointer')
-      /* $(window).on('mousemove', (event) => {
-        this.onMouseMove(event);
-      });*/
+      this.mouseElement = document.getElementById(`mouse-pointer`)
     }
 
     return this.mouseElement
@@ -282,10 +284,10 @@ class Manager {
       'height': `${frame.height}px`,
     });*/
 
-    console.log(element.css('background-image'))
+    console.log(element.css(`background-image`))
     this.getRootWidget()
       .getElement()
-      .css('cursor', element.css('background-image') + ', auto')
+      .css(`cursor`, element.css(`background-image`) + `, auto`)
 
     this.prevMouseClass = sprite.className
   }
@@ -297,8 +299,8 @@ class Manager {
    */
   static objectToJson(object) {
     return JSON.stringify(object, (key, value) => {
-      if (typeof value === 'function') {
-        return '@' + value.toString()
+      if (typeof value === `function`) {
+        return `@` + value.toString()
       }
       return value
     })
@@ -311,9 +313,9 @@ class Manager {
    */
   static jsonToObject(json) {
     return JSON.parse(json, (key, value) => {
-      if (key === '') return value
+      if (key === ``) return value
 
-      if (typeof value === 'string' && value.startsWith('@')) {
+      if (typeof value === `string` && value.startsWith(`@`)) {
         return AGate.Utils.stringToFunction(value.substr(1))
       }
       return value

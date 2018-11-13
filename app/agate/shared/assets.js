@@ -1,99 +1,24 @@
 /* global AGate, requireNode */
 //var liquidfun = requireNode('liquidfun')
 
-export var GfxTypes = new AGate.Enum([
-  'Tile',
-  'Wall',
-  'Portal',
-  'Critter',
-  'Scenery',
-  'Item',
-  'Container',
-  'Light',
-  'Roof',
-  'Facade',
-  'Monster',
-  'UniqueNpc',
-  'EyeCandy'
-])
+import {GfxPathBuilder} from './GfxPathBuilder'
 
-export class GfxPathBuilder {
-  constructor(data) {
-    this.build(data)
-  }
-
-  toPath() {
-    return `${this.path}`
-  }
-
-  build(data) {
-    let base = `${data.type.key}/`
-
-    //console.log(data.type);
-
-    switch (data.type) {
-      case GfxTypes.Tile:
-        base += `${data.start.category}/${data.end.category}/${
-          data.start.version
-        }/${data.end.version}`
-        break
-      case GfxTypes.Wall:
-        base += `${data.category}/${data.part}/${data.side}/${data.version}`
-        break
-      case GfxTypes.Portal:
-        base += `${data.category}/${data.name}/${data.version}`
-        break
-      case GfxTypes.Scenery:
-        base += `${data.category}/${data.name}`
-        break
-      case GfxTypes.Item:
-        let number = data.number ? data.number : 0
-        let subcat = data.subcat ? data.subcat : 'Base'
-        base += `${data.category}/${subcat}/${number}/${data.display}`
-        break
-      case GfxTypes.Container:
-        base += `${data.category}/${data.name}` // ok
-        break
-      case GfxTypes.Light:
-      case GfxTypes.Roof:
-      case GfxTypes.Facade:
-        base += `${data.name}` // ok
-        break
-      case GfxTypes.Critter:
-        let gender = data.race == 'Human' ? data.gender : 'Male'
-        base += `${data.race}/${gender}/${data.armor}/${data.shield}/${
-          data.weapon
-        }/${data.animation}`
-        break
-      case GfxTypes.Monster:
-        base += `${data.name}/${data.armor}/${data.shield}/${data.weapon}/${
-          data.animation
-        }`
-        break
-      case GfxTypes.UniqueNpc:
-        base += `${data.name}/${data.shield}/${data.weapon}/${data.animation}`
-        break
-      case GfxTypes.EyeCandy:
-        base += `${data.layer}`
-        break
-    }
-
-    this.path = base
-  }
-}
-
-const fs = AGate.requireNode('fs')
-const util = AGate.requireNode('util')
-const mime = AGate.requireNode('mime-types')
-const parseJson = AGate.requireNode('parse-json')
-const writeJsonFile = AGate.requireNode('write-json-file')
-const find = AGate.requireNode('find')
+const fs = AGate.requireNode(`fs`)
+const util = AGate.requireNode(`util`)
+const mime = AGate.requireNode(`mime-types`)
+const parseJson = AGate.requireNode(`parse-json`)
+const writeJsonFile = AGate.requireNode(`write-json-file`)
+const find = AGate.requireNode(`find`)
 
 // https://github.com/antelle/node-stream-zip
 
-const StreamZip = AGate.requireNode('node-stream-zip')
+const StreamZip = AGate.requireNode(`node-stream-zip`)
 
 export class AssetLoader {
+  /**
+   *
+   * @param engine
+   */
   constructor(engine) {
     this.engine = engine
     this.loadedAssets = new Map()
@@ -117,7 +42,9 @@ export class AssetLoader {
    * @param descriptor
    */
   preload(descriptor) {
-    if (this.loadedAssets.has(descriptor.key)) return
+    if (this.loadedAssets.has(descriptor.key)) {
+      return
+    }
 
     this.preloadAssets.push(descriptor)
     this.loadedAssets.set(descriptor.key, null)
@@ -138,12 +65,12 @@ export class AssetLoader {
         storeEntries: false
       })
 
-      zip.on('entry', entry => {
+      zip.on(`entry`, entry => {
         if (entry.isDirectory) return
 
         //console.log(`Read entry ${entry.name}`);
 
-        let parts = entry.name.split('/')
+        let parts = entry.name.split(`/`)
         let parent = this.archiveEntries
 
         for (let i = 0; i < parts.length; i++) {
@@ -168,11 +95,11 @@ export class AssetLoader {
         }
       })
 
-      zip.on('error', err => {
+      zip.on(`error`, err => {
         console.log(err)
       })
 
-      zip.on('ready', () => {
+      zip.on(`ready`, () => {
         resolve(zip)
       })
     })
@@ -183,9 +110,9 @@ export class AssetLoader {
    * @returns {Promise<void>}
    */
   async initialize() {
-    let path = AGate.getAppPath('archives/')
+    let path = AGate.getAppPath(`archives/`)
 
-    let files = await this.findFiles(path, '.zip')
+    let files = await this.findFiles(path, `.zip`)
 
     this.archiveEntries = new Map()
 
@@ -213,18 +140,20 @@ export class AssetLoader {
     for (let i = 0; i < list.length; i++) {
       let descriptor = list[i]
 
-      if (descriptor == null) continue
+      if (descriptor == null) {
+        continue
+      }
 
       let result = await this.loadAsset(descriptor)
       if (result) {
         onLoaded(descriptor)
       }
 
-      loaded++
+      loaded += 1
 
       list[i] = null
 
-      if (loaded == list.length) {
+      if (loaded === list.length) {
         this.preloadAssets.clear()
       }
     }
@@ -239,7 +168,7 @@ export class AssetLoader {
    * @param sliceSize
    * @returns {Blob}
    */
-  stringToBlob(string, contentType = '', sliceSize = 512) {
+  stringToBlob(string, contentType = ``, sliceSize = 512) {
     const byteCharacters = string
     const byteArrays = []
 
@@ -259,44 +188,60 @@ export class AssetLoader {
     return blob
   }
 
+  async loadFileFromDisk(src, encoding) {
+    return new Promise((resolve, reject) => {
+      fs.readFile(src, encoding, (err, data) => {
+        resolve(data)
+      })
+    })
+  }
+
+  isFileExists(src) {
+    return fs.existsSync(src)
+  }
+
   /**
    *
    * @param src
    * @param encoding
    */
-  loadFile(src, encoding = undefined) {
-    return new Promise(resolve => {
-      // Does the file exists on disk?
-      let appPath = AGate.getAppPath()
-      if (fs.existsSync(`${appPath}/${src}`)) {
-        fs.readFile(`${appPath}/${src}`, encoding, (err, data) => {
-          resolve(data)
-        })
-
-        return
-      }
-
-      // No, then load from zip archives
-      let result = this.findInArchives(src)
-
-      if (result) {
-        //console.log(`Loaded file from zip: ${src}`);
-
-        try {
-          let entry = result //[0];
-          let archive = this.archives[entry.zipId]
-
-          const data = archive.entryDataSync(entry)
-
-          resolve(data)
-        } catch (err) {
-          console.log(err)
+  async loadFile(src, encoding = undefined) {
+    // Does the file exists on disk?
+    if (AGate.Utils.isArray(src)) {
+      for (let filePath of src) {
+        filePath = AGate.getAppPath(filePath)
+        if (this.isFileExists(filePath)) {
+          return this.loadFileFromDisk(filePath, encoding)
         }
+      }
+    } else {
+      let filePath = AGate.getAppPath(src)
+      if (this.isFileExists(filePath)) {
+        return this.loadFileFromDisk(filePath, encoding)
+      }
+    }
 
-        return
+    // No, then load from zip archives
+    let result = this.findInArchives(src)
+
+    if (result) {
+      //console.log(`Loaded file from zip: ${src}`);
+
+      try {
+        let entry = result //[0];
+        let archive = this.archives[entry.zipId]
+
+        const data = archive.entryDataSync(entry)
+
+        return data
+      } catch (err) {
+        console.log(err)
       }
 
-      let root = AGate.getAppPath()
+      return null
+    }
+
+    /*let root = AGate.getAppPath()
 
       fs.readFile(`${root}/${src}`, encoding, (err, data) => {
         if (err) {
@@ -305,8 +250,9 @@ export class AssetLoader {
         } else {
           resolve(data)
         }
-      })
-    })
+      })*/
+
+    return null
   }
 
   /**
@@ -318,7 +264,7 @@ export class AssetLoader {
     let data = await this.loadFile(src)
     if (!data) return null
 
-    let blob = this.stringToBlob(data.toString('binary'))
+    let blob = this.stringToBlob(data.toString(`binary`))
     return blob
   }
 
@@ -341,12 +287,16 @@ export class AssetLoader {
    * @returns {Promise<void>}
    */
   async loadFileToDataUrl(src) {
-    let data = await this.loadFile(src, 'base64')
+    let data = await this.loadFile(src, `base64`)
+    if (!data) {
+      AGate.Utils.logError(`Unable to load file ${src}`)
+      return null
+    }
 
     let result = util.format(
-      'data:%s;base64,%s',
+      `data:%s;base64,%s`,
       mime.lookup(src),
-      data.toString('binary')
+      data.toString(`binary`)
     )
     return result
   }
@@ -389,7 +339,7 @@ export class AssetLoader {
 
       return image
     } else {
-      //console.log('Fast loading...')
+      console.log(`Fast loading...`)
       let blob = await this.loadFileToBlob(src)
       if (!blob) {
         AGate.Utils.logError(`Unable to load image: ${src}`)
@@ -407,7 +357,7 @@ export class AssetLoader {
    */
   async loadTextFile(path) {
     return new Promise(resolve => {
-      fs.readFile(path, 'utf8', (err, data) => {
+      fs.readFile(path, `utf8`, (err, data) => {
         resolve(data)
       })
     })
@@ -421,7 +371,7 @@ export class AssetLoader {
    */
   async saveTextFile(path, data) {
     return new Promise(resolve => {
-      fs.writeFile(path, data, 'utf8', (err, data) => {
+      fs.writeFile(path, data, `utf8`, (err, data) => {
         resolve(data)
       })
     })
@@ -436,7 +386,7 @@ export class AssetLoader {
     try {
       let data = await this.loadFile(filePath)
 
-      return parseJson(data.toString('binary'))
+      return parseJson(data.toString(`binary`))
     } catch (err) {
       AGate.Utils.logError(err.message)
       return null
@@ -472,9 +422,9 @@ export class AssetLoader {
     let result
 
     switch (descriptor.type) {
-      case 'atlas':
+      case `atlas`:
         switch (descriptor.output) {
-          case 'base64':
+          case `base64`:
             descriptor.image = await this.loadFileToDataUrl(descriptor.texture)
             break
           default:
@@ -495,7 +445,7 @@ export class AssetLoader {
         }
 
         break
-      case 'json':
+      case `json`:
         descriptor.meta = await this.loadJsonFile(descriptor.data)
         break
     }
@@ -512,7 +462,7 @@ export class AssetLoader {
    * @returns {Promise<void>}
    */
   async findFiles(dir, ext) {
-    let regExp = new RegExp(`\.${ext}`, 'i')
+    let regExp = new RegExp(`\.${ext}`, `i`)
     return new Promise(resolve => {
       let entries = this.findInArchives(dir, regExp)
       if (entries) {
@@ -534,7 +484,7 @@ export class AssetLoader {
   async findDirs(dir, pattern) {
     return new Promise(resolve => {
       if (!pattern) {
-        pattern = new RegExp(`^[^.]+$`, 'i')
+        pattern = new RegExp(`^[^.]+$`, `i`)
       }
 
       let entries = this.findInArchives(dir, pattern)
@@ -555,12 +505,16 @@ export class AssetLoader {
    * @returns {*}
    */
   findInArchives(what, filter = null) {
-    if (!this.archiveEntries) return null
+    if (!this.archiveEntries) {
+      return null
+    }
 
-    let parts = what.split('/')
+    let parts = what.split(`/`)
 
     let partsCount = parts.length
-    if (what.endsWith('/')) partsCount -= 1
+    if (what.endsWith(`/`)) {
+      partsCount -= 1
+    }
 
     let parent = this.archiveEntries
 
@@ -573,8 +527,10 @@ export class AssetLoader {
         return null
       }
 
-      if (i + 1 == partsCount) {
-        if (!filter) return item
+      if (i + 1 === partsCount) {
+        if (!filter) {
+          return item
+        }
 
         //console.log(what)
         let result = new Map()
@@ -593,3 +549,5 @@ export class AssetLoader {
     return null
   }
 }
+
+export {GfxPathBuilder}

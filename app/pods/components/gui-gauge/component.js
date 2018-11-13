@@ -2,29 +2,65 @@
 
 import GuiWidget from '../gui-widget'
 import { Math } from 'open-arcanum/agate/shared/misc/Math'
+import { action, computed } from '@ember-decorators/object'
 
-export default GuiWidget.extend({
+class GuiGauge extends GuiWidget {
+  /**
+   *
+   */
   didRender() {
-    this._super(...arguments)
-  },
+    super.didRender(...arguments)
+  }
 
+  /**
+   *
+   * @returns {*}
+   */
   getMin() {
-    return this.get('widget.options.min')
-  },
+    return this.getOption(`min`)
+  }
 
+  /**
+   *
+   * @returns {*}
+   */
   getMax() {
-    return this.get('widget.options.max')
-  },
+    return this.getOption(`max`)
+  }
 
+  /**
+   *
+   * @returns {*}
+   */
   getOrientation() {
-    return this.get('widget.options.orientation')
-  },
+    return this.getOption(`orientation`)
+  }
 
+  /**
+   *
+   */
   getValue() {
-    this.get('widget.value')
-  },
+    this.get(`value`)
+  }
 
+  /**
+   *
+   * @param value
+   */
   setValue(value) {
+    this.set(`value`, value)
+  }
+
+  /**
+   *
+   * @param value
+   */
+  @computed(`widget`, `sprite`)
+  get value() {
+    return this.get(`widget.value`)
+  }
+
+  set value(value) {
     let min = this.getMin()
     let max = this.getMax()
 
@@ -34,45 +70,63 @@ export default GuiWidget.extend({
     let position = this.getPosition()
 
     let size = this.getSize()
-    let sprite = this.getSprite()
-    let frame = sprite.getFrame()
+    let sprite = this.get(`sprite`) //this.getSprite()
 
     let percent = (max - min) * ((value - min) / 100.0)
 
     let style = {}
-    switch (orientation) {
-      case 'horizontal': {
-        let pixels = (frame.width / 100.0) * percent
 
-        //style['width'] = `${pixels}px`;
-        style['background-position-x'] = `-${frame.width -
-          size.width -
-          pixels}px`
-        style['background-repeat'] = 'no-repeat'
-        break
-      }
-      case 'vertical': {
-        let pixels = (frame.height / 100.0) * percent
+    //console.log(this.get('sprite'), this.get('widget.sprite'))
+    if (sprite) {
+      console.log('sprite', orientation)
+      let frame = sprite.getFrame()
+      switch (orientation) {
+        case `horizontal`: {
+          let pixels = (frame.width / 100.0) * percent
 
-        //style['bottom'] = `${position.top + size.height}px`;
-        //style['margin-top'] = `${size.height - pixels}px`;
-        //style['height'] = `${pixels}px`;
 
-        style['background-position-y'] = `${frame.height - pixels}px`
-        style['background-repeat'] = 'no-repeat'
-        break
+          //style['width'] = `${pixels}px`;
+          style[`background-position-x`] = `-${
+            frame.width -
+            pixels}px`
+          style[`background-repeat`] = `no-repeat`
+
+          console.log(pixels, percent, frame.width, size.width)
+          break
+        }
+        case `vertical`: {
+          let pixels = (frame.height / 100.0) * percent
+
+          //style['bottom'] = `${position.top + size.height}px`;
+          //style['margin-top'] = `${size.height - pixels}px`;
+          //style['height'] = `${pixels}px`;
+
+          style[`background-position-y`] = `${frame.height - pixels}px`
+          style[`background-repeat`] = `no-repeat`
+          break
+        }
       }
     }
 
     this.setStyle(style)
 
-    let placeholder = this.get('widget.options.placeholder')
+    let placeholder = this.getOption(`placeholder`)
     if (placeholder) {
       placeholder = this.getWidget(placeholder)
-      if (placeholder) {placeholder.setValue(value)}
+      console.log(placeholder)
+      if (placeholder) {
+        placeholder.setValue(value)
+      }
     }
-  },
 
+    this.set(`widget.value`, value)
+    return value
+  }
+
+  /**
+   *
+   * @returns {boolean}
+   */
   click() {
     //let value = this.getValue();
     let min = this.getMin()
@@ -84,4 +138,6 @@ export default GuiWidget.extend({
 
     return false
   }
-})
+}
+
+export default GuiGauge

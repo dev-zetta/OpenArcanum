@@ -49,5 +49,8 @@ export default function() {
     return guiWidgets.find(id) // users in the second case
   })
 
+  //this.passthrough('https://conversejs.org/**');
+
   /*this.get('/gui-widgets');*/
+
 }

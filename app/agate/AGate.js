@@ -4,38 +4,58 @@
 import { Utils } from './shared/misc/Utils'
 import { Math } from './shared/misc/Math'
 
-//import 'reflect-metadata';
-
 class AGate {
-  static getAppPath(subDir = '') {
-    return `/media/maxli/Data/dev/ArcanumAlive/Data/converted/${subDir}`
+  Enum = requireNode(`enum`)
+  Utils = Utils
+  Math = Math
+
+  Const = {
+    Sprite: {
+      DefaultExt: `gif`
+    }
   }
 
-  static getDataPath(subDir = '') {
+  /**
+   *
+   * @param config
+   */
+  constructor(config) {
+    this.config = config
+  }
+
+  /**
+   *
+   * @param path
+   * @returns {string}
+   */
+  getAppPath(path = ``) {
+    if (path.charAt(0) === `/`) {
+      return path // dont append absolute path
+    }
+
+    return `${this.config.dataPath}/${path}`
+  }
+
+  /**
+   *
+   * @param subDir
+   * @returns {string}
+   */
+  getDataPath(subDir = ``) {
     return `${subDir}`
   }
 
-  /*static getDataUrl(subDir = '') {
-      return `http://localhost:7000/${subDir}`
-  }*/
-
-  static getScriptsPath(subDir = '') {
-    return `/media/maxli/Data/dev/OpenArcanum/app/agate/${subDir}`
+  /**
+   *
+   * @param subDir
+   * @returns {string}
+   */
+  getScriptsPath(subDir = ``) {
+    return `${this.config.scriptsPath}/${subDir}`
   }
 
-  static requireNode(name) {
+  requireNode(name) {
     return requireNode(name)
-  }
-}
-
-AGate.Enum = AGate.requireNode('enum')
-//AGate.Engine = Engine
-AGate.Utils = Utils
-AGate.Math = Math
-
-AGate.Const = {
-  Sprite: {
-    DefaultExt: 'gif'
   }
 }
 

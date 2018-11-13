@@ -1,59 +1,78 @@
 import GuiWidget from '../gui-widget'
 
-export default GuiWidget.extend({
-  classNameBindings: ['active', 'disabled'],
-  bubble: false,
-  active: false,
-  disabled: false,
-  onClick: null,
+import { className, attribute } from '@ember-decorators/component'
+
+class GuiButton extends GuiWidget {
+  @className(`active`)
+  disabled = false
+
+  bubble = false
+  active = false
+  disabled = false
+  onClick = null
+  toggled = false
 
   /**
    *
    */
   click(e) {
-    this._super(...arguments)
+    super.click(...arguments)
 
-    let action = this.get('onClick')
-    console.log(action)
-
+    let action = this.get(`onClick`)
     if (action !== null) {
-      let promise = action(this.get('value'))
+      let promise = action(this.get(`value`))
       if (
         promise &&
-        typeof promise.then === 'function' &&
-        !this.get('isDestroyed')
+        typeof promise.then === `function` &&
+        !this.get(`isDestroyed`)
       ) {
-        this.set('textState', 'pending')
+        this.set(`textState`, `pending`)
         promise.then(
           () => {
-            if (!this.get('isDestroyed')) {
-              this.set('textState', 'resolved')
+            if (!this.get(`isDestroyed`)) {
+              this.set(`textState`, `resolved`)
             }
           },
           () => {
-            if (!this.get('isDestroyed')) {
-              this.set('textState', 'rejected')
+            if (!this.get(`isDestroyed`)) {
+              this.set(`textState`, `rejected`)
             }
           }
         )
       }
-      return this.get('bubble')
+      return this.get(`bubble`)
     }
-  },
+  }
+
+  toggle() {
+    let toggled = this.get(`toggled`)
+    this.changeFrame(toggled ? 2 : 1)
+    this.set(`toggled`, !toggled)
+  }
 
   mouseEnter() {
-    this.changeFrame(2)
-  },
+    if (!this.get(`toggled`)) {
+      this.changeFrame(2)
+    }
+  }
 
   mouseLeave() {
-    this.changeFrame(0)
-  },
+    if (!this.get(`toggled`)) {
+      this.changeFrame(0)
+    }
+  }
 
   mouseDown() {
-    this.changeFrame(1)
-  },
+    if (!this.get(`toggled`)) {
+      this.changeFrame(1)
+    }
+  }
 
   mouseUp() {
-    this.changeFrame(2)
+    if (!this.get(`toggled`)) {
+      this.changeFrame(2)
+    }
   }
-})
+}
+
+export default GuiButton

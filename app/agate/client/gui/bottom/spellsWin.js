@@ -1,15 +1,15 @@
 module.exports = {
-  parent: 'bottomWin',
-  type: 'group',
+  parent: `bottomWin`,
+  type: `group`,
   position: [196, 54],
-  sprite: 'DialogueWindow',
+  sprite: `DialogueWindow`,
   visible: false,
 
   components: {
     icon: {
-      type: 'icon',
+      type: `icon`,
       position: [20, 20],
-      sprite: 'ShieldGeneralIcon'
+      sprite: `ShieldGeneralIcon`
     }
   }
 }

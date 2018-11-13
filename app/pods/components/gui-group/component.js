@@ -1,45 +1,57 @@
 import GuiWidget from '../gui-widget'
 
-export default GuiWidget.extend({
-  classNameBindings: ['active', 'disabled'],
+import { className, attribute } from '@ember-decorators/component';
 
-  bubble: false,
-  active: false,
-  disabled: false,
 
-  onClick: null,
+class GuiGroup extends GuiWidget {
+
+  @className(`active`)
+  @className(`disabled`)
+
+
+  @attribute
+  bubble = false
+
+  @attribute
+  active = false
+
+  @attribute
+  disabled = false
+
+  @attribute
+  onClick = null
 
   /**
    *
    */
   click(e) {
-    this.emitOwnEvent('click')
+    this.emitOwnEvent(`click`)
 
-    let action = this.get('onClick')
+    let action = this.get(`onClick`)
     if (action !== null) {
-      let promise = action(this.get('value'))
+      let promise = action(this.get(`value`))
       if (
         promise &&
-        typeof promise.then === 'function' &&
-        !this.get('isDestroyed')
+        typeof promise.then === `function` &&
+        !this.get(`isDestroyed`)
       ) {
-        this.set('textState', 'pending')
+        this.set(`textState`, `pending`)
         promise.then(
           () => {
-            if (!this.get('isDestroyed')) {
-              this.set('textState', 'resolved')
+            if (!this.get(`isDestroyed`)) {
+              this.set(`textState`, `resolved`)
             }
           },
           () => {
-            if (!this.get('isDestroyed')) {
-              this.set('textState', 'rejected')
+            if (!this.get(`isDestroyed`)) {
+              this.set(`textState`, `rejected`)
             }
           }
         )
       }
-      return this.get('bubble')
+      return this.get(`bubble`)
     }
-  },
+  }
 
   /*mouseEnter() {
     this.changeFrame(2)
@@ -56,4 +68,6 @@ export default GuiWidget.extend({
   mouseUp() {
     this.changeFrame(2)
   }*/
-})
+}
+
+export default GuiGroup

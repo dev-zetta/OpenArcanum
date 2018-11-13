@@ -9,10 +9,7 @@ export default function(server) {
   // server.createList('post', 10);
 
   function componentToWidget(key, component, parent) {
-    let widget = Object.assign(
-      { id: key /*'componentName': `gui-${component.type}`*/ },
-      component
-    )
+    let widget = Object.assign({ id: key }, component)
     widget.parent = parent
 
     /*if (widget.position)
@@ -29,9 +26,13 @@ export default function(server) {
       widget.listeners = Manager.objectToJson(widget.listeners)
     }
 
+    if (widget.methods) {
+      widget.methods = Manager.objectToJson(widget.methods)
+    }
+
     let components = widget.components
     widget.components = null
-    let instance = server.create('gui-widget', widget, parent)
+    let instance = server.create(`gui-widget`, widget, parent)
 
     if (components) {
       let instances = []
@@ -43,7 +44,7 @@ export default function(server) {
         instances.push(childInstance)
       }
 
-      instance.update('components', instances)
+      instance.update(`components`, instances)
     }
 
     instance.save()

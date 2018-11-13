@@ -1,12 +1,24 @@
-@import url("theme.css");
-@import url("gui-images.css");
+/*@import url("gui-images.css");*/
 @import url("fonts.css");
-@import "pod-styles";
 @import "ember-bootstrap/bootstrap";
+@import "theme";
 
-@function remote-image-url($name) {
-  @return unquote("url('/media/maxli/Data/dev/OpenArcanum/data/gui/" + $name + "')");
+.gui-widget {
+  /*border: 1px solid #fff;*/
+  position: absolute;
+  white-space: nowrap;
+  width: auto;
+  height: auto;
+  pointer-events: auto;
+  user-select: none;
+
+  //background-position: left center;
+  -webkit-transform: translateZ(0); /* Bugfix for chrome https://github.com/marceljuenemann/angular-drag-and-drop-lists/issues/256 */
 }
+
+/*@function remote-image-url($name) {
+  @return unquote("url('/media/maxli/Data/dev/OpenArcanum/data/gui/" + $name + "')");
+}*/
 
 * {
   font-family: Georgia;
@@ -57,38 +69,76 @@ html {
 
 
 
+.jsPanel.has-toolbar {
 
-
-
-
-
-
-
-
-.item {
-  margin: 5px;
-  z-index: 1;
+  /*background-clip: content-box;*/
 }
 
-.item.muuri-item-hidden {
+.jsPanel-headerlogo .title-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-size: cover;
+  margin-top: 6px;
+}
+
+.jsPanel.jsPanel-standard .jsPanel-hdr {
+  /*position: absolute;*/
+  width: 100%;
+  height: 30px;
+  top: -26px;
+  left: 0px;
+  background-color: #4a3929;
+  border-bottom: 2px solid #a38642;
+  padding-left: 10px;
+  padding-right: 10px;
+  cursor: pointer;
+  /*border-radius: 8px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;*/
+
+  .jsPanel-title {
+    font-family: inherit;
+    color: #a38642;
+    font-size: 1.2rem;
+    pointer-events: none;
+  }
+
+  .jsPanel-btn-close {
+    border-radius: 0;
+
+    &:hover {
+      background: none;
+      color: #e0e0e0;
+    }
+  }
+}
+
+
+.jsPanel.jsPanel-standard {
+  /*position: relative;*/
+  /*border: 1px solid #2c2c2c;*/
+  border: 2px solid #a38642;
+  /*box-shadow: 0px 0px 10px 4px rgba(255,187,0,0.62);*/
+  //clip-path: polygon(5% 0%, 95% 0%, 100% 5%, 100% 95%, 95% 100%, 5% 100%, 0% 95%, 0% 5%);
+  overflow: hidden !important;
+  border-radius: 8px;
+}
+
+
+.jsPanel .jsPanel-content {
+  background: none;
+  overflow: hidden;
+}
+
+
+.jsPanel .jsPanel-hdr * {
+  color: #a38642
+}
+/*
+.tilePane {
   z-index: 0;
 }
-.item.muuri-item-releasing {
-  z-index: 2;
-}
-.item.muuri-item-dragging {
-  z-index: 3;
-}
+*/
 
-.item-content {
-  position: relative;
-}
-
-.item.muuri-item-dragging .item-content {
-  background: blue;
-}
-.item.muuri-item-releasing .item-content {
-  background: blueViolet;
-}
-
-
+@import "pod-styles";

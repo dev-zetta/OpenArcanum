@@ -1,47 +1,51 @@
 module.exports = {
   //parent: "middleWin",
-  type: 'window',
-  sprite: 'MapMain',
-  align: 'center-center',
-  visible: false,
-  style: { borderRadius: '16px' },
+  type: `window`,
+  sprite: `MapMain`,
+  position: `center`,
+  visible: true,
+  options: {
+    toolbar: true,
+    title: `Map`
+  },
 
   components: {
     mapZoom: {
-      type: 'icon',
+      type: `icon`,
       position: [25, 24],
-      sprite: 'CharPCC'
+      sprite: `SchmPCLens`
     },
 
     travelBtn: {
-      type: 'button',
+      type: `button`,
       position: [698, 312],
-      sprite: 'MapTravelBut'
+      sprite: `MapTravelBut`
     },
 
     zoomBtn: {
-      type: 'button',
+      type: `button`,
       position: [20, 165],
-      sprite: 'MapZoomBut'
+      sprite: `MapZoomBut`
     },
 
     wholeBtn: {
-      type: 'button',
+      type: `button`,
       position: [19, 267],
-      sprite: 'MapWholeBut'
+      sprite: `MapWholeBut`
     },
 
     navBtn: {
-      type: 'button',
+      type: `button`,
       position: [375, 347],
-      sprite: 'NavButton'
+      sprite: `NavButton`
     },
 
     mapView: {
-      type: 'group',
+      type: `map-view`,
       position: [150, 11],
       size: [501, 365],
-      style: { background: 'rgba(255, 255, 255, 0.7)', zIndex: 0 }
+      style: { zIndex: -1 },
+      //sprite: `worldmap`
     }
   }
 }

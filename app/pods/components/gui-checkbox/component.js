@@ -1,4 +1,7 @@
-import GuiWidget from '../gui-widget';
+import GuiWidget from '../gui-widget'
 
-export default GuiWidget.extend({
-});
+class GuiCheckbox extends GuiWidget {
+  // https://www.npmjs.com/package/ember-toggle
+}
+
+export default GuiCheckbox

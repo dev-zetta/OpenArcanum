@@ -1,6 +1,7 @@
-import DS from 'ember-data';
+import DS from 'ember-data'
 
-export default DS.JSONAPIAdapter.extend({
-  namespace: '',
-  include: ['components']
-});
+import AdapterFetch from 'ember-fetch/mixins/adapter-fetch'
+export default DS.JSONAPIAdapter.extend(AdapterFetch, {
+  namespace: ``,
+  include: [`components`]
+})

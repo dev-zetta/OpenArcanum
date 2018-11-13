@@ -8,17 +8,21 @@ import { IsoSprite } from '../libs/phaser-isometric/IsoSprite'
 import { Sector } from '../shared/map/Sector'
 import { Location } from '../shared/Location'
 
-const dat = AGate.requireNode('dat.gui')
+const dat = AGate.requireNode(`dat.gui`)
 
 let DatConfig = {
   Entity: {
-    exclude: ['systems', 'ecs', 'map']
+    exclude: [`systems`, `ecs`, `map`]
   }
 }
 
 export class Scene extends Phaser.Scene {
+  /**
+   *
+   * @param client
+   */
   constructor(client) {
-    super({ key: 'default' })
+    super({ key: `default`})
     this.client = client
     this.engine = client.engine
     this.game = client.game
@@ -46,10 +50,14 @@ export class Scene extends Phaser.Scene {
     //parent.open();
 
     for (let key in object) {
-      if (key.charAt(0) === '_') {continue}
+      if (key.charAt(0) === `_`) {
+        continue
+      }
 
       let value = object[key]
-      if (AGate.Utils.isNil(value)) {continue}
+      if (AGate.Utils.isNil(value)) {
+        continue
+      }
 
       if (AGate.Utils.isObjectLike(value)) {
         if (maxDepth > 0) {
@@ -75,20 +83,22 @@ export class Scene extends Phaser.Scene {
       return true
     }
 
-    let descriptor = AGate.Utils.merge(options, { key: key, type: type })
+    let descriptor = AGate.Utils.merge(options, { key, type })
     let textures = this.sys.textures
 
     let loaded = await this.engine.assetLoader.loadAsset(descriptor)
-    if (!loaded) {return false}
+    if (!loaded) {
+      return false
+    }
 
     switch (descriptor.type) {
-      case 'atlas': {
+      case `atlas`: {
         let texture = textures.addAtlas(
           descriptor.key,
           descriptor.image,
           descriptor.meta
         )
-        let frames = descriptor.meta['frames']
+        let frames = descriptor.meta[`frames`]
 
         for (let key in frames) {
           let frameInfo = frames[key]
@@ -265,7 +275,7 @@ export class Scene extends Phaser.Scene {
         //`FPS: ${this.time.fps}`
       ])
     } else {
-      this.debugText = this.client.guiManager.findWidget('debugText')
+      this.debugText = this.client.guiManager.findWidget(`debugText`)
     }
   }
 
@@ -281,8 +291,7 @@ export class Scene extends Phaser.Scene {
    *
    */
   preload() {
-    AGate.Utils.logError('Preloading client...')
-    console.log(this.game)
+    AGate.Utils.logError(`Preloading client...`)
     this.cursorKeys = this.input.keyboard.createCursorKeys()
 
     const controlConfig = {
@@ -313,7 +322,7 @@ export class Scene extends Phaser.Scene {
    *
    */
   create() {
-    AGate.Utils.logError('Creating client...')
+    AGate.Utils.logError(`Creating client...`)
     // This is used to set a game canvas-based offset for the 0, 0, 0 isometric coordinate - by default
     // this point would be at screen coordinates 0, 0 (top left) which is usually undesirable.
 
@@ -327,7 +336,7 @@ export class Scene extends Phaser.Scene {
 
     //this.spawnTiles();
 
-    this.input.on('gameobjectdown', (pointer, gameObject) => {
+    this.input.on(`gameobjectdown`, (pointer, gameObject) => {
       //console.log(gameObject);
 
       if (gameObject.data) {
@@ -369,10 +378,10 @@ export class Scene extends Phaser.Scene {
    * @param map
    */
   onMapLoading(map) {
-    AGate.Utils.logError('Scene: onMapLoading')
+    AGate.Utils.logError(`Scene: onMapLoading`)
 
-    let dataUrl = AGate.getDataPath('Gfx/2D')
-    this.loadAsset('tiles', 'atlas', {
+    let dataUrl = AGate.getDataPath(`Gfx/2D`)
+    this.loadAsset(`tiles`, `atlas`, {
       texture: `${dataUrl}/Tile/tiles.png`,
       data: `${dataUrl}/Tile/tiles.json`
     })
@@ -385,7 +394,7 @@ export class Scene extends Phaser.Scene {
    * @param map
    */
   onMapLoaded(map) {
-    AGate.Utils.logError('Scene: onMapLoaded')
+    AGate.Utils.logError(`Scene: onMapLoaded`)
 
     //
     let center = this.iso.projectXY({
@@ -428,10 +437,14 @@ export class Scene extends Phaser.Scene {
       let location = new Location(pos[1], pos[0])
 
       let sector = sectors[location.sectorY][location.sectorX]
-      if (!sector || !sector.tiles) {continue}
+      if (!sector || !sector.tiles) {
+        continue
+      }
 
       let tile = sector.tiles[location.tileY][location.tileX]
-      if (!tile || !tile.sprite) {continue}
+      if (!tile || !tile.sprite) {
+        continue
+      }
 
       tile.sprite.setTint(color)
       //tile.sprite.setBlendMode('BlendAdd');

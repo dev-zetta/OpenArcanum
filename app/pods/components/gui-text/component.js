@@ -2,19 +2,18 @@
 
 import GuiWidget from '../gui-widget'
 
-export default GuiWidget.extend({
-  value: "100",
-
+class GuiText extends GuiWidget {
   setValue(value) {
     if (AGate.Utils.isArray(value)) {
-      value = value.join('\n')
+      value = value.join(`\n`)
     }
 
-    this.set("value", value)
-  },
+    this.set(`widget.value`, value)
+  }
 
   click() {
     return false
   }
+}
 
-})
+export default GuiText

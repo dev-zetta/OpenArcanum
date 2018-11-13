@@ -128,8 +128,6 @@ $font-size-base: 0.85rem;
 $text-black: #000;
 $text-white: #fff;
 
-@import 'ember-bootstrap/bootstrap';
-
 @function color-yiq($color) {
   $r: red($color);
   $g: green($color);

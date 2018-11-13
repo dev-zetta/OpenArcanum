@@ -66,9 +66,12 @@ export class EntitySystem extends ECS {
    *
    * @returns {Promise<void>}
    */
-  async loadPrototypes() {
-    let assetLoader = this.map.engine.assetLoader
+  async loadPrototypes(reload = false) {
+    if (this.prototypes.size > 0 && !reload) {
+      return
+    }
 
+    let assetLoader = this.map.engine.assetLoader
     let dataPath = AGate.getDataPath('Prototypes')
 
     let typeDirs = await assetLoader.findDirs(dataPath)

@@ -23,7 +23,7 @@ export class GameMap {
    */
   async load(path) {
     this.path = path
-    this.name = ''
+    this.name = ``
     this.isLoading = true
     this.isLoaded = false
 
@@ -79,7 +79,7 @@ export class GameMap {
     for (let [key, value] of entityTypes) {
       let entityFiles = await this.engine.assetLoader.findFiles(
         `${path}/${key}`,
-        '.json'
+        `.json`
       )
 
       for (let [key, value] of entityFiles) {
@@ -275,25 +275,23 @@ export class GameMap {
           }
         } else {
           //tile
-          alert('error')
+          alert(`error`)
         }
       }
     }
 
-    result.sort((a, b) => {
-      return a.distanceToCenter - b.distanceToCenter
-    })
+    result.sort((a, b) => a.distanceToCenter - b.distanceToCenter)
 
     return result
   }
 
   async addPlayer(location = null) {
-    let file = '16093.json'
+    let file = `16093.json`
     let path = AGate.getDataPath()
 
     let data = await this.engine.assetLoader.loadJsonFile(`${path}/${file}`)
-    if (location && data['Base']) {
-      data['Base'].location = location
+    if (location && data[`Base`]) {
+      data[`Base`].location = location
     }
 
     let id = AGate.Utils.getFileBase(path)

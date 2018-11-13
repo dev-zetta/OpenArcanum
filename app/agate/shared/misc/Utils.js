@@ -1,15 +1,19 @@
 /* global AGate, window, requireNode */
 
-const console = requireNode('console')
-const process = requireNode('process')
 
-const fs = requireNode('fs')
-const lodash = requireNode('lodash')
-const find = requireNode('find')
+const process = requireNode(`process`)
 
-var myConsole = new console.Console(process.stdout, process.stderr)
+const fs = requireNode(`fs`)
+const lodash = requireNode(`lodash`)
+const find = requireNode(`find`)
+
+const Console = requireNode(`console`)
+
+let myConsole = false ? new Console.Console(process.stdout, process.stderr) : console
 
 // https://lodash.com/docs/4.17.4
+
+const uuidv5 = requireNode(`uuid/v5`)
 
 export class Utils extends lodash {
   /**
@@ -27,14 +31,21 @@ export class Utils extends lodash {
    * @returns {string | *}
    */
   static getLastDir(path) {
-    return path.substring(path.lastIndexOf('/') + 1)
+    return path.substring(path.lastIndexOf(`/`) + 1)
   }
 
   /**
    *
    */
   static logError() {
-    myConsole.log('AGate: ', ...arguments)
+    myConsole.error(`AGate: `, ...arguments)
+  }
+
+  /**
+   *
+   */
+  static log() {
+    myConsole.log(`AGate: `, ...arguments)
   }
 
   /**
@@ -43,19 +54,19 @@ export class Utils extends lodash {
    * @returns {Function}
    */
   static stringToFunction(str) {
-    let bodyIdx = str.indexOf('{')
-    let body = str.substring(bodyIdx + 1, str.lastIndexOf('}'))
+    let bodyIdx = str.indexOf(`{`)
+    let body = str.substring(bodyIdx + 1, str.lastIndexOf(`}`))
     let declare = str.substring(0, bodyIdx)
 
     let params
-    let bracketPos = declare.indexOf('(')
+    let bracketPos = declare.indexOf(`(`)
     if (bracketPos === -1) {
-      params = declare.substring(0, declare.lastIndexOf('=>')).trim()
+      params = declare.substring(0, declare.lastIndexOf(`=>`)).trim()
     } else {
-      params = declare.substring(bracketPos + 1, declare.lastIndexOf(')'))
+      params = declare.substring(bracketPos + 1, declare.lastIndexOf(`)`))
     }
 
-    let args = params.split(',')
+    let args = params.split(`,`)
 
     return new Function(args, body)
   }
@@ -66,8 +77,8 @@ export class Utils extends lodash {
    * @returns {string | *}
    */
   static getFileBase(path) {
-    let dotPos = path.lastIndexOf('.')
-    let slashPos = path.lastIndexOf('/')
+    let dotPos = path.lastIndexOf(`.`)
+    let slashPos = path.lastIndexOf(`/`)
     return path.substring(slashPos + 1, dotPos)
   }
 
@@ -77,10 +88,9 @@ export class Utils extends lodash {
    * @param callback
    */
   static loadScripts(path, callback) {
-
     path = AGate.getScriptsPath(path)
 
-    let regExp = new RegExp(`\..js`, 'i')
+    let regExp = new RegExp(`\..js`, `i`)
     let list = find.fileSync(regExp, path)
 
     console.log(list)
@@ -91,10 +101,15 @@ export class Utils extends lodash {
       callback(name, script)
     })
   }
+
+  static getRandomUUID() {
+    const MY_NAMESPACE = `4ea2b974-fc49-4c84-b03d-7cb70946e583`
+    return uuidv5(`agate-ecs`, MY_NAMESPACE)
+  }
 }
 
 if (window.performance) {
   Utils.performance = window.performance
 } else {
-  alert('TODO')
+  alert(`TODO`)
 }

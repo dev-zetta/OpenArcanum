@@ -1,50 +1,71 @@
 /* global AGate */
 
 import Component from '@ember/component'
-import { inject as service } from '@ember/service'
+import { service } from '@ember-decorators/service'
+import { action, computed } from '@ember-decorators/object'
+import { classNames, attribute } from '@ember-decorators/component'
+import { runTask, runDisposables } from 'ember-lifeline'
 
 import { Engine } from 'open-arcanum/agate/shared/Engine'
 import { Manager } from 'open-arcanum/agate/client/Gui'
 
 import widgetLayout from 'open-arcanum/pods/components/gui-widget/template'
-
 import podNames from 'ember-component-css/pod-names'
 
-export default Component.extend({
-  'data-id': 0,
-  store: service(),
-  classNames: podNames['gui-widget'], //['gui-widget'],
-  attributeBindings: ['draggable', 'data-id'],
-  draggable: 'false',
-  visible: true,
+const getWidgetClass = (type, dot = false) =>
+  dot ? `.${podNames[`gui-${type}`]}` : podNames[`gui-${type}`]
+
+let cash = requireNode(`cash-dom`)
+
+import anime from 'ember-animejs'
+
+@classNames(`gui-widget ${getWidgetClass(`widget`)}`)
+class GuiWidget extends Component {
+  @attribute(`data-id`)
+  @computed('widget')
+  get dataId() {
+    return this.get('widget.id') || 0
+  }
+
+  @service
+  store
+  @service
+  hifi
+
+  /*@attribute
+  draggable = false*/
+
+  @attribute
+  visible = true
+
+  sprite = null
 
   /**
    *
    */
-  init() {
-    this._super(...arguments)
+  constructor() {
+    super(...arguments)
+
+    this.getWidgetClass = getWidgetClass
     this.children = new Map()
     this.cachedWidgets = new Map()
 
-    let widgetProps = this.get('widget')
-    let childLayout = this.get('layout')
-    this.set('layout', widgetLayout)
-
-    let child = `components/${widgetProps.componentName}` //childLayout.referrer.moduleName.replace('open-arcanum/pods/', '').replace('/template.hbs', '')
-    this.set('child_partial', child)
-  },
+    this.set(`layout`, widgetLayout)
+  }
 
   /**
    *
    * @returns {*}
    */
   getElement() {
-    if (!this.jElement) {
-      this.jElement = this.$()
+    if (!this.cashElement) {
+      let element = this.get(`element`)
+      if (element) {
+        this.cashElement = cash(element)
+      }
     }
-
-    return this.jElement
-  },
+    return this.cashElement
+  }
 
   /**
    *
@@ -53,7 +74,7 @@ export default Component.extend({
   getParent() {
     return this.parentView
     //return this.get('widget.parent');
-  },
+  }
 
   /**
    *
@@ -61,7 +82,7 @@ export default Component.extend({
   getChildren() {
     return this.children
     // return this.get('widget.components');
-  },
+  }
 
   /**
    *
@@ -69,6 +90,10 @@ export default Component.extend({
    * @returns {V}
    */
   getWidget(id) {
+    if (!this.cachedWidgets) {
+      return null
+    }
+
     let widget = this.cachedWidgets.get(id)
 
     if (widget) {
@@ -76,10 +101,13 @@ export default Component.extend({
     }
 
     widget = this.getManager().findWidget(id)
+    if (widget) {
+      this.cachedWidgets.set(id, widget)
+    }
 
-    this.cachedWidgets.set(id, widget)
+
     return widget
-  },
+  }
 
   /**
    *
@@ -88,7 +116,7 @@ export default Component.extend({
   addChild(child) {
     let id = child.getId()
     this.children.set(id, child)
-  },
+  }
 
   /**
    *
@@ -97,20 +125,36 @@ export default Component.extend({
    */
   getChild(id) {
     return this.getManager().findWidget(id, this.children)
-  },
+  }
+
+  getStore() {
+    return this.store // this.get('store')
+  }
+
+  getOptions() {
+    return this.get(`widget.options`)
+  }
+
+  getOption(name) {
+    return this.get(`widget.options.${name}`)
+  }
+
+  makeChildId(key) {
+    let id = this.getId()
+    return `${id}.${key}`
+  }
 
   /**
    *
    * @param definition
    * @returns {*|DS.Model}
    */
-  createChildModel(definition) {
-    let store = this.get('store')
+  createModel(definition) {
+    let store = this.getStore()
 
-    definition = Object.assign({ parent: this.get('widget') }, definition)
-    let model = store.peekRecord('gui-widget', definition.id)
+    let model = store.peekRecord(`gui-widget`, definition.id)
     if (model) {
-      console.log('Already exists, updating', definition.id)
+      console.log(`Already exists, updating`, definition.id)
       for (let property in definition) {
         //if (definition.hasOwnProperty(property)) {
         model.set(property, definition[property])
@@ -119,21 +163,30 @@ export default Component.extend({
 
       return model
     }
-    model = store.createRecord('gui-widget', definition)
+    model = store.createRecord(`gui-widget`, definition)
     return model
-  },
+  }
+
+  /**
+   *
+   * @param definition
+   * @returns {*|DS.Model}
+   */
+  createChildModel(definition) {
+    return this.createModel(
+      Object.assign({parent: this.get(`widget`)}, definition)
+    )
+  }
 
   /**
    *
    * @param definition
    */
   createModelsForChildren(definition) {
-    let id = this.getId()
-
     for (let key in definition) {
       let widget = Object.assign(
         {
-          id: `${id}:${key}`
+          id: this.makeChildId(key)
         },
         definition[key]
       )
@@ -141,7 +194,25 @@ export default Component.extend({
       let model = this.createChildModel(widget)
       this.set(key, model)
     }
-  },
+  }
+
+  /**
+   *
+   * @param definition
+   */
+
+  createChildren(definition) {
+    for (let key in definition) {
+      let widget = Object.assign(
+        {
+          id: this.makeChildId(key)
+        },
+        definition[key]
+      )
+
+      let model = this.createChild(widget)
+    }
+  }
 
   /**
    *
@@ -151,9 +222,34 @@ export default Component.extend({
   createChild(definition) {
     let model = this.createChildModel(definition)
 
-    this.get('widget.components').pushObject(model)
+    this.get(`widget.components`).pushObject(model)
     return model
-  },
+  }
+
+  /**
+   *
+   * @param id
+   * @param method
+   * @param args
+   */
+  callComponent(id, method, ...args) {
+    let widget = this.getWidget(id)
+    if (!widget) {
+      AGate.Utils.logError(`Component ${id} not found`)
+      return
+    }
+
+    if (AGate.Utils.isFunction(widget[method])) {
+      widget[method].apply(widget, this, ...args)
+      AGate.Utils.logError(`Calling component method ${method}`)
+    }else {
+      let methods = widget.getMethods()
+      if (methods && AGate.Utils.isFunction(methods[method])) {
+        methods[method].apply(widget, this, ...args)
+        AGate.Utils.logError(`Calling component method ${method}`)
+      }
+    }
+  }
 
   /**
    *
@@ -161,9 +257,13 @@ export default Component.extend({
    * @param args
    */
   emitEvent(name, ...args) {
-    console.log(name, ...args)
-    this.getEngine().events.emit(`ui.${name}`, ...args)
-  },
+    if (name.charAt(0) === `:`) {
+      // if starts with :, it refers to 'this'
+      name = `${this.getId()}${name}`
+    }
+
+    this.getEngine().events.emitUI(name, ...args)
+  }
 
   /**
    *
@@ -171,8 +271,13 @@ export default Component.extend({
    * @param listener
    */
   listenEvent(name, listener) {
-    this.getEngine().events.on(`ui.${name}`, listener)
-  },
+    if (name.charAt(0) === `:`) {
+      // if starts with :, it refers to 'this'
+      name = `${this.getId()}${name}`
+    }
+
+    this.getEngine().events.listenUI(name, listener)
+  }
 
   /**
    *
@@ -180,31 +285,61 @@ export default Component.extend({
    * @param listener
    */
   listenEventOnce(name, listener) {
-    this.getEngine().events.once(`ui.${name}`, listener)
-  },
+    this.getEngine().events.listenOnceUI(name, listener)
+  }
 
   /**
-   *
+   * Emit event for given component using its id
+   * @param name
+   * @param args
+   */
+  emitComponentEvent(id, name, ...args) {
+    this.getEngine().events.emitUI(`${id}:${name}`, ...args)
+  }
+
+  /**
+   * Listen to events of given component using its id
+   * @param name
+   * @param listener
+   */
+  listenComponentEvent(id, name, listener) {
+    this.getEngine().events.listenUI(`${id}:${name}`, listener)
+  }
+
+  /**
+   * Calls own event and emits event to the world, so listeners can receive the event as well
    * @param name
    * @param args
    * @returns {boolean}
    */
   emitOwnEvent(name, ...args) {
-    console.log('emitOwnEvent', this.getId(), name)
-    let events = this.get('widget.events')
-    if (!events) {
-      return false
+    AGate.Utils.log(`emitOwnEvent`, this.getId(), name)
+    let events = this.getEvents()
+    if (events) {
+      let method = events[name]
+      if (AGate.Utils.isFunction(method)) {
+        method.apply(this, args)
+      }
     }
 
-    let method = events[name]
-    if (!AGate.Utils.isFunction(method)) {
-      return false
-    }
+    this.emitComponentEvent(this.getId(), name)
+  }
 
-    method.call(this, ...args)
+  getComponentName() {
+    return this.get(`widget.componentName`)
+  }
 
-    this.emitEvent(`${this.getId()}:${name}`)
-  },
+  getEvents() {
+    return this.get(`widget.events`)
+  }
+
+  getListeners() {
+    return this.get(`widget.listeners`)
+  }
+
+  getMethods() {
+    return this.get(`widget.methods`)
+  }
 
   /**
    *
@@ -212,7 +347,7 @@ export default Component.extend({
    */
   getEngine() {
     return Engine.instance
-  },
+  }
 
   /**
    *
@@ -220,7 +355,7 @@ export default Component.extend({
    */
   getClient() {
     return this.getEngine().client
-  },
+  }
 
   /**
    *
@@ -228,21 +363,21 @@ export default Component.extend({
    */
   getManager() {
     return this.getEngine().client.guiManager
-  },
+  }
 
   /**
    *
    */
   getId() {
-    return this.get('widget.id')
-  },
+    return this.get(`widget.id`)
+  }
 
   /**
    *
    */
   isVisible() {
-    return this.get('widget.visible') //his.getElement().is(':visible');
-  },
+    return this.get(`widget.visible`)
+  }
 
   /**
    *
@@ -250,27 +385,25 @@ export default Component.extend({
    * @param fade
    */
   setVisibility(visible) {
-    //console.log(this.getId(), 'setVisibility', visible)
-
     if (visible) {
-      this.getElement().show()
+      this.getElement().css({display: `block` })
       this.bringToFront()
-      this.emitOwnEvent('shown')
+      this.emitOwnEvent(`shown`)
     } else {
-      this.getElement().hide()
+      this.getElement().css({display: `none` })
       //this.bringToBack()
-      this.emitOwnEvent('hidden')
+      this.emitOwnEvent(`hidden`)
     }
 
-    this.set('widget.visible', visible)
-  },
+    this.set(`widget.visible`, visible)
+  }
 
   /**
    *
    */
   toggleVisibility() {
-    this.setVisibility(!this.get('widget.visible'))
-  },
+    this.setVisibility(!this.get(`widget.visible`))
+  }
 
   /**
    *
@@ -282,7 +415,7 @@ export default Component.extend({
     }
 
     this.setVisibility(true)
-  },
+  }
 
   /**
    *
@@ -294,7 +427,7 @@ export default Component.extend({
     }
 
     this.setVisibility(false)
-  },
+  }
 
   /**
    *
@@ -303,13 +436,13 @@ export default Component.extend({
   toggle() {
     let visible = this.isVisible()
     this.setVisibility(!visible)
-  },
+  }
 
   /**
    *
    * @param animation
    */
-  showWithAnim(animation = 'show-in') {
+  showWithAnim(animation = `show-in`) {
     if (this.isVisible()) {
       return
     }
@@ -317,13 +450,13 @@ export default Component.extend({
     this.startAnimation(animation, {}, () => {
       this.setVisibility(true)
     })
-  },
+  }
 
   /**
    *
    * @param animation
    */
-  hideWithAnim(animation = 'show-out') {
+  hideWithAnim(animation = `show-out`) {
     if (!this.isVisible()) {
       return
     }
@@ -331,39 +464,39 @@ export default Component.extend({
     this.startAnimation(animation, {}, () => {
       this.setVisibility(false)
     })
-  },
+  }
 
   /**
    *
    * @param animation
    */
-  toggleWithAnim(animation = ['show-in', 'show-out']) {
+  toggleWithAnim(animation = [`show-in`, `show-out`]) {
     let visible = this.isVisible()
     this.startAnimation(visible ? animation[1] : animation[0], {}, () => {
       this.setVisibility(!visible, true)
     })
-  },
+  }
 
   /**
    *
    */
   bringToFront() {
-    this.getElement().css('z-index', '999')
-  },
+    this.getElement().css(`z-index`, `999`)
+  }
 
   /**
    *
    */
   bringToBack() {
-    this.getElement().css('z-index', '0')
-  },
+    this.getElement().css(`z-index`, `0`)
+  }
 
   /**
    *
    */
   getPosition() {
-    return this.get('widget.position')
-  },
+    return this.get(`widget.position`)
+  }
 
   /**
    *
@@ -371,17 +504,17 @@ export default Component.extend({
    * @param top
    */
   setPosition(left, top) {
-    this.set('widget.position', { left, top })
+    this.set(`widget.position`, { left, top })
 
     this.setStyle({ left: `${left}px`, top: `${top}px` })
-  },
+  }
 
   /**
    *
    */
   getSize() {
-    return this.get('widget.size')
-  },
+    return this.get(`widget.size`)
+  }
 
   /**
    *
@@ -392,17 +525,25 @@ export default Component.extend({
     let element = this.getElement()
 
     if (element) {
-      this.set('widget.size', { width, height })
+      this.set(`widget.size`, { width, height })
 
-      this.setStyle({ width: `${width}px`, height: `${height}px` })
+      if (AGate.Utils.isNumber(width)) {
+        width = `${width}px`
+      }
 
-      element.outerWidth(`${width}px`)
-      element.outerHeight(`${height}px`)
+      if (AGate.Utils.isNumber(height)) {
+        height = `${height}px`
+      }
+
+      this.setStyle({ width, height })
+
+      element.outerWidth(width)
+      element.outerHeight(height)
     } else {
       // Called before DirInsertElement
-      this._super(...arguments)
+      super.setSize(...arguments)
     }
-  },
+  }
 
   /**
    *
@@ -410,20 +551,31 @@ export default Component.extend({
    */
   setStyle(style) {
     let element = this.getElement()
+    if (!element) {
+      return
+    }
 
     if (AGate.Utils.isString(style)) {
-      element.attr('style', element.attr('style') + '; ' + style)
+      element.attr(`style`, element.attr(`style`) + `; ` + style)
     } else {
       element.css(style)
     }
-  },
+  }
 
   /**
    *
    */
-  getSprite() {
-    return this.get('widget.sprite')
-  },
+  getSpriteKey() {
+    return this.get(`widget.sprite`)
+  }
+
+  setSpriteKey(key) {
+    this.set(`widget.sprite`, key)
+  }
+
+  getSprite(key) {
+    return this.get(`sprite`)
+  }
 
   /**
    *
@@ -435,7 +587,7 @@ export default Component.extend({
 
     let sprite = this.getSpriteByKey(key)
     if (AGate.Utils.isUndefined(sprite)) {
-      AGate.Utils.logError(sprite)
+      AGate.Utils.logError(`Unable to find sprite: `, sprite)
       return false
     }
 
@@ -452,8 +604,8 @@ export default Component.extend({
       this.setSize(frame.width, frame.height)
     }
 
-    this.set('widget.sprite', sprite)
-  },
+    this.set(`sprite`, sprite)
+  }
 
   /**
    *
@@ -465,7 +617,7 @@ export default Component.extend({
 
     let sprite = guiManager.getSprite(key)
     return sprite
-  },
+  }
 
   /**
    *
@@ -475,7 +627,6 @@ export default Component.extend({
    * @returns {*}
    */
   startAnimation(name, options = {}, onFinish = null) {
-    let sprite = this.getSprite()
     let keyframes = []
 
     /*sprite.frames.forEach((frame, index) => {
@@ -492,14 +643,14 @@ export default Component.extend({
         options.repeat < 0
           ? Infinity
           : AGate.Utils.isNumber(options.repeat)
-            ? options.repeat
-            : 1
+          ? options.repeat
+          : 1
       //
       //playbackRate: 100
     }
 
     switch (name) {
-      case 'glow': {
+      case `glow`: {
         keyframes.push({
           boxShadow: `0px 0px 10px 4px rgba(255,187,0,0.62)`
         })
@@ -515,7 +666,12 @@ export default Component.extend({
         timing.easing = `ease-in-out`
         break
       }
-      case 'background': {
+      case `background`: {
+        let sprite = this.getSprite()
+        if (!sprite) {
+          break
+        }
+
         let frame = sprite.getLastFrame()
         keyframes.push({
           backgroundPositionX: `-${frame.left + frame.width}px`
@@ -523,54 +679,54 @@ export default Component.extend({
         timing.easing = `steps(${sprite.getFrameCount()})`
         break
       }
-      case 'show-in': {
+      case `show-in`: {
         keyframes.push({
-          scale: '0.0 0.0',
+          scale: `0.0 0.0`,
           opacity: 0.0,
-          display: 'none',
-          transform: 'translateY(-100%)'
+          display: `none`,
+          transform: `translateY(-100%)`
         })
 
         keyframes.push({
-          scale: '1.0 1.0',
+          scale: `1.0 1.0`,
           opacity: 1.0,
-          display: 'block',
-          transform: 'translateY(0%)'
+          display: `block`,
+          transform: `translateY(0%)`
         })
 
-        timing.easing = 'ease-in-out'
-        timing.fill = 'both'
+        timing.easing = `ease-in-out`
+        timing.fill = `both`
         break
       }
-      case 'show-out': {
+      case `show-out`: {
         keyframes.push({
-          scale: '1.0 1.0',
+          scale: `1.0 1.0`,
           opacity: 1.0,
-          display: 'block',
-          transform: 'translateY(0%)'
+          display: `block`,
+          transform: `translateY(0%)`
         })
 
         keyframes.push({
-          scale: '0.0 0.0',
+          scale: `0.0 0.0`,
           opacity: 0.0,
-          display: 'none',
-          transform: 'translateY(-50%)'
+          display: `none`,
+          transform: `translateY(-50%)`
         })
 
-        timing.easing = 'ease-in-out'
-        timing.fill = 'both'
+        timing.easing = `ease-in-out`
+        timing.fill = `both`
         break
       }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Element/animate
-    let anim = this.get('element').animate(keyframes, timing)
+    let anim = this.get(`element`).animate(keyframes, timing)
     if (onFinish) {
       anim.onfinish = onFinish
     }
 
     return anim
-  },
+  }
 
   /**
    *
@@ -590,52 +746,185 @@ export default Component.extend({
     let frame = sprite.getFrame(index)
 
     let element = this.getElement()
-    element.css('background-position', `-${frame.left}px -${frame.top}px`)
+    element.css(`background-position`, `-${frame.left}px -${frame.top}px`)
 
+    this.setSize(frame.width, frame.height)
     return true
-  },
+  }
+
+  getRandomId() {
+    return AGate.Utils.getRandomUUID()
+  }
 
   /**
    *
    */
   didReceiveAttrs() {
-    console.log('didReceiveAttrs', this.getId())
+    let widgetProps = this.get(`widget`)
+    if (!widgetProps) {
+      let definition = this.get(`default`)
+      widgetProps = this.createModel(
+        Object.assign(definition, {id: this.getRandomId()})
+      )
+      this.set(`widget`, widgetProps)
+    }
 
-    this._super(...arguments)
+    let childPartial = this.get(`child_partial`)
+    if (!childPartial) {
+      let childPartial = `components/${widgetProps.componentName}`
+      //let child = childLayout.referrer.moduleName.replace('open-arcanum/pods/', '').replace('/template.hbs', '')
+      this.set(`child_partial`, childPartial)
+    }
 
-    this.set('data-id', this.get('widget.id'))
+    this.set(`data-id`, this.get(`widget.id`))
 
-    let position = this.get('widget.position')
+    let position = this.get(`widget.position`)
     if (AGate.Utils.isArray(position)) {
       position = { left: position[0], top: position[1] }
-      this.set('widget.position', position)
+      this.set(`widget.position`, position)
     }
 
-    let size = this.get('widget.size')
+    let size = this.get(`widget.size`)
     if (AGate.Utils.isArray(size)) {
       size = { width: size[0], height: size[1] }
-      this.set('widget.size', size)
+      this.set(`widget.size`, size)
     }
 
-    if (this.getId() == 'disciplinesTab') {
-      console.log('zzzzz', this.get('widget.components'))
-    }
-  },
+    this.updateWidgetAttrs()
+  }
 
   /**
    *
    */
-  didUpdateAttrs() {
-    this._super(...arguments)
-  },
+  /*didUpdateAttrs() {
+    //super.didUpdateAttrs(...arguments)
+  }*/
+
+  applyPosition() {
+    // Generate CSS style
+
+    let position = this.get(`widget.position`)
+    if (!position) {
+      return
+    }
+
+    let style = {}
+
+    if (AGate.Utils.isString(position)) {
+      // Set alignment
+      let align = position.split(`-`)
+
+      switch (align[0]) {
+        case `left`:
+          style[`left`] = `0`
+          style[`right`] = `auto`
+          break
+        case `right`:
+          style[`right`] = `0`
+          style[`left`] = `auto`
+          break
+        case `center`:
+          style[`left`] = `0`
+          style[`right`] = `0`
+          style[`margin-left`] = `auto`
+          style[`margin-right`] = `auto`
+          break
+      }
+
+      switch (align[align.length > 1 ? 1 : 0]) {
+        case `top`:
+          style[`top`] = `0`
+          break
+        case `bottom`:
+          style[`bottom`] = `0`
+          break
+        case `center`:
+          style[`top`] = `0`
+          style[`bottom`] = `0`
+          style[`margin-top`] = `auto`
+          style[`margin-bottom`] = `auto`
+          break
+      }
+    } else {
+      style[`top`] = AGate.Utils.isNumber(position.top)
+        ? `${position.top}px`
+        : position.top
+      style[`left`] = AGate.Utils.isNumber(position.left)
+        ? `${position.left}px`
+        : position.left
+    }
+
+    this.setStyle(style)
+  }
+
+  applySize() {
+    // set size
+    let size = this.get(`widget.size`)
+    if (size) {
+      this.setSize(size.width, size.height)
+    }
+  }
+
+  applySprite() {
+    // Set background sprite
+    let spriteKey = this.getSpriteKey()
+    if (spriteKey) {
+      this.setSprite(spriteKey)
+    }
+  }
+
+  applyVisibility() {
+    // set visibility
+    let visible = this.get(`widget.visible`)
+    if (!AGate.Utils.isUndefined(visible)) {
+      //style['visibility'] = visible ? 'visible' : 'hidden';
+      this.setVisibility(visible)
+    }
+  }
+
+  applyPrototype() {
+    let prototype = this.get(`widget.prototype`)
+    if (!prototype) {
+      return
+    }
+
+    // add user-defined classes
+    let element = this.getElement()
+
+    if (prototype) {
+      element.addClass(prototype)
+    }
+  }
+
+  applyStyle() {
+    // Set user-defined style
+    let rawStyle = this.get(`widget.style`)
+    if (rawStyle) {
+      this.setStyle(rawStyle)
+    }
+  }
+
+  updateWidgetAttrs() {
+    let element = this.getElement()
+    if (!element) {
+      return
+    }
+
+    this.applyPosition()
+    this.applySize()
+    this.applySprite()
+    this.applyVisibility()
+    this.applyStyle()
+    this.applyPrototype()
+  }
 
   /**
    *
    */
   didInsertElement() {
-    this._super(...arguments)
+    //super.didInsertElement(...arguments)
 
-    console.log('didInsertElement', this.getId(), this.get('widget'))
+    //console.log(`didInsertElement`, this.getId(), this.get(`widget`))
 
     // is it root widget?
     let parent = this.getParent()
@@ -652,154 +941,100 @@ export default Component.extend({
     let element = this.getElement()
 
     // Set specific class
-    let componentName = this.get('widget.componentName')
+    let componentName = this.getComponentName()
     if (componentName) {
       element.addClass(componentName)
     }
 
-    // Generate CSS style
-    let style = {}
-
-    let position = this.get('widget.position')
-    if (position) {
-      style['top'] = `${position.top}px`
-      style['left'] = `${position.left}px`
-    }
-
-    // Set alignment
-    let align = this.get('widget.align')
-    if (align) {
-      align = align.split('-')
-
-      switch (align[0]) {
-        case 'left':
-          style['left'] = '0'
-          style['right'] = 'auto'
-          break
-        case 'right':
-          style['right'] = '0'
-          style['left'] = 'auto'
-          break
-        case 'center':
-          style['left'] = '50%'
-          style['margin-left'] = function() {
-            return -$(this).outerWidth() / 2
-          }
-          break
+    {
+      let methods = this.getMethods()
+      if (AGate.Utils.isString(methods)) {
+        methods = Manager.jsonToObject(methods)
+        this.set(`widget.methods`, methods)
       }
 
-      switch (align[align.length > 1 ? 1 : 0]) {
-        case 'top':
-          style['top'] = '0'
-          break
-        case 'bottom':
-          style['bottom'] = '0'
-          break
-        case 'center':
-          style['top'] = '50%'
-          style['margin-top'] = function() {
-            return -$(this).outerHeight() / 2
-          }
-          break
-      }
-    }
+      /*console.error(methods)
+      for (let method in methods) {
+        console.error(method)
+      }*/
 
-    // Set background sprite
-    let size = this.get('widget.size')
-
-    let spriteKey = this.get('widget.sprite')
-    if (spriteKey) {
-      this.setSprite(spriteKey)
-    }
-
-    // set size
-    if (size) {
-      this.setSize(size.width, size.height)
-    }
-
-    // set visibility
-    let visible = this.get('widget.visible')
-    if (!AGate.Utils.isUndefined(visible)) {
-      //style['visibility'] = visible ? 'visible' : 'hidden';
-      this.setVisibility(visible)
-    }
-
-    this.setStyle(style)
-
-    // Set user-defined style
-    let rawStyle = this.get('widget.style')
-    if (rawStyle) {
-      this.setStyle(rawStyle)
-    }
-
-    // add user-defined classes
-    let prototype = this.get('widget.prototype')
-    if (prototype) {
-      element.addClass(prototype)
-    }
-
-    let events = this.get('widget.events')
-    if (AGate.Utils.isString(events)) {
-      events = Manager.jsonToObject(events)
-      this.set('widget.events', events)
     }
 
     {
-      let listeners = this.get('widget.listeners')
+      let events = this.getEvents()
+      if (AGate.Utils.isString(events)) {
+        events = Manager.jsonToObject(events)
+        this.set(`widget.events`, events)
+      }
+    }
 
+    { // Hook listeners
+      let listeners = this.getListeners()
       if (AGate.Utils.isString(listeners)) {
         listeners = Manager.jsonToObject(listeners)
 
-        this.set('widget.listeners', listeners)
+        this.set(`widget.listeners`, listeners)
       }
 
       for (let name in listeners) {
         let listener = listeners[name]
+        console.error(`hooking ${name}`)
         this.listenEvent(name, (...args) => {
-          console.log('calling', name, ...args)
-          listener.call(this, ...args)
+          AGate.Utils.logError(`calling listener ${name}`)
+          listener.apply(this, args)
         })
       }
     }
 
     {
-      let listeners = ['show', 'hide', 'toggle']
+      let listeners = [`show`, `hide`, `toggle`]
       for (let name of listeners) {
-        this.listenEvent(`${this.getId()}:${name}`, (...args) => {
-          console.log('calling', name, ...args)
+        this.listenComponentEvent(this.getId(), name, (...args) => {
+          AGate.Utils.logError(`calling listener ${name}`)
           this[name](...args)
         })
       }
     }
 
-    this.emitOwnEvent('created')
-  },
+    this.updateWidgetAttrs()
+    this.emitOwnEvent(`created`)
+  }
 
   /**
    *
    */
   didDestroyElement() {
-    console.log('didDestroyElement', this.getId())
-  },
+    console.log(`didDestroyElement`, this.getId())
+  }
 
   /**
    *
    */
   didRender() {
-    this._super(...arguments)
+    //super.didRender(...arguments)
 
-    let animation = this.get('widget.animation')
+    let animation = this.get(`widget.animation`)
     if (animation) {
-      this.startAnimation('background', animation)
+      this.startAnimation(`background`, animation)
     }
-  },
+  }
   /**
    *
    */
   willDestroyElement() {
+    //super.didRender(...arguments)
+  }
+
+  willDestroy() {
     this._super(...arguments)
-    this.$().off('animationend')
-  },
+    runDisposables(this) // ensure that lifeline will clean up any remaining async work
+  }
+
+  drag(e) {
+    //e.preventDefault()
+    console.error(`drag`)
+    return false
+  }
 
   /**
    *
@@ -807,45 +1042,79 @@ export default Component.extend({
    * @returns {boolean}
    */
   dragStart(e) {
-    e.preventDefault()
+    //e.preventDefault()
+
+    console.error(`dragStart`)
     return false
-  },
+  }
 
   /**
    *
    * @returns {boolean}
    */
   dragOver() {
+    console.error(`dragOver`)
     return false
-  },
+  }
 
   /**
    *
    * @param e
    */
   drop(e) {
+    console.error(`drop`)
     //let id = event.dataTransfer.getData('text/data');
     //this.get('action')(id);
-  },
+  }
+
+  mouseDown() {
+    console.log(`mouseDown`)
+  }
+
+  mouseUp() {
+    console.log(`mouseUp`)
+  }
 
   /**
    *
    */
   click() {
-    this.startAnimation('glow', {
+    /*this.startAnimation(`glow`, {
       duration: 1000
-    })
+    })*/
 
-    this.emitOwnEvent('click')
-  },
+    /*anime({
+      targets: this.element,
+      translateX: '100px'
+    });*/
 
-  actions: {
-    required(event) {
-      if (!event.target.value) {
-        this.get('errors').pushObject({
-          message: `${event.target.name} is required`
-        })
-      }
+    this.emitOwnEvent(`click`)
+  }
+
+  async fetchAudio(id) {
+    return `https://soundbible.com/mp3/Tyrannosaurus%20Rex%20Roar-SoundBible.com-807702404.mp3`
+  }
+
+  @action
+  required(event) {
+    if (!event.target.value) {
+      this.get(`errors`).pushObject({
+        message: `${event.target.name} is required`
+      })
     }
   }
-})
+
+  @action
+  playAudio(id) {
+    this.get(`hifi`)
+      .play(this.fetchAudio(id))
+      .then(({ sound }) => {
+        console.log(sound)
+      })
+      .catch(error => {
+        console.log(error)
+      })
+  }
+}
+
+export default GuiWidget

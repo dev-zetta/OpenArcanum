@@ -1,0 +1,17 @@
+{{#leaflet-map lat=lat lng=lng zoom=zoom maxBounds=bounds crs=crs	attributionControl=false inertia=true maxBoundsViscosity=0.5 trackResize=true tapTolerance=5 onLoad=(action onLoad) as |layers|}}
+  {{gui-map-layer url="asset://worldmap/SmallMapChunks{i}.bmp" tms=true bounds=bounds tileSize=tileSize noWrap=true minZoom=0 maxZoom=10 updateInterval=200 minNativeZoom=0 maxNativeZoom=0 updateWhenIdle=false zIndex=0 keepBuffer=20 }}
+
+  {{#layers.marker location=emberConfLocation}}
+    {{#popup-layer}}
+      <h3>The Oregon Convention Center</h3>
+      777 NE Martin Luther King Jr Blvd<br>
+      Portland, OR 97232
+    {{/popup-layer}}
+  {{/layers.marker}}
+
+  {{#layers.marker location=hotel}}
+    {{#popup-layer}}
+      <h3>Hotel</h3>
+    {{/popup-layer}}
+  {{/layers.marker}}
+{{/leaflet-map}}

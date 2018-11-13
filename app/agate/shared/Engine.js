@@ -7,16 +7,19 @@ import { WorkerPool } from './misc/WorkerPool'
 import { EventEmitter } from './misc/EventEmitter'
 import { ServerEngine } from '../server/ServerEngine'
 
-const socketIo = requireNode('socket.io')
+const socketIo = requireNode(`socket.io`)
 
 export class Engine extends Lance.GameEngine {
+  /**
+   *
+   */
   constructor() {
     const options = {
       traceLevel: 1000,
       delayInputCount: 8,
-      scheduler: 'render-schedule',
+      scheduler: `render-schedule`,
       syncOptions: {
-        sync: 'extrapolate',
+        sync: `extrapolate`,
         localObjBending: 0.2,
         remoteObjBending: 0.5
       }
@@ -62,8 +65,10 @@ export class Engine extends Lance.GameEngine {
    *
    */
   load() {
-    let path = AGate.getDataPath('Bates Mansion Lev 2')
+    let path = AGate.getDataPath(`Bates Mansion Lev 2`)
     this.map.load(path)
+
+
   }
 
   /**
@@ -90,8 +95,8 @@ export class Engine extends Lance.GameEngine {
   }
 
   createServer() {
-    var io = socketIo()
-    io.on('connection', client => {})
+    let io = socketIo()
+    io.on(`connection`, client => {})
 
     io.listen(3000)
 

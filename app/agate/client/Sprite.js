@@ -32,16 +32,17 @@ export class Sprite {
     //console.log(data)
 
     let assetLoader = this.client.engine.assetLoader
-    let dataPath = AGate.getDataPath('Gfx/2D')
+    let dataPath = AGate.getDataPath(`Gfx/2D`)
 
-    let path = ''
+    let path = ``
     if (AGate.Utils.isObject(data)) {
       Object.assign(this, data)
 
       this.frame = AGate.Utils.isUndefined(data.frame) ? 0 : data.frame
 
       if (!AGate.Utils.isUndefined(data.type)) {
-        this.type = GfxTypes.get(data.type)}
+        this.type = GfxTypes.get(data.type)
+      }
 
       let builder = new GfxPathBuilder(this)
       path = builder.toPath()
@@ -54,7 +55,7 @@ export class Sprite {
 
     switch (this.type) {
       case GfxTypes.Tile:
-        this.currentStage = 'North'
+        this.currentStage = `North`
         return
       default:
         if (!AGate.Utils.isUndefined(data.stage)) {
@@ -62,7 +63,7 @@ export class Sprite {
         }
 
         if (!this.currentStage) {
-          this.currentStage = 'North'
+          this.currentStage = `North`
         }
 
         break
@@ -98,7 +99,7 @@ export class Sprite {
       let stagePath = `${variantPath}/${stageName}`
       let assetKey = `${keyPrefix}/${stageName}`
 
-      let promise = this.client.scene.loadAsset(assetKey, 'atlas', {
+      let promise = this.client.scene.loadAsset(assetKey, `atlas`, {
         texture: `${stagePath}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
         data: `${stagePath}/Stage.json`,
         flippedX: this.flipped
@@ -118,7 +119,7 @@ export class Sprite {
 
     switch (this.type) {
       case GfxTypes.Tile:
-        key = 'tiles'
+        key = `tiles`
         frame = `${currentPath}/${this.currentStage}/Sprite.gif`
         break
       case GfxTypes.Wall:
@@ -206,7 +207,7 @@ export class Sprite {
 
     // Generate key name
     let key = texture.firstFrame
-    key = key.substring(0, key.lastIndexOf('/'))
+    key = key.substring(0, key.lastIndexOf(`/`))
     key = `${key}/${index}`
 
     //sprite.frame = sprite.texture.frames[key];
@@ -229,7 +230,7 @@ export class Sprite {
 
     // Generate key name
     let key = texture.key
-    key = key.substring(0, key.lastIndexOf('/'))
+    key = key.substring(0, key.lastIndexOf(`/`))
     key = `${key}/${stage}`
 
     sprite.setTexture(key)
@@ -267,10 +268,10 @@ export class Sprite {
 
   setBlendMode(mode) {
     switch (mode) {
-      case 'BlendAdd':
+      case `BlendAdd`:
         mode = Phaser.BlendModes.ADD
         break
-      case 'BlendMul':
+      case `BlendMul`:
         mode = Phaser.BlendModes.MULTIPLY
         break
       default:

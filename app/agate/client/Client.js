@@ -25,6 +25,13 @@ export class Client extends Lance.ClientEngine {
     this.player = null
   }
 
+  getWindowRect() {
+    return {
+      width: window.innerWidth * window.devicePixelRatio,
+      height: window.innerHeight * window.devicePixelRatio
+    }
+  }
+
   /**
    *
    * @returns {Promise<void>}
@@ -32,7 +39,11 @@ export class Client extends Lance.ClientEngine {
   async create() {
     await this.guiManager.loadAssets()
 
-    var contextCreationConfig = {
+    this.engine.events.listenUI(`game.reload`, () => {
+      //this.guiManager.
+    })
+
+    let contextCreationConfig = {
       alpha: false,
       depth: false,
       antialias: true,
@@ -40,18 +51,17 @@ export class Client extends Lance.ClientEngine {
       stencil: true,
       preserveDrawingBuffer: false,
       failIfMajorPerformanceCaveat: false,
-      powerPreference: 'default'
+      powerPreference: `default`
     }
 
-    var myCustomContext = this._canvas.getContext(
-      'webgl2',
+    let myCustomContext = this._canvas.getContext(
+      `webgl2`,
       contextCreationConfig
     )
 
     let self = this
     this.game = new Phaser.Game({
-      width: window.innerWidth * window.devicePixelRatio,
-      height: window.innerHeight * window.devicePixelRatio,
+      ...this.getWindowRect(),
       canvas: this._canvas,
       context: myCustomContext,
       renderType: Phaser.WEBGL,
@@ -62,8 +72,12 @@ export class Client extends Lance.ClientEngine {
     })
 
     this.scene = new Scene(this)
-    this.game.scene.add('default', this.scene)
-    this.game.scene.start('default')
+    this.game.scene.add(`default`, this.scene)
+    //this.game.scene.start(`default`)
+
+    this.engine.events.listenUI(`window.resize`, (e) => {
+      this.game.resize(e.width, e.height)
+    })
   }
 
   /**

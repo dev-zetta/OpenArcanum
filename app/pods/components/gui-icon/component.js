@@ -1,4 +1,5 @@
-import GuiWidget from '../gui-widget';
+import GuiWidget from '../gui-widget'
 
-export default GuiWidget.extend({
-});
+class GuiIcon extends GuiWidget {}
+
+export default GuiIcon

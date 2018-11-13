@@ -1,49 +1,165 @@
-import GuiDraggable from '../gui-draggable'
-//const iziModal = requireNode('izimodal');
+import GuiWidget from '../gui-widget'
+import { action, computed } from '@ember-decorators/object'
+import { attribute, classNames, className } from '@ember-decorators/component'
 
-export default GuiDraggable.extend({
-  classNames: ['iziModal'],
-  classNameBindings: ['widget.options.toolbar:has-toolbar'],
+let jsPanel = requireNode(`jspanel4/dist/jspanel`)
 
+@classNames(``)
+class GuiWindow extends GuiWidget {
+  @className(`has-toolbar`)
+  @computed
+  get hasToolbar() {
+    return this.getOption(`toolbar`)
+  }
+
+  @attribute(`draggable`)
+  @computed
+  get isDraggable() {
+    return this.getOption(`toolbar`)
+  }
+
+  applyPosition() {
+    let position = this.getPosition()
+    if (!this.getOption(`toolbar`) || !AGate.Utils.isString(position)) {
+      super.applyPosition()
+    }
+  }
+
+  /**
+   *
+   */
   didRender() {
-    this._super(...arguments)
-  },
+    super.didRender(...arguments)
+  }
 
+  /**
+   *
+   */
   didInsertElement() {
-    this._super(...arguments)
+    super.didInsertElement(...arguments)
 
     /*let options = this.get('widget.options')
 
     if (!!options && options.toolbar) {
       this.getElement().addClass('toolbar')
     }*/
-  },
 
-  didReceiveAttrs() {
-    this._super(...arguments)
+    let element = this.get(`element`)
 
+    let hasToolbar = this.getOption(`toolbar`)
+    if (hasToolbar && element && !this.jsPanel) {
+      let size = this.getSize()
+      this.jsPanel = jsPanel.create({
+        //theme: `arcanum`,
+        //header: `auto-show-hide`,
+        headerLogo: `<span class="title-icon mm-skull"></span>`,
+        headerTitle: this.getOption(`title`),
+        headerControls: { maximize: `remove` },
+        position: this.getPosition(),
+        contentSize: size,
+        content: element,
+        dragit: {
+          snap: true
+        },
+        //container: this.getParent(),
+        resizeit: this.getOption(`resizable`),
+        contentOverflow: `hidden`,
+        callback: (panel) => {
+          panel.style.display = this.isVisible() ? `flex` : `none`
 
-
-  },
+          panel.titlebar.addEventListener(`dblclick`, () => {
+            if (panel.status !== `minimized`) {
+              panel.minimize()
+            } else {
+              panel.normalize()
+            }
+          })
+        },
+        onbeforeclose: () => {
+          this.toggle()
+          return false
+        }
+      })
+    }
+  }
 
   /**
    *
-   * @returns {*}
    */
-  getIzi() {
-    if (!this.izi)
-      this.izi = this.getElement().iziModal({
-        width: '100%'
-      })
+  didReceiveAttrs() {
+    super.didReceiveAttrs(...arguments)
 
-    return this.izi
-  },
+    if (this.jsPanel) {
+    }
+  }
+
+  /**
+   *
+   * @param e
+   * @returns {boolean}
+   */
+  mouseDown(e) {
+    this.clickedOnToolbar = e.target.className === `toolbar`
+
+    if (!this.clickedOnToolbar) {
+      //super.mouseDown(...arguments)
+    }
+
+    return true // this.clickedOnToolbar
+  }
+
+  /**
+   *
+   * @param e
+   * @returns {boolean|*}
+   */
+  dragStart(e) {
+    //console.log('drag start')
+
+    if (this.clickedOnToolbar) {
+      super.dragStart(...arguments)
+    }
+
+    return this.clickedOnToolbar
+  }
 
   /**
    *
    */
   click() {
+    super.click(...arguments)
     this.getManager().bringWindowTop(this)
-    //this.hide();
   }
-})
+
+  /**
+   *
+   */
+  @action
+  close() {
+    this.toggle()
+  }
+
+  /**
+   *
+   * @param visible
+   * @param fade
+   */
+  setVisibility(visible) {
+    let display
+    if (visible) {
+      display = `flex`
+      this.emitOwnEvent(`shown`)
+    } else {
+      display = `none`
+      this.emitOwnEvent(`hidden`)
+    }
+
+    if (this.jsPanel) {
+      this.jsPanel.style.display = display
+    }
+
+    this.set(`widget.visible`, visible)
+  }
+}
+
+export default GuiWindow
