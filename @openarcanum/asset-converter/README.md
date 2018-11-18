@@ -17,7 +17,7 @@ executor.start(arcanumPath, outputPath);
 ```
 ## License
 
-MIT © [Gabriel Max]()
+GPLv3 © [Gabriel Max]()
 
 ## Contibutors
 
