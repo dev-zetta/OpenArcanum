@@ -37,7 +37,7 @@ function parseFillerArticles(records) {
       i + 1
     );
     if (recordsForOneNewspaper.length) {
-      gameRelatedNewspaperArticles.push(new NewspaperArticle(recordsForOneNewspaper));
+      gameRelatedNewspaperArticles.push(prepareNewspaperArticle(recordsForOneNewspaper));
     }
   }
   return gameRelatedNewspaperArticles;
@@ -57,7 +57,7 @@ function parseGameRelatedArticles(records) {
       i + 9
     );
     if (recordsForOneNewspaper.length) {
-      gameRelatedNewspaperArticles.push(new NewspaperArticle(recordsForOneNewspaper));
+      gameRelatedNewspaperArticles.push(prepareNewspaperArticle(recordsForOneNewspaper));
     }
   }
   return gameRelatedNewspaperArticles;
@@ -77,8 +77,61 @@ function parseGenericArticles(records) {
       i + 9
     );
     if (recordsForOneNewspaper.length) {
-      gameRelatedNewspaperArticles.push(new NewspaperArticle(recordsForOneNewspaper));
+      gameRelatedNewspaperArticles.push(prepareNewspaperArticle(recordsForOneNewspaper));
     }
   }
   return gameRelatedNewspaperArticles;
 }
+
+// **********************
+// HELPERS
+// **********************
+
+function prepareNewspaperArticle(records){
+  var recordKey = records[0].key;
+  var header = fetchLine(records[0]);
+  var subHeader = fetchLine(records[1]);
+  var paragraphs = fetchParagraphs(records);
+
+  return new NewspaperArticle(recordKey, header, subHeader, paragraphs);
+}
+
+function fetchLine(record) {
+  var parsed = /([0-9]{3})([lc])([\S\s]+)/.exec(record.value);
+  var line = {
+    recordKey: record.key,
+    fontSize: fontSizes[parsed[1]],
+    fontStyle: fontStyles[parsed[2]]
+  };
+  if (parsed[1] === '488') {
+    line.image = parsed[3].replace(/\s/g, '');
+  } else {
+    line.text = parsed[3];
+  }
+  return line;
+}
+
+function fetchParagraphs(records) {
+  var paragraphs = [];
+  for (var i = 2; i < records.length; ++i) {
+    paragraphs.push(fetchLine(records[i]));
+  }
+  return paragraphs;
+}
+
+// **************
+// DICTIONARIES
+// **************
+
+const fontSizes = {
+  '490': 'Extra Large Headline',
+  '486': 'Large Headline',
+  '492': 'Normal Headline',
+  '483': 'Story Body',
+  '488': 'Clip Art/Image'
+};
+
+const fontStyles = {
+  l: 'left',
+  c: 'center'
+};

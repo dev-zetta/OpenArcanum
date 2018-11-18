@@ -10,8 +10,8 @@ A lot of records can be grouped by ranges with given context
   "records": [ {RECORD}{RECORD}, ... ]
 }
 identifier:  could be anything: className, raceName, direction or just 'default', it gives context to whole group
-min: it is a starting mark for recordId range
-max:  it is ending mark for recordId range
+min: it is a starting mark for recordKey range
+max:  it is ending mark for recordKey range
 records: is initially empty and will be filled in a proper parser with specific language data RECORDs.
 
 Normal file could be filled with records form 1000 to let's say 10000 and we should be aware that it contains

@@ -3,6 +3,7 @@ const spellsPatternCreator = require('./parsers/SpellsListParser.js');
 const newspaperConverter = require('./parsers/GameNewspaperParser.js');
 const dialogFiles = require('../resources/FilesInformation');
 const generalDialogueParser = require('./parsers/GeneralDialogueParser');
+const antiTeleportParser = require('./parsers/AntiTeleportParser');
 const readerHelper = require('../helpers/ReaderHelper');
 
 const generalDialogueFilename = 'generalDialogue.json';
@@ -32,7 +33,7 @@ module.exports = {
       'SpellList',
       arcanumPath + 'Arcanum4/Rules/'
     );
-    readerHelper.writeJsonObjectToFile(spells, outputPath + 'SpellList' + '.json');
+    readerHelper.writeJsonObjectToFile(spells, outputPath + 'SpellList.json');
 
     const gameNewspaper = newspaperConverter.prepareGameNewspapers(
       'gamenewspaper',
@@ -40,7 +41,13 @@ module.exports = {
     );
     readerHelper.writeJsonObjectToFile(
       gameNewspaper,
-      outputPath + 'gamenewspaper' + '.json'
+      outputPath + 'gamenewspaper.json'
     );
+
+    const antiTeleportation = antiTeleportParser.prepareAntiTeleports(
+      'AntiTeleport',
+      arcanumPath + "modules/Arcanum/Rules/"
+    );
+    readerHelper.writeJsonObjectToFile(antiTeleportation, outputPath + 'AntiTeleport.json')
   }
 };
