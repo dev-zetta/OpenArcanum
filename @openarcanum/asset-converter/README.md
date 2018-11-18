@@ -22,4 +22,5 @@ MIT © [Gabriel Max]()
 ## Contibutors
 
 Sylwester Wróblewski
+
 Marcin Derlukiewicz
