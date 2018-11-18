@@ -29,6 +29,23 @@ module.exports = {
     });
   },
 
+  // Fetch sub array of records where record keys are <min;max> not <min;max)
+  fetchRecordsForRange: function(records, min, max) {
+    const recordsToReturn = [];
+    for (var j = 0; j < records.length; ++j) {
+      if (records[j].key < min) {
+        continue;
+      }
+      if (records[j].key > max) {
+        break;
+      }
+      if (records[j].key >= min) {
+        recordsToReturn.push(records[j]);
+      }
+    }
+    return recordsToReturn;
+  },
+
   readRecords: function readJSONFile(filePathAndName) {
     var fs = require('fs');
     var data = fs.readFileSync(filePathAndName, { encoding: 'utf-8' }, function(err) {

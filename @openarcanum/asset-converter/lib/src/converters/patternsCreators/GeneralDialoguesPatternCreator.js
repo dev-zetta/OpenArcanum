@@ -1,5 +1,5 @@
-const readerHelper = require('../helpers/ReaderHelper');
-const dictionary = require('../resources/Dictionaries').generalDialogue();
+const readerHelper = require('../../helpers/ReaderHelper');
+const dictionary = require('../../resources/Dictionaries').generalDialogue();
 
 //* ************
 // GENERATORS
@@ -214,7 +214,10 @@ module.exports = {
         file
       );
       if (writeAlsoToSingleFiles) {
-        readerHelper.writeJsonObjectToFile(generated[file.name], outputFolder + file.name + '.json');
+        readerHelper.writeJsonObjectToFile(
+          generated[file.name],
+          outputFolder + file.name + '.json'
+        );
       }
     }
     readerHelper.writeJsonObjectToFile(generated, outputFolder + parserFilename);

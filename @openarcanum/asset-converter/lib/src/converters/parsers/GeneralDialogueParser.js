@@ -1,4 +1,4 @@
-const readerHelper = require('../helpers/ReaderHelper');
+const readerHelper = require('../../helpers/ReaderHelper');
 
 //* ************
 // GENERATORS
@@ -8,7 +8,7 @@ module.exports = {
     try {
       var allFiles = JSON.parse(readerHelper.readJSONFile(parserPatternFilePath));
       for (var fileName in allFiles) {
-        var records = readRecordsFromFile(inputFilePath + fileName + '.mes');
+        var records = readerHelper.readRecords(inputFilePath + fileName + '.mes');
         var dialogueTypes = allFiles[fileName];
         for (var record in records) {
           if (!addRecordToDialogTypes(dialogueTypes, records[record])) {
@@ -90,23 +90,4 @@ function addRecordToDirection(dialogueType, record, recordKey) {
       throw RecordAddedException;
     }
   }
-}
-
-// ***************
-// RECORD PARSER
-// ***************
-
-function readRecordsFromFile(filePath) {
-  var data = readerHelper.readFile(filePath);
-  return parseTextRecords(data);
-}
-
-function parseTextRecords(data) {
-  var textRecords = [];
-  var messages = data.match(/{\d+}{[\s\S]*?}/g);
-  for (var i = 0; i < messages.length; ++i) {
-    var record = messages[i].match(/{(.+)}{([\s\S]*?)}/);
-    textRecords.push({ key: record[1], value: record[2] });
-  }
-  return textRecords;
 }
