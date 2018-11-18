@@ -4,6 +4,6 @@ const arcanumPath = './resources/sourceFiles/';
 const output = './resources/out/';
 
 // Use only to Recreate Patterns
-// globalConverter.prepareAllPatterns(arcanumPath, patterns);
+globalConverter.prepareAllPatterns(arcanumPath, patterns);
 
 globalConverter.convertAllFiles(arcanumPath, patterns, output);

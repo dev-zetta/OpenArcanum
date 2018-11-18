@@ -1,4 +1,5 @@
 const readerHelper = require('../../helpers/ReaderHelper');
+const DialogueType = require('../../classes/DialogueType');
 
 //* ************
 // GENERATORS
@@ -6,23 +7,10 @@ const readerHelper = require('../../helpers/ReaderHelper');
 module.exports = {
   prepareJson: function prepareJson(parserPatternFilePath, inputFilePath) {
     try {
-      var allFiles = JSON.parse(readerHelper.readJSONFile(parserPatternFilePath));
-      for (var fileName in allFiles) {
-        var records = readerHelper.readRecords(inputFilePath + fileName + '.mes');
-        var dialogueTypes = allFiles[fileName];
-        for (var record in records) {
-          if (!addRecordToDialogTypes(dialogueTypes, records[record])) {
-            console.log(
-              'Could not find matching place for record: {' +
-                records[record].key +
-                ': ' +
-                records[record].value +
-                '} from file: ' +
-                fileName
-            );
-          }
-        }
-      }
+      var allFiles = fetchDialogFiles(JSON.parse(readerHelper.readJSONFile(parserPatternFilePath)));
+      allFiles.forEach(file => {
+        assignRecordsToFile(inputFilePath, file);
+      });
       return allFiles;
     } catch (e) {
       console.log('Error processing file:' + e);
@@ -30,64 +18,44 @@ module.exports = {
   }
 };
 
-const RecordAddedException = {};
+
+function assignRecordsToFile(inputFilePath, file) {
+  var records = readerHelper.readRecords(inputFilePath + file.filename + '.mes');
+  records.forEach((record) => {
+    if (!addRecordToDialogTypes(file.dialogueTypes, record)) {
+      logError(file.filename, record);
+    }
+  })
+}
+
+function logError(filename, record) {
+  console.log('Could not find matching place for record: ' + record + ' from file: ' + filename);
+}
+
+function fetchDialogFiles(json) {
+  var dialogFiles = [];
+  for (var fileIndex in json) {
+    var dialogueTypes = fetchDialogueTypesList(json[fileIndex]);
+    dialogFiles.push({
+      filename: json[fileIndex].filename,
+      dialogueTypes: dialogueTypes
+    });
+  }
+  return dialogFiles;
+}
+
+function fetchDialogueTypesList(file) {
+  var list = [];
+  file.dialogueTypes.forEach((item) => {
+    list.push(new DialogueType(item.type, item.description, item.recordRanges))
+  });
+  return list;
+}
 
 function addRecordToDialogTypes(dialogueTypes, record) {
-  const key = parseInt(record.key);
-
-  try {
-    dialogueTypes.forEach(dialogueType => {
-      addRecordToDefault(dialogueType, record, key);
-      addRecordToClass(dialogueType, record, key);
-      addRecordToRace(dialogueType, record, key);
-      addRecordToDirection(dialogueType, record, key);
-    });
-  } catch (exception) {
-    return exception === RecordAddedException;
-  }
-}
-
-function addRecordToDefault(dialogueType, record, recordKey) {
-  dialogueType.default.forEach(def => {
-    if (recordKey >= parseInt(def.min) && recordKey <= parseInt(def.max)) {
-      def.lines.push(record);
-      throw RecordAddedException;
-    }
-  });
-}
-
-function addRecordToClass(dialogueType, record, recordKey) {
-  for (var key in dialogueType.classes) {
-    if (
-      recordKey >= parseInt(dialogueType.classes[key].min) &&
-      recordKey <= parseInt(dialogueType.classes[key].max)
-    ) {
-      dialogueType.classes[key].lines.push(record);
-      throw RecordAddedException;
-    }
-  }
-}
-
-function addRecordToRace(dialogueType, record, recordKey) {
-  for (var key in dialogueType.races) {
-    if (
-      recordKey >= parseInt(dialogueType.races[key].min) &&
-      recordKey <= parseInt(dialogueType.races[key].max)
-    ) {
-      dialogueType.races[key].lines.push(record);
-      throw RecordAddedException;
-    }
-  }
-}
-
-function addRecordToDirection(dialogueType, record, recordKey) {
-  for (var key in dialogueType.directions) {
-    if (
-      recordKey >= parseInt(dialogueType.directions[key].min) &&
-      recordKey <= parseInt(dialogueType.directions[key].max)
-    ) {
-      dialogueType.directions[key].lines.push(record);
-      throw RecordAddedException;
+  for (var i = 0; i < dialogueTypes.length; ++i) {
+    if (dialogueTypes[i].addRecord(record)) {
+      return true;
     }
   }
 }

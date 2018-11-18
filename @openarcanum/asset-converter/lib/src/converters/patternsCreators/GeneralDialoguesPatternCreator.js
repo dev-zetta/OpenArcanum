@@ -1,136 +1,11 @@
 const readerHelper = require('../../helpers/ReaderHelper');
 const dictionary = require('../../resources/Dictionaries').generalDialogue();
+var RecordRange = require('../../classes/RecordRange');
+var DialogueType = require('../../classes/DialogueType');
 
 //* ************
 // GENERATORS
 //* ************
-
-// --- RECORD ---
-/*
-All resources in Arcanum can be represented in a simple pattern later called RECORD:
-{"resourceId": string}
-resourceId: this is a number that can be shared between files and in original game is used as identifier
-To this Id we have some data tied to it that is represented by a string
-
-Examples:
-{"1000": "Could you spare a coin?"}
-{"1001": "Please I have nothing to eat..."}
-{"1050": "You dirty beggar!"}
-*/
-
-// --- RECORD RANGE ---
-/*
-A lot of records can be grouped by ranges:
-"identifier": {
-  "min": integer,
-  "max": integer,
-  "lines": [ {RECORD}{RECORD}, ... ]
-}
-identifier:  could be anything: className, raceName, direction or just 'default', it gives context to whole group
-min: it is a starting mark for recordId range
-max:  it is ending mark for recordId range
-lines: is initially empty and will be filled in a proper parser with specific language data RECORDs.
-
-Normal file could be filled with records form 1000 to let's say 10000 and we should be aware that it contains
-more records that can belong to different categories:
-1000 could be a default dialogue option, but 2049 could be race specific, and 2050 could belong to other race etc.
-
-Examples:
-"default": {
-  "min": 1500,
-  "max": 1599,
-  "lines": []
-}
-"north": {
-  "min": 700,
-  "max": 709,
-  "lines": []
-}
-"orc": {
-  "min": 1550,
-  "max": 1599,
-  "lines": [
-    {"1050": "ME EAT NOOOOOW"},
-    {"1051": "ME NO HUNGRY"}
-  ]
-}
-*/
-
-// --- DIALOGUE TYPE ---
-/*
-Dialogues can be mostly represented by this structure:
-{
-  "type": string,
-  "description": string,
-  "classes": {
-    "className": {RECORD RANGE},
-    "secondClass": {RECORD RANGE}
-  },
-  races: {
-    "raceName": {RECORD RANGE},
-    "secondRace": {RECORD RANGE}
-  }
-  directions: {
-    "direction": {RECORD RANGE}
-    "otherDirection": {RECORD RANGE}
-  }
-  "default":[
-    {RECORD RANGE}
-  ]
-}
-type: it's type of dialogue that we're dealing with
-description: it's description that describes dialogue
-classes: it's array/object with specific classes and their dialogues, it only contains objects if dialogue have some class specific dialogue records
-races: the same as classes but are race specific
-directions: it's another group created only for directions. In original arcanum files it was treated as diffrent category from default, race or class so I implemented it the same way
-default: it contains default dialogue options for given dialogue
-
-It should be mentioned that variables classes, races, directions, default can be empty. This simply means that that this dialogue does not contain any records in that specific context;
-
-Examples:
-{
-  "type": "khajjitIsInnocentOfThisCrime",
-  "description": "the NPC is refusing to buy stolen goods",
-  "classes": {
-
-  },
-  "races": {
-
-  },
-  "directions": {
-
-  },
-  "default": [{
-    "min": 4600,
-    "max": 4699,
-    "lines": []
-  }]
-}
-
-{
-  "type": "nearbyDirections",
-  "description": "Nearby directions",
-  "classes": {
-
-  },
-  "races": {
-
-  },
-  "directions": {
-    "north": {
-      "min": 200,
-      "max": 209,
-      "lines": []
-    },
-    "northEast": {
-      "min": 210,
-      "max": 219,
-      "lines": []
-    }
-  },
-  "default": []
-}
-*/
 
 // GeneralDialoguesPatternCreator
 /*
@@ -153,69 +28,64 @@ writeAlsoToSingleFiles: boolean if also single files should be created for every
 
 --- DIALOGUE FILES PATTERN ---
 {
-  "filename": [
-    {DIALOGUE TYPE},
-    {DIALOGUE TYPE}
-  ],
-  "filename2": [
+  "filename": string,
+  "dialogueTypes": [
     {DIALOGUE TYPE},
     {DIALOGUE TYPE}
   ]
 }
 
 Examples
-"justSomeDialogueFilename": [
-  {
-    "type": "khajjitIsInnocentOfThisCrime",
-    "description": "the NPC is refusing to buy stolen goods",
-    "classes": {
-      "warrior":{
-        "min": 2000,
-        "max": 2999,
-        "lines": [
-        ]
-      }
-    },
-    "races": {
-      "khajiit":{
-        "min": 1000,
-        "max": 1999,
-        "lines": [
-        ]
-      }
-    }
-    "directions": {
+{
+	"filename": "justSomeDialogueFilename",
+	"dialogueTypes": [{
+			"type": "khajjitIsInnocentOfThisCrime",
+			"description": "the NPC is refusing to buy stolen goods",
+			"recordRanges": [{
+					"context": "default" //default context
+					"min": 4600,
+					"max": 4699,
+					"records": []
+				}, {
+					"context": "human" // race context
+					"min": 4700,
+					"max": 4799,
+					"records": []
+				}, {
+					"context": "mage" // class context etc...
+					"min": 4800,
+					"max": 4899,
+					"records": []
+				},
+			]
+		}
+	]
+}
 
-    },
-    "default": [{
-      "min": 3000,
-      "max": 3500,
-      "lines": [
-      ]
-    }]
-  }
-]
  */
 
 module.exports = {
-  writeParserPatternForFiles: function writeParserPatternForFiles(
-    fileInformation,
-    inputFolder,
-    outputFolder,
-    parserFilename,
-    writeAlsoToSingleFiles
-  ) {
-    var generated = {};
+  writeParserPatternForFiles: function writeParserPatternForFiles(fileInformation,
+                                                                  inputFolder,
+                                                                  outputFolder,
+                                                                  parserFilename,
+                                                                  writeAlsoToSingleFiles) {
+    var generated = [];
 
     for (var fileName in fileInformation) {
       var file = fileInformation[fileName];
-      generated[file.name] = generatePatternForSingleFile(
+      var data = generatePatternForSingleFile(
         inputFolder + file.name + '.mes',
         file
       );
+      generated.push({
+        filename: file.name,
+        dialogueTypes: data
+      });
+
       if (writeAlsoToSingleFiles) {
         readerHelper.writeJsonObjectToFile(
-          generated[file.name],
+          data,
           outputFolder + file.name + '.json'
         );
       }
@@ -226,6 +96,8 @@ module.exports = {
 
 function generatePatternForSingleFile(filePath, file) {
   var data = readerHelper.readFile(filePath);
+  data = data.replace("Offers to train a beginner cannot", "Offers to train a beginner messages start at");
+  data = data.replace("wants to start the WorldMap", "wants to start the WorldMap go between 2300 and 2399");
   if (data === null) {
     return null;
   }
@@ -276,17 +148,17 @@ function prepareClassParser(messageTypes) {
   var mesg = [];
   var classes = dictionary.classes;
   for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new FullMessage(messageTypes[i].name, messageTypes[i].description);
+    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
     for (var j = 0; j < classes.length; ++j) {
-      _mesg.withClass(
-        classes[j],
-        new SingleMessageRecord(
+      _mesg.addRange(
+        new RecordRange(
           messageTypes[i].jump * j + parseInt(messageTypes[i].start),
           messageTypes[i].jump * j +
-            parseInt(messageTypes[i].start) +
-            parseInt(messageTypes[i].jump) -
-            1
-        )
+          parseInt(messageTypes[i].start) +
+          parseInt(messageTypes[i].jump) -
+          1
+        ),
+        classes[j]
       );
     }
     mesg.push(_mesg);
@@ -317,9 +189,9 @@ function parseStartAtMessageTypes(data, filePath) {
 function parseStartAtParser(messageTypes) {
   var mesg = [];
   for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new FullMessage(messageTypes[i].name, messageTypes[i].description);
-    _mesg.withDefault(
-      new SingleMessageRecord(
+    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+    _mesg.addRange(
+      new RecordRange(
         parseInt(messageTypes[i].start),
         parseInt(messageTypes[i].start) + parseInt(messageTypes[i].jump) - 1
       )
@@ -352,9 +224,9 @@ function parseBetweenMessageTypes(data, filePath) {
 function prepareBetweenParser(messageTypes) {
   var mesg = [];
   for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new FullMessage(messageTypes[i].name, messageTypes[i].description);
-    _mesg.withDefault(
-      new SingleMessageRecord(
+    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+    _mesg.addRange(
+      new RecordRange(
         parseInt(messageTypes[i].start),
         parseInt(messageTypes[i].end)
       )
@@ -392,24 +264,24 @@ function prepareRacesParser(messageTypes) {
   var mesg = [];
   var races = dictionary.races;
   for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new FullMessage(messageTypes[i].name, messageTypes[i].description);
-    _mesg.withDefault(
-      new SingleMessageRecord(
+    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+    _mesg.addRange(
+      new RecordRange(
         messageTypes[i].start,
         parseInt(messageTypes[i].start) + parseInt(messageTypes[i].jump) - 1
       )
     );
     for (var j = 0; j < races.length; ++j) {
-      _mesg.withRace(
-        races[j],
-        new SingleMessageRecord(
+      _mesg.addRange(
+        new RecordRange(
           messageTypes[i].jump * j + parseInt(messageTypes[i].start) + 50,
           messageTypes[i].jump * j +
-            parseInt(messageTypes[i].start) +
-            parseInt(messageTypes[i].jump) +
-            50 -
-            1
-        )
+          parseInt(messageTypes[i].start) +
+          parseInt(messageTypes[i].jump) +
+          50 -
+          1
+        ),
+        races[j]
       );
     }
     mesg.push(_mesg);
@@ -439,13 +311,13 @@ function prepareStoryParser(messageTypes) {
   var mesg = [];
   var races = dictionary.races;
   for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new FullMessage(messageTypes[i].name, messageTypes[i].description);
+    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
     for (var j = 0; j < races.length; ++j) {
-      _mesg.withRace(
-        races[j],
-        new SingleMessageRecord(
+      _mesg.addRange(
+        new RecordRange(
           i * messageTypes[i].jump + j,
-          i * messageTypes[i].jump + j
+          i * messageTypes[i].jump + j,
+          races[j]
         )
       );
     }
@@ -493,33 +365,31 @@ function parseSpecialTreatmentDirectionMessageTypes(data, filepath) {
   return messageTypes;
 }
 
-function prepareSpecialTreatmentParser(
-  messageTypes,
-  directionMessageTypes,
-  notParseable
-) {
+function prepareSpecialTreatmentParser(messageTypes,
+                                       directionMessageTypes,
+                                       notParseable) {
   var mesg = [];
   var directions = dictionary.directions;
   var _mesg;
   for (var i = 0; i < messageTypes.length; ++i) {
-    _mesg = new FullMessage(messageTypes[i].name, messageTypes[i].description);
-    _mesg.withDefault(
-      new SingleMessageRecord(messageTypes[i].start, messageTypes[i].end)
+    _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+    _mesg.addRange(
+      new RecordRange(messageTypes[i].start, messageTypes[i].end)
     );
     mesg.push(_mesg);
   }
 
   for (var j = 0; j < directionMessageTypes.length; ++j) {
-    _mesg = new FullMessage(
+    _mesg = new DialogueType(
       directionMessageTypes[j].name,
       directionMessageTypes[j].description
     );
     for (var k = 0; k < directions.length; ++k) {
-      _mesg.withDirection(
-        directions[k],
-        new SingleMessageRecord(
+      _mesg.addRange(
+        new RecordRange(
           parseInt(directionMessageTypes[j].start) + k * 10,
-          parseInt(directionMessageTypes[j].start) + 9 + k * 10
+          parseInt(directionMessageTypes[j].start) + 9 + k * 10,
+          directions[k]
         )
       );
     }
@@ -527,12 +397,12 @@ function prepareSpecialTreatmentParser(
   }
 
   for (var l = 0; l < notParseable.length; ++l) {
-    _mesg = new FullMessage(
+    _mesg = new DialogueType(
       dictionary.descTypeMap.get(notParseable[l].description),
       notParseable[l].description
     );
-    _mesg.withDefault(
-      new SingleMessageRecord(notParseable[l].start, notParseable[l].end)
+    _mesg.addRange(
+      new RecordRange(notParseable[l].start, notParseable[l].end)
     );
     mesg.push(_mesg);
   }
@@ -547,46 +417,15 @@ function checkIfDictionaryEntryExists(entry, filename, dictionaryMap) {
   if (dictionaryMap.get(entry) === undefined) {
     console.log(
       'DICTIONARY ENTRY: ' +
-        '"' +
-        entry +
-        '"' +
-        ' FROM FILE ' +
-        '"' +
-        filename +
-        ' IS MISSING'
+      '"' +
+      entry +
+      '"' +
+      ' FROM FILE ' +
+      '"' +
+      filename +
+      ' IS MISSING'
     );
   }
-}
-
-function FullMessage(type, description) {
-  this.type = type;
-  this.description = description;
-  this.classes = {};
-  this.races = {};
-  this.directions = {};
-  this.default = [];
-
-  this.withClass = function(name, obj) {
-    this.classes[name] = obj;
-  };
-
-  this.withRace = function(name, obj) {
-    this.races[name] = obj;
-  };
-
-  this.withDirection = function(name, obj) {
-    this.directions[name] = obj;
-  };
-
-  this.withDefault = function(obj) {
-    this.default.push(obj);
-  };
-}
-
-function SingleMessageRecord(min, max) {
-  this.min = min;
-  this.max = max;
-  this.lines = [];
 }
 
 // **************
@@ -625,15 +464,15 @@ function fetchUnparsableMessageTypes() {
       start: 2000,
       end: 2099
     },
-    { description: 'NPC is acknowledging an order from the PC', start: 2100, end: 2199 },
+    {description: 'NPC is acknowledging an order from the PC', start: 2100, end: 2199},
     {
       description: 'NPC cannot acknowledge an order from the PC',
       start: 2200,
       end: 2299
     },
-    { description: 'NPC was accidentally hit by the PC', start: 2300, end: 2399 },
-    { description: 'NPC witnesses PC critical hit', start: 2400, end: 2499 },
-    { description: 'NPC witnesses PC critical miss', start: 2500, end: 2599 },
+    {description: 'NPC was accidentally hit by the PC', start: 2300, end: 2399},
+    {description: 'NPC witnesses PC critical hit', start: 2400, end: 2499},
+    {description: 'NPC witnesses PC critical miss', start: 2500, end: 2599},
     {
       description:
         'The NPC will not follow the PC because the NPC is already grouped with another PC who is at least as charismatic',
@@ -657,13 +496,13 @@ function fetchUnparsableMessageTypes() {
       start: 2900,
       end: 2999
     },
-    { description: 'The NPC is fleeing from a combatant', start: 3000, end: 3099 },
-    { description: 'gamble win messages', start: 3100, end: 3199 },
-    { description: 'gamble lose messages', start: 3200, end: 3299 },
-    { description: 'gambling pc things', start: 3300, end: 3399 },
-    { description: 'gambling with low rank or training', start: 3400, end: 3499 },
-    { description: 'gambling without enough money', start: 3500, end: 3599 },
-    { description: 'gambling for what NPC is wearing', start: 3600, end: 3699 },
+    {description: 'The NPC is fleeing from a combatant', start: 3000, end: 3099},
+    {description: 'gamble win messages', start: 3100, end: 3199},
+    {description: 'gamble lose messages', start: 3200, end: 3299},
+    {description: 'gambling pc things', start: 3300, end: 3399},
+    {description: 'gambling with low rank or training', start: 3400, end: 3499},
+    {description: 'gambling without enough money', start: 3500, end: 3599},
+    {description: 'gambling for what NPC is wearing', start: 3600, end: 3699},
     {
       description: 'gambling for something the NPC really wants to keep',
       start: 3700,
@@ -674,7 +513,7 @@ function fetchUnparsableMessageTypes() {
       start: 3800,
       end: 3899
     },
-    { description: 'the NPC makes a gamble offer', start: 3900, end: 3999 },
+    {description: 'the NPC makes a gamble offer', start: 3900, end: 3999},
     {
       description: 'the NPC is warning the listener to stop what they are doing',
       start: 4000,
@@ -695,9 +534,9 @@ function fetchUnparsableMessageTypes() {
       start: 4300,
       end: 4399
     },
-    { description: 'the NPC has no older newspapers for sale', start: 4400, end: 4499 },
-    { description: 'the NPC is offer older newspapers for sale', start: 4500, end: 4599 },
-    { description: 'the NPC is refusing to buy stolen goods', start: 4600, end: 4699 },
+    {description: 'the NPC has no older newspapers for sale', start: 4400, end: 4499},
+    {description: 'the NPC is offer older newspapers for sale', start: 4500, end: 4599},
+    {description: 'the NPC is refusing to buy stolen goods', start: 4600, end: 4699},
     {
       description:
         'the NPC is offering to use his skill and do the task for the PC leader',
@@ -739,8 +578,8 @@ function fetchUnparsableMessageTypes() {
       start: 5400,
       end: 5499
     },
-    { description: 'the NPC follower is nearing death', start: 5500, end: 5599 },
-    { description: 'the NPC is not skilled in gambling', start: 5600, end: 5699 },
+    {description: 'the NPC follower is nearing death', start: 5500, end: 5599},
+    {description: 'the NPC is not skilled in gambling', start: 5600, end: 5699},
     {
       description:
         'the NPC does not need to identify an item (as it is already identified)',
@@ -752,18 +591,18 @@ function fetchUnparsableMessageTypes() {
       start: 5800,
       end: 5899
     },
-    { description: 'the NPC cannot repair broken items', start: 5900, end: 5999 },
+    {description: 'the NPC cannot repair broken items', start: 5900, end: 5999},
     {
       description: 'the NPC does not need to repair the item (it is not damaged)',
       start: 6000,
       end: 6099
     },
-    { description: 'the NPC wants money for repairing the item', start: 6100, end: 6199 },
+    {description: 'the NPC wants money for repairing the item', start: 6100, end: 6199},
     {
       description: 'PC doesnt have enough skill points to be trained as expert',
       start: 6200,
       end: 6299
     },
-    { description: 'PC doesnt have beginner training', start: 6300, end: 6399 }
+    {description: 'PC doesnt have beginner training', start: 6300, end: 6399}
   ];
 }

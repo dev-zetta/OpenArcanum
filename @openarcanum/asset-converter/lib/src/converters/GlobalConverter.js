@@ -9,7 +9,7 @@ const generalDialogueFilename = 'generalDialogue.json';
 const generalDialoguePatternFilename = 'dialoguePattern.json';
 
 module.exports = {
-  prepareAllPatterns: function(arcanumPath, outputPath) {
+  prepareAllPatterns: function (arcanumPath, outputPath) {
     generalDialoguePatternCreator.writeParserPatternForFiles(
       dialogFiles.generalDialogInformation,
       arcanumPath + 'Arcanum3/mes/',
@@ -18,7 +18,7 @@ module.exports = {
     );
   },
 
-  convertAllFiles: function(arcanumPath, patternsPath, outputPath) {
+  convertAllFiles: function (arcanumPath, patternsPath, outputPath) {
     const generalDialogues = generalDialogueParser.prepareJson(
       patternsPath + generalDialoguePatternFilename,
       arcanumPath + 'Arcanum3/mes/'

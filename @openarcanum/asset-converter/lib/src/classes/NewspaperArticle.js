@@ -1,18 +1,5 @@
 // For more information on Article structure check  any >gamenewspaper.mes<
 
-const fontSizes = {
-  '490': 'Extra Large Headline',
-  '486': 'Large Headline',
-  '492': 'Normal Headline',
-  '483': 'Story Body',
-  '488': 'Clip Art/Image'
-};
-
-const fontStyles = {
-  l: 'left',
-  c: 'center'
-};
-
 module.exports = class Newspaper {
   constructor(records) {
     this.recordId = records[0].key;
@@ -43,4 +30,21 @@ module.exports = class Newspaper {
     }
     return paragraphs;
   }
+};
+
+// **************
+// DICTIONARIES
+// **************
+
+const fontSizes = {
+  '490': 'Extra Large Headline',
+  '486': 'Large Headline',
+  '492': 'Normal Headline',
+  '483': 'Story Body',
+  '488': 'Clip Art/Image'
+};
+
+const fontStyles = {
+  l: 'left',
+  c: 'center'
 };
