@@ -3,7 +3,7 @@
 ## Installation
 
 ```sh
-$ npm install --save open-arcanum-asset-converter
+$ npm install --save @openarcanum/asset-converter
 ```
 
 ## Usage
