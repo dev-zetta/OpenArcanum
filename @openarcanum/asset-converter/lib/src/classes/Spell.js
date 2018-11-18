@@ -1,3 +1,5 @@
+// For more information see any >SpellList.mes<
+
 module.exports = class Spell {
   constructor(name, records, startAt) {
     this.name = name;
@@ -41,7 +43,8 @@ module.exports = class Spell {
     }
   }
 
-  parseTargetingRecord(record) {}
+  parseTargetingRecord(record) {
+  }
 
   addMissile() {
     this.missile = true;
