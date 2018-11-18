@@ -8,11 +8,18 @@ $ npm install --save open-arcanum-asset-converter
 
 ## Usage
 
-```js
-const openArcanumAssetConverter = require('open-arcanum-asset-converter');
+npm start OR
 
-openArcanumAssetConverter('Rainbow');
+```js
+const executor = require('@openarcanum/asset-converter').executor;
+
+executor.start(arcanumPath, outputPath);
 ```
 ## License
 
-MIT © [Gabriel Max &amp; Others]()
+MIT © [Gabriel Max]()
+
+## Contibutors
+
+Sylwester Wróblewski
+Marcin Derlukiewicz
