@@ -2,9 +2,9 @@ const globalConverter = require('./converters/GlobalConverter');
 
 const path = require('path');
 
-let _patterns = '../../converted/';
-let _arcanumPath = '../../sourceFiles/';
-let _outputPath = '../../converted/';
+let _patterns = './converted/';
+let _arcanumPath = './sourceFiles/';
+let _outputPath = './converted/';
 
 /* Var path = require('path')
 console.log(path.resolve(_outputPath)) */
