@@ -60,25 +60,10 @@ function prepareSpot(record) {
     parsed[1],
     parsed[2],
     parsed[3],
-    descriptions[record.key]
+    record.comment
   );
 }
 
 function prepareMap(record) {
-  return new AntiTeleportMap(record.key, record.value, descriptions[record.key]);
+  return new AntiTeleportMap(record.key, record.value, record.comment);
 }
-
-// **************
-// DICTIONARIES
-// **************
-
-const descriptions = {
-  '100': 'Close to the Home of Maximillian  (Just south of it)',
-  '101': 'The area surrounding the home of the Dark Elves',
-
-  '1000': "Fa'al Kin's Maze",
-  '1001': 'VOID',
-  '1002': "VOID - Arronax's Interior",
-  '1003': 'VOID -Kerghans Castle',
-  '1004': "VOID - Cave Of Kriggyrd's Falchion"
-};
