@@ -4,6 +4,7 @@ const newspaperConverter = require('./parsers/GameNewspaperParser.js');
 const dialogFiles = require('../resources/FilesInformation');
 const generalDialogueParser = require('./parsers/GeneralDialogueParser');
 const antiTeleportParser = require('./parsers/AntiTeleportParser');
+const aiBehavioiurParser = require('./parsers/AIBehaviourParser');
 const readerHelper = require('../helpers/ReaderHelper');
 
 const generalDialogueFilename = 'generalDialogue.json';
@@ -20,34 +21,19 @@ module.exports = {
   },
 
   convertAllFiles: function (arcanumPath, patternsPath, outputPath) {
-    const generalDialogues = generalDialogueParser.prepareJson(
-      patternsPath + generalDialoguePatternFilename,
-      arcanumPath + 'Arcanum3/mes/'
-    );
-    readerHelper.writeJsonObjectToFile(
-      generalDialogues,
-      outputPath + generalDialogueFilename
-    );
+    const generalDialogues = generalDialogueParser.prepareJson(patternsPath + generalDialoguePatternFilename, arcanumPath + 'Arcanum3/mes/');
+    readerHelper.writeJsonObjectToFile(generalDialogues, outputPath + generalDialogueFilename);
 
-    const spells = spellsPatternCreator.parseSpells(
-      'SpellList',
-      arcanumPath + 'Arcanum4/Rules/'
-    );
+    const spells = spellsPatternCreator.parseSpells('SpellList', arcanumPath + 'Arcanum4/Rules/');
     readerHelper.writeJsonObjectToFile(spells, outputPath + 'SpellList.json');
 
-    const gameNewspaper = newspaperConverter.prepareGameNewspapers(
-      'gamenewspaper',
-      arcanumPath + 'modules/Arcanum/mes/'
-    );
-    readerHelper.writeJsonObjectToFile(
-      gameNewspaper,
-      outputPath + 'gamenewspaper.json'
-    );
+    const gameNewspaper = newspaperConverter.prepareGameNewspapers('gamenewspaper', arcanumPath + 'modules/Arcanum/mes/');
+    readerHelper.writeJsonObjectToFile(gameNewspaper, outputPath + 'gamenewspaper.json');
 
-    const antiTeleportation = antiTeleportParser.prepareAntiTeleports(
-      'AntiTeleport',
-      arcanumPath + "modules/Arcanum/Rules/"
-    );
+    const antiTeleportation = antiTeleportParser.prepareAntiTeleports('AntiTeleport', arcanumPath + "modules/Arcanum/Rules/");
     readerHelper.writeJsonObjectToFile(antiTeleportation, outputPath + 'AntiTeleport.json')
+
+    const AIBehaviours = aiBehavioiurParser.parseAI('ai_params', arcanumPath + "Arcanum3/rules/");
+    readerHelper.writeJsonObjectToFile(AIBehaviours, outputPath + 'ai_params.json')
   }
 };
