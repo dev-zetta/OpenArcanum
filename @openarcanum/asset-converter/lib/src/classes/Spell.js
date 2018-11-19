@@ -18,8 +18,8 @@ module.exports = class Spell {
   }
 
   parseRecordsToSpell(records, startAt) {
-    for (var i = 0; i < records.length; ++i) {
-      var _record = records[i];
+    for (let i = 0; i < records.length; ++i) {
+      const _record = records[i];
       switch (_record.key - startAt) {
         case 0:
           this.parseTargetingRecord(_record);
@@ -51,14 +51,12 @@ module.exports = class Spell {
   }
 
   parseCostRecord(record) {
-    var _temp = record.value.replace(/: /g, '":"');
-    _temp = _temp.replace(/, /g, '","');
-    var parsedInfo = JSON.parse('{"' + _temp + '"}');
-    this.maintain = parsedInfo.Maintain || this.maintain;
-    this.cost = parsedInfo.Cost || this.cost;
-    this.resist = parsedInfo.Resist || this.resist;
-    this.range = parsedInfo.Range || this.range;
-    this.info = parsedInfo.Info || this.info;
+    const parsedValue = this.convertRecordValueToJson(record);
+    this.maintain = parsedValue.Maintain || this.maintain;
+    this.cost = parsedValue.Cost || this.cost;
+    this.resist = parsedValue.Resist || this.resist;
+    this.range = parsedValue.Range || this.range;
+    this.info = parsedValue.Info || this.info;
   }
 
   parseFlagsRecord(record) {
@@ -66,15 +64,19 @@ module.exports = class Spell {
   }
 
   parseAiRecord(record) {
-    var _temp = record.value.replace(/: /g, '":"');
-    _temp = _temp.replace(/, /g, '","');
     if (record.value) {
-      var parsedInfo = JSON.parse('{"' + _temp + '"}');
-      this.AI_Offensive = parsedInfo.AI_Offensive;
-      this.AI_Defensive = parsedInfo.AI_Defensive;
-      this.AI_Summon = parsedInfo.AI_Summon;
-      this.AI_Flee = parsedInfo.AI_Flee;
+      const parsedValue = this.convertRecordValueToJson(record);
+      this.AI_Offensive = parsedValue.AI_Offensive;
+      this.AI_Defensive = parsedValue.AI_Defensive;
+      this.AI_Summon = parsedValue.AI_Summon;
+      this.AI_Flee = parsedValue.AI_Flee;
     }
+  }
+
+  convertRecordValueToJson(record) {
+    let _temp = record.value.replace(/: /g, '":"');
+    _temp = _temp.replace(/, /g, '","');
+    return JSON.parse('{"' + _temp + '"}');
   }
 
   parseEffectRecord(record) {

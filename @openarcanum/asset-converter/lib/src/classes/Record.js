@@ -29,13 +29,6 @@ module.exports = class Record {
   }
 
   toString() {
-    return (
-      '{"' +
-      this.key +
-      '": "' +
-      this.value +
-      '"}' +
-      (this.comment ? ' // ' + this.comment : '')
-    );
+    return '{"' + this.key + '": "' + this.value + '"}' + (this.comment ? ' // ' + this.comment : '');
   }
 };

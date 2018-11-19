@@ -1,9 +1,9 @@
-var Record = require('../classes/Record');
+const Record = require('../classes/Record');
 
 module.exports = {
-  writeJsonObjectToFile: function(obj, filePathAndName) {
-    var fs = require('fs');
-    fs.writeFileSync(filePathAndName, JSON.stringify(obj), {}, function(err) {
+  writeJsonObjectToFile: function (obj, filePathAndName) {
+    const fs = require('fs');
+    fs.writeFileSync(filePathAndName, JSON.stringify(obj), {}, function (err) {
       if (err) {
         return console.log(err);
       }
@@ -11,10 +11,10 @@ module.exports = {
     console.log('The file: ' + filePathAndName + ' was saved!');
   },
 
-  readFile: function(filePathAndName) {
-    var fs = require('fs');
+  readFile: function (filePathAndName) {
+    const fs = require('fs');
     try {
-      return fs.readFileSync(filePathAndName, { encoding: 'utf-8' });
+      return fs.readFileSync(filePathAndName, {encoding: 'utf-8'});
     } catch (e) {
       console.log('Error while reading the file: ' + filePathAndName);
       return null;
@@ -22,8 +22,8 @@ module.exports = {
   },
 
   readJSONFile: function readJSONFile(filePathAndName) {
-    var fs = require('fs');
-    return fs.readFileSync(filePathAndName, { encoding: 'utf-8' }, function(err) {
+    const fs = require('fs');
+    return fs.readFileSync(filePathAndName, {encoding: 'utf-8'}, function (err) {
       if (!err) {
       } else {
         console.log(err);
@@ -32,9 +32,9 @@ module.exports = {
   },
 
   // Fetch sub array of records where record keys are <min;max> not <min;max)
-  fetchRecordsForRange: function(records, min, max) {
+  fetchRecordsForRange: function (records, min, max) {
     const recordsToReturn = [];
-    for (var j = 0; j < records.length; ++j) {
+    for (let j = 0; j < records.length; ++j) {
       if (records[j].key < min) {
         continue;
       }
@@ -49,8 +49,8 @@ module.exports = {
   },
 
   readRecords: function readJSONFile(filePathAndName) {
-    var fs = require('fs');
-    var data = fs.readFileSync(filePathAndName, { encoding: 'utf-8' }, function(err) {
+    const fs = require('fs');
+    const data = fs.readFileSync(filePathAndName, {encoding: 'utf-8'}, function (err) {
       if (!err) {
       } else {
         console.log(err);
@@ -61,9 +61,9 @@ module.exports = {
 };
 
 function parseTextRecords(data) {
-  var textRecords = [];
-  var regex = /{(\d+)}{([\S\s]*?)}[ /]*(.+)?/g;
-  var regexExec;
+  const textRecords = [];
+  const regex = /{(\d+)}{([\S\s]*?)}[ /]*(.+)?/g;
+  let regexExec;
   while ((regexExec = regex.exec(data)) !== null) {
     const record = new Record(regexExec[1], regexExec[2], regexExec[3]);
     textRecords.push(record);
