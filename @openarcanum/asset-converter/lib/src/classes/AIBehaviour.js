@@ -76,7 +76,7 @@ module.exports = class AIBehaviour {
     this.killOnSightWhenAlignmentLevelAboveWhichGoodAlignedFollowersWillNotAttack = stats[12];
 
     this.chanceOfCastingDefensiveSpell = stats[13];
-    this.chanceOfCastingHealingSpellInCombat = [14];
+    this.chanceOfCastingHealingSpellInCombat = stats[14];
 
     this.minimumDistanceInCombat = stats[15];
     this.canOpenDoors = !!stats[16];

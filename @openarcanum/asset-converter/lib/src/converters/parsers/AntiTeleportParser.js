@@ -8,8 +8,8 @@ const AntiTeleportSpot = require('../../classes/AntiTeleportSpot');
 
 module.exports = {
   prepareAntiTeleports: function(file, inputFolder) {
-    var data = readerHelper.readFile(inputFolder + file + '.mes');
-    var records = readerHelper.readRecords(inputFolder + file + '.mes');
+    const data = readerHelper.readFile(inputFolder + file + '.mes');
+    const records = readerHelper.readRecords(inputFolder + file + '.mes');
     if (data === null) {
       return null;
     }
@@ -30,7 +30,7 @@ function parseAntiTeleports(records) {
 function prepareAntiteleportMaps(records) {
   const filteredRecords = readerHelper.fetchRecordsForRange(records, 1000, 1010);
   const maps = [];
-  for (var i = 0; i < filteredRecords.length; ++i) {
+  for (let i = 0; i < filteredRecords.length; ++i) {
     maps.push(prepareMap(filteredRecords[i]));
   }
   return maps;
@@ -43,7 +43,7 @@ function prepareAntiteleportMaps(records) {
 function prepareAntiteleportSpots(records) {
   const filteredRecords = readerHelper.fetchRecordsForRange(records, 100, 105);
   const maps = [];
-  for (var i = 0; i < filteredRecords.length; ++i) {
+  for (let i = 0; i < filteredRecords.length; ++i) {
     maps.push(prepareSpot(filteredRecords[i]));
   }
   return maps;
@@ -54,7 +54,7 @@ function prepareAntiteleportSpots(records) {
 // **************
 
 function prepareSpot(record) {
-  var parsed = /(\d+), (\d+), (\d+)/.exec(record.value);
+  const parsed = /(\d+), (\d+), (\d+)/.exec(record.value);
   return new AntiTeleportSpot(
     record.key,
     parsed[1],

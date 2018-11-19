@@ -31,9 +31,9 @@ module.exports = {
     readerHelper.writeJsonObjectToFile(gameNewspaper, outputPath + 'gamenewspaper.json');
 
     const antiTeleportation = antiTeleportParser.prepareAntiTeleports('AntiTeleport', arcanumPath + "modules/Arcanum/Rules/");
-    readerHelper.writeJsonObjectToFile(antiTeleportation, outputPath + 'AntiTeleport.json')
+    readerHelper.writeJsonObjectToFile(antiTeleportation, outputPath + 'AntiTeleport.json');
 
     const AIBehaviours = aiBehavioiurParser.parseAI('ai_params', arcanumPath + "Arcanum3/rules/");
-    readerHelper.writeJsonObjectToFile(AIBehaviours, outputPath + 'ai_params.json')
+    readerHelper.writeJsonObjectToFile(AIBehaviours, outputPath + 'ai_params.json');
   }
 };

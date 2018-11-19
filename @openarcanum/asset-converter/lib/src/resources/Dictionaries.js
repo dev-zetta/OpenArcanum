@@ -1,6 +1,6 @@
 module.exports = {
   generalDialogue: function() {
-    var descTypeMap = new Map();
+    const descTypeMap = new Map();
     descTypeMap.set('Asking for rumors', 'askForRumors');
     descTypeMap.set('Appreciation (thanks)', 'appreciation');
     descTypeMap.set('Insult', 'insult');
@@ -217,7 +217,7 @@ module.exports = {
     );
     descTypeMap.set('PC doesnt have beginner training', 'pcIsNotEvenABeginner');
 
-    var classes = [
+    const classes = [
       'noble',
       'priest',
       'wizard',
@@ -231,7 +231,7 @@ module.exports = {
       'bandit'
     ];
 
-    var races = [
+    const races = [
       'human',
       'dwarf',
       'elf',
@@ -245,7 +245,7 @@ module.exports = {
       'orc'
     ];
 
-    var directions = [
+    const directions = [
       'north',
       'northEast',
       'east',
@@ -266,7 +266,7 @@ module.exports = {
 
   spellRelated: function() {
     // Item olny starts at 5000
-    var itemOnly = [
+    const itemOnly = [
       'Regeneration',
       'Drain Life',
       'Fire Shield',
@@ -330,7 +330,7 @@ module.exports = {
     ];
 
     // Tech item only starts at 10000
-    var techItem = [
+    const techItem = [
       'mtTechSnare [Mechanical: Bear Trap]',
       'mtTechBrainBuilder [Item: Brain Builder]',
       'mtTechHypnoticSuggestion [Item: Elixir of Hypnotic Suggestion]',
@@ -401,7 +401,7 @@ module.exports = {
     ];
 
     // Item only part 2 starts at 13350
-    var itemOnlySecondPart = [
+    const itemOnlySecondPart = [
       'mtMI2KerghanDeathSpell [Kerghan-specific-caster Death Spell]',
       'mtMI2KerghanAtkSpell [Kerghan-specific-caster Attack Spell]',
       'mtMI2KerghanHealing [Kerghan-specific-caster Healing Spell]',

@@ -1,14 +1,14 @@
 const readerHelper = require('../../helpers/ReaderHelper');
-var NewspaperArticle = require('../../classes/NewspaperArticle');
+const NewspaperArticle = require('../../classes/NewspaperArticle');
 
 //* ************
 // GENERATORS
 //* ************
 
 module.exports = {
-  prepareGameNewspapers: function(file, inputFolder) {
-    var data = readerHelper.readFile(inputFolder + file + '.mes');
-    var records = readerHelper.readRecords(inputFolder + file + '.mes');
+  prepareGameNewspapers: function (file, inputFolder) {
+    const data = readerHelper.readFile(inputFolder + file + '.mes');
+    const records = readerHelper.readRecords(inputFolder + file + '.mes');
     if (data === null) {
       return null;
     }
@@ -17,10 +17,10 @@ module.exports = {
 };
 
 function parseNewspapers(records) {
-  var fillerArticles = parseFillerArticles(records);
-  var gameRelatedNewspaperArticles = parseGameRelatedArticles(records);
-  var genericArticles = parseGenericArticles(records);
-  return { fillerArticles, gameRelatedNewspaperArticles, genericArticles };
+  const fillerArticles = parseFillerArticles(records);
+  const gameRelatedNewspaperArticles = parseGameRelatedArticles(records);
+  const genericArticles = parseGenericArticles(records);
+  return {fillerArticles, gameRelatedNewspaperArticles, genericArticles};
 }
 
 // **********************
@@ -28,14 +28,10 @@ function parseNewspapers(records) {
 // **********************
 
 function parseFillerArticles(records) {
-  var filteredRecords = readerHelper.fetchRecordsForRange(records, 10, 25);
-  var gameRelatedNewspaperArticles = [];
+  const filteredRecords = readerHelper.fetchRecordsForRange(records, 10, 25);
+  const gameRelatedNewspaperArticles = [];
   for (let i = 10; i < 26; i += 2) {
-    var recordsForOneNewspaper = readerHelper.fetchRecordsForRange(
-      filteredRecords,
-      i,
-      i + 1
-    );
+    const recordsForOneNewspaper = readerHelper.fetchRecordsForRange(filteredRecords, i, i + 1);
     if (recordsForOneNewspaper.length) {
       gameRelatedNewspaperArticles.push(prepareNewspaperArticle(recordsForOneNewspaper));
     }
@@ -48,14 +44,10 @@ function parseFillerArticles(records) {
 // **********************
 
 function parseGameRelatedArticles(records) {
-  var filteredRecords = readerHelper.fetchRecordsForRange(records, 1000, 4990);
-  var gameRelatedNewspaperArticles = [];
+  const filteredRecords = readerHelper.fetchRecordsForRange(records, 1000, 4990);
+  const gameRelatedNewspaperArticles = [];
   for (let i = 1000; i < 4991; i += 10) {
-    var recordsForOneNewspaper = readerHelper.fetchRecordsForRange(
-      filteredRecords,
-      i,
-      i + 9
-    );
+    const recordsForOneNewspaper = readerHelper.fetchRecordsForRange(filteredRecords, i, i + 9);
     if (recordsForOneNewspaper.length) {
       gameRelatedNewspaperArticles.push(prepareNewspaperArticle(recordsForOneNewspaper));
     }
@@ -68,14 +60,10 @@ function parseGameRelatedArticles(records) {
 // **********************
 
 function parseGenericArticles(records) {
-  var filteredRecords = readerHelper.fetchRecordsForRange(records, 5000, 6000);
-  var gameRelatedNewspaperArticles = [];
+  const filteredRecords = readerHelper.fetchRecordsForRange(records, 5000, 6000);
+  const gameRelatedNewspaperArticles = [];
   for (let i = 5000; i < 6001; i += 10) {
-    var recordsForOneNewspaper = readerHelper.fetchRecordsForRange(
-      filteredRecords,
-      i,
-      i + 9
-    );
+    const recordsForOneNewspaper = readerHelper.fetchRecordsForRange(filteredRecords, i, i + 9);
     if (recordsForOneNewspaper.length) {
       gameRelatedNewspaperArticles.push(prepareNewspaperArticle(recordsForOneNewspaper));
     }
@@ -87,18 +75,19 @@ function parseGenericArticles(records) {
 // HELPERS
 // **********************
 
-function prepareNewspaperArticle(records){
-  var recordKey = records[0].key;
-  var header = fetchLine(records[0]);
-  var subHeader = fetchLine(records[1]);
-  var paragraphs = fetchParagraphs(records);
+function prepareNewspaperArticle(records) {
+  const recordKey = records[0].key;
+  const header = fetchLine(records[0]);
+  const subHeader = fetchLine(records[1]);
+  const paragraphs = fetchParagraphs(records);
 
   return new NewspaperArticle(recordKey, header, subHeader, paragraphs);
 }
 
 function fetchLine(record) {
-  var parsed = /([0-9]{3})([lc])([\S\s]+)/.exec(record.value);
-  var line = {
+  //(490)(l)(  _COUNCIL MURDERED!_)
+  const parsed = /([0-9]{3})([lc])([\S\s]+)/.exec(record.value);
+  const line = {
     recordKey: record.key,
     fontSize: fontSizes[parsed[1]],
     fontStyle: fontStyles[parsed[2]]
@@ -112,8 +101,8 @@ function fetchLine(record) {
 }
 
 function fetchParagraphs(records) {
-  var paragraphs = [];
-  for (var i = 2; i < records.length; ++i) {
+  const paragraphs = [];
+  for (let i = 2; i < records.length; ++i) {
     paragraphs.push(fetchLine(records[i]));
   }
   return paragraphs;

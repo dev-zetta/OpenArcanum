@@ -1,7 +1,7 @@
 const readerHelper = require('../../helpers/ReaderHelper');
 const dictionary = require('../../resources/Dictionaries').generalDialogue();
-var RecordRange = require('../../classes/RecordRange');
-var DialogueType = require('../../classes/DialogueType');
+const RecordRange = require('../../classes/RecordRange');
+const DialogueType = require('../../classes/DialogueType');
 
 //* ************
 // GENERATORS
@@ -65,37 +65,22 @@ Examples
  */
 
 module.exports = {
-  writeParserPatternForFiles: function writeParserPatternForFiles(fileInformation,
-                                                                  inputFolder,
-                                                                  outputFolder,
-                                                                  parserFilename,
-                                                                  writeAlsoToSingleFiles) {
-    var generated = [];
+  writeParserPatternForFiles: function (fileInformation, inputFolder, outputFolder, parserFilename, writeAlsoToSingleFiles) {
+    const generated = [];
 
-    for (var fileName in fileInformation) {
-      var file = fileInformation[fileName];
-      var data = generatePatternForSingleFile(
-        inputFolder + file.name + '.mes',
-        file
-      );
-      generated.push({
-        filename: file.name,
-        dialogueTypes: data
-      });
-
+    fileInformation.forEach((file) => {
+      const data = generatePatternForSingleFile(inputFolder + file.name + '.mes', file);
+      generated.push({filename: file.name, dialogueTypes: data});
       if (writeAlsoToSingleFiles) {
-        readerHelper.writeJsonObjectToFile(
-          data,
-          outputFolder + file.name + '.json'
-        );
+        readerHelper.writeJsonObjectToFile(data, outputFolder + file.name + '.json');
       }
-    }
+    });
     readerHelper.writeJsonObjectToFile(generated, outputFolder + parserFilename);
   }
 };
 
 function generatePatternForSingleFile(filePath, file) {
-  var data = readerHelper.readFile(filePath);
+  let data = readerHelper.readFile(filePath);
   data = data.replace("Offers to train a beginner cannot", "Offers to train a beginner messages start at");
   data = data.replace("wants to start the WorldMap", "wants to start the WorldMap go between 2300 and 2399");
   if (data === null) {
@@ -129,10 +114,10 @@ function generatePatternForSingleFile(filePath, file) {
 // **********************
 
 function parseClassMessageTypes(data, filepath) {
-  var messageTypes = [];
-  var messageTypesArray = data.match(/\/\/ (.*) messages start at (\d+)./gm);
-  for (var i = 0; i < messageTypesArray.length; ++i) {
-    var messageGroup = messageTypesArray[i].match(/\/\/ (.*) messages start at (\d+)./);
+  const messageTypes = [];
+  const messageTypesArray = data.match(/\/\/ (.*) messages start at (\d+)./gm);
+  for (let i = 0; i < messageTypesArray.length; ++i) {
+    const messageGroup = messageTypesArray[i].match(/\/\/ (.*) messages start at (\d+)./);
     messageTypes.push({
       name: dictionary.descTypeMap.get(messageGroup[1]),
       start: messageGroup[2],
@@ -145,23 +130,20 @@ function parseClassMessageTypes(data, filepath) {
 }
 
 function prepareClassParser(messageTypes) {
-  var mesg = [];
-  var classes = dictionary.classes;
-  for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
-    for (var j = 0; j < classes.length; ++j) {
-      _mesg.addRange(
+  const mesg = [];
+  const classes = dictionary.classes;
+  for (let i = 0; i < messageTypes.length; ++i) {
+    const dialogueType = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+    for (let j = 0; j < classes.length; ++j) {
+      dialogueType.addRange(
         new RecordRange(
           messageTypes[i].jump * j + parseInt(messageTypes[i].start),
-          messageTypes[i].jump * j +
-          parseInt(messageTypes[i].start) +
-          parseInt(messageTypes[i].jump) -
-          1
-        ),
-        classes[j]
+          messageTypes[i].jump * j + parseInt(messageTypes[i].start) + parseInt(messageTypes[i].jump) - 1,
+          classes[j]
+        )
       );
     }
-    mesg.push(_mesg);
+    mesg.push(dialogueType);
   }
   return mesg;
 }
@@ -171,10 +153,10 @@ function prepareClassParser(messageTypes) {
 // ***************************
 
 function parseStartAtMessageTypes(data, filePath) {
-  var messageTypes = [];
-  var messageTypesArray = data.match(/\/\/ (.*) messages start at (\d+)./gm);
-  for (var i = 0; i < messageTypesArray.length; ++i) {
-    var messageGroup = messageTypesArray[i].match(/\/\/ (.*) messages start at (\d+)./);
+  const messageTypes = [];
+  const messageTypesArray = data.match(/\/\/ (.*) messages start at (\d+)./gm);
+  for (let i = 0; i < messageTypesArray.length; ++i) {
+    const messageGroup = messageTypesArray[i].match(/\/\/ (.*) messages start at (\d+)./);
     messageTypes.push({
       name: dictionary.descTypeMap.get(messageGroup[1]),
       start: messageGroup[2],
@@ -187,16 +169,16 @@ function parseStartAtMessageTypes(data, filePath) {
 }
 
 function parseStartAtParser(messageTypes) {
-  var mesg = [];
-  for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
-    _mesg.addRange(
+  const mesg = [];
+  for (let i = 0; i < messageTypes.length; ++i) {
+    const dialogueType = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+    dialogueType.addRange(
       new RecordRange(
         parseInt(messageTypes[i].start),
         parseInt(messageTypes[i].start) + parseInt(messageTypes[i].jump) - 1
       )
     );
-    mesg.push(_mesg);
+    mesg.push(dialogueType);
   }
   return mesg;
 }
@@ -206,10 +188,10 @@ function parseStartAtParser(messageTypes) {
 // **************************
 
 function parseBetweenMessageTypes(data, filePath) {
-  var messageTypes = [];
-  var messageTypesArray = data.match(/\/\/ (.*) between (\d+) and (\d+)/gm);
-  for (var i = 0; i < messageTypesArray.length; ++i) {
-    var messageGroup = messageTypesArray[i].match(/\/\/ (.*) between (\d+) and (\d+)/);
+  const messageTypes = [];
+  const messageTypesArray = data.match(/\/\/ (.*) between (\d+) and (\d+)/gm);
+  for (let i = 0; i < messageTypesArray.length; ++i) {
+    const messageGroup = messageTypesArray[i].match(/\/\/ (.*) between (\d+) and (\d+)/);
     messageTypes.push({
       name: dictionary.descTypeMap.get(messageGroup[1]),
       start: messageGroup[2],
@@ -222,16 +204,16 @@ function parseBetweenMessageTypes(data, filePath) {
 }
 
 function prepareBetweenParser(messageTypes) {
-  var mesg = [];
-  for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
-    _mesg.addRange(
+  const mesg = [];
+  for (let i = 0; i < messageTypes.length; ++i) {
+    const dialogueType = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+    dialogueType.addRange(
       new RecordRange(
         parseInt(messageTypes[i].start),
         parseInt(messageTypes[i].end)
       )
     );
-    mesg.push(_mesg);
+    mesg.push(dialogueType);
   }
   return mesg;
 }
@@ -241,14 +223,10 @@ function prepareBetweenParser(messageTypes) {
 // ************************
 
 function parseRacesMessageTypes(data, filepath) {
-  var messageTypes = [];
-  var messageTypesArray = data.match(
-    /\/\/ (.*) messages start at (\d+). Each PC race gets (\d+)/gm
-  );
-  for (var i = 0; i < messageTypesArray.length; ++i) {
-    var messageGroup = messageTypesArray[i].match(
-      /\/\/ (.*) messages start at (\d+). Each PC race gets (\d+)/
-    );
+  const messageTypes = [];
+  const messageTypesArray = data.match(/\/\/ (.*) messages start at (\d+). Each PC race gets (\d+)/gm);
+  for (let i = 0; i < messageTypesArray.length; ++i) {
+    const messageGroup = messageTypesArray[i].match(/\/\/ (.*) messages start at (\d+). Each PC race gets (\d+)/);
     messageTypes.push({
       name: dictionary.descTypeMap.get(messageGroup[1]),
       start: messageGroup[2],
@@ -261,30 +239,26 @@ function parseRacesMessageTypes(data, filepath) {
 }
 
 function prepareRacesParser(messageTypes) {
-  var mesg = [];
-  var races = dictionary.races;
-  for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
-    _mesg.addRange(
+  const mesg = [];
+  const races = dictionary.races;
+  for (let i = 0; i < messageTypes.length; ++i) {
+    const dialogueType = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+    dialogueType.addRange(
       new RecordRange(
         messageTypes[i].start,
         parseInt(messageTypes[i].start) + parseInt(messageTypes[i].jump) - 1
       )
     );
-    for (var j = 0; j < races.length; ++j) {
-      _mesg.addRange(
+    for (let j = 0; j < races.length; ++j) {
+      dialogueType.addRange(
         new RecordRange(
           messageTypes[i].jump * j + parseInt(messageTypes[i].start) + 50,
-          messageTypes[i].jump * j +
-          parseInt(messageTypes[i].start) +
-          parseInt(messageTypes[i].jump) +
-          50 -
-          1
-        ),
-        races[j]
+          messageTypes[i].jump * j + parseInt(messageTypes[i].start) + parseInt(messageTypes[i].jump) + 50 - 1,
+          races[j]
+        )
       );
     }
-    mesg.push(_mesg);
+    mesg.push(dialogueType);
   }
   return mesg;
 }
@@ -294,10 +268,10 @@ function prepareRacesParser(messageTypes) {
 // ************************
 
 function parseStoryMessageTypes(data) {
-  var messageTypes = [];
-  var messageTypesArray = data.match(/\/\/ Story state is (\d+)/gm);
-  for (var i = 0; i < messageTypesArray.length; ++i) {
-    var messageGroup = messageTypesArray[i].match(/\/\/ Story state is (\d+)/);
+  const messageTypes = [];
+  const messageTypesArray = data.match(/\/\/ Story state is (\d+)/gm);
+  for (let i = 0; i < messageTypesArray.length; ++i) {
+    const messageGroup = messageTypesArray[i].match(/\/\/ Story state is (\d+)/);
     messageTypes.push({
       name: 'storyState_' + messageGroup[1],
       jump: 100,
@@ -308,12 +282,12 @@ function parseStoryMessageTypes(data) {
 }
 
 function prepareStoryParser(messageTypes) {
-  var mesg = [];
-  var races = dictionary.races;
-  for (var i = 0; i < messageTypes.length; ++i) {
-    var _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
-    for (var j = 0; j < races.length; ++j) {
-      _mesg.addRange(
+  const mesg = [];
+  const races = dictionary.races;
+  for (let i = 0; i < messageTypes.length; ++i) {
+    const dialogueType = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+    for (let j = 0; j < races.length; ++j) {
+      dialogueType.addRange(
         new RecordRange(
           i * messageTypes[i].jump + j,
           i * messageTypes[i].jump + j,
@@ -321,7 +295,7 @@ function prepareStoryParser(messageTypes) {
         )
       );
     }
-    mesg.push(_mesg);
+    mesg.push(dialogueType);
   }
   return mesg;
 }
@@ -331,14 +305,10 @@ function prepareStoryParser(messageTypes) {
 // **************************
 
 function parseSpecialTreatmentMessageTypes(data, filePath) {
-  var messageTypes = [];
-  var messageTypesArray = data.match(
-    /\/\/ (.*) messages start at (\d+) and end at (\d+)/gm
-  );
-  for (var i = 0; i < messageTypesArray.length; ++i) {
-    var messageGroup = messageTypesArray[i].match(
-      /\/\/ (.*) messages start at (\d+) and end at (\d+)/
-    );
+  const messageTypes = [];
+  const messageTypesArray = data.match(/\/\/ (.*) messages start at (\d+) and end at (\d+)/gm);
+  for (let i = 0; i < messageTypesArray.length; ++i) {
+    const messageGroup = messageTypesArray[i].match(/\/\/ (.*) messages start at (\d+) and end at (\d+)/);
     messageTypes.push({
       name: dictionary.descTypeMap.get(messageGroup[1]),
       start: messageGroup[2],
@@ -351,10 +321,10 @@ function parseSpecialTreatmentMessageTypes(data, filePath) {
 }
 
 function parseSpecialTreatmentDirectionMessageTypes(data, filepath) {
-  var messageTypes = [];
-  var messageTypesArray = data.match(/\/\/ (.*) start at (\d+)\./gm);
-  for (var i = 0; i < messageTypesArray.length; ++i) {
-    var messageGroup = messageTypesArray[i].match(/\/\/ (.*) start at (\d+)\./);
+  const messageTypes = [];
+  const messageTypesArray = data.match(/\/\/ (.*) start at (\d+)\./gm);
+  for (let i = 0; i < messageTypesArray.length; ++i) {
+    const messageGroup = messageTypesArray[i].match(/\/\/ (.*) start at (\d+)\./);
     messageTypes.push({
       name: dictionary.descTypeMap.get(messageGroup[1]),
       start: messageGroup[2],
@@ -365,26 +335,23 @@ function parseSpecialTreatmentDirectionMessageTypes(data, filepath) {
   return messageTypes;
 }
 
-function prepareSpecialTreatmentParser(messageTypes,
-                                       directionMessageTypes,
-                                       notParseable) {
-  var mesg = [];
-  var directions = dictionary.directions;
-  var _mesg;
-  for (var i = 0; i < messageTypes.length; ++i) {
-    _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
+function prepareSpecialTreatmentParser(messageTypes, directionMessageTypes, notParseable) {
+  const mesg = [];
+  const directions = dictionary.directions;
+  for (let i = 0; i < messageTypes.length; ++i) {
+    const _mesg = new DialogueType(messageTypes[i].name, messageTypes[i].description);
     _mesg.addRange(
       new RecordRange(messageTypes[i].start, messageTypes[i].end)
     );
     mesg.push(_mesg);
   }
 
-  for (var j = 0; j < directionMessageTypes.length; ++j) {
-    _mesg = new DialogueType(
+  for (let j = 0; j < directionMessageTypes.length; ++j) {
+    const _mesg = new DialogueType(
       directionMessageTypes[j].name,
       directionMessageTypes[j].description
     );
-    for (var k = 0; k < directions.length; ++k) {
+    for (let k = 0; k < directions.length; ++k) {
       _mesg.addRange(
         new RecordRange(
           parseInt(directionMessageTypes[j].start) + k * 10,
@@ -396,8 +363,8 @@ function prepareSpecialTreatmentParser(messageTypes,
     mesg.push(_mesg);
   }
 
-  for (var l = 0; l < notParseable.length; ++l) {
-    _mesg = new DialogueType(
+  for (let l = 0; l < notParseable.length; ++l) {
+    const _mesg = new DialogueType(
       dictionary.descTypeMap.get(notParseable[l].description),
       notParseable[l].description
     );
@@ -415,16 +382,7 @@ function prepareSpecialTreatmentParser(messageTypes,
 
 function checkIfDictionaryEntryExists(entry, filename, dictionaryMap) {
   if (dictionaryMap.get(entry) === undefined) {
-    console.log(
-      'DICTIONARY ENTRY: ' +
-      '"' +
-      entry +
-      '"' +
-      ' FROM FILE ' +
-      '"' +
-      filename +
-      ' IS MISSING'
-    );
+    console.log('DICTIONARY ENTRY: ' + '"' + entry + '"' + ' FROM FILE ' + '"' + filename + ' IS MISSING');
   }
 }
 

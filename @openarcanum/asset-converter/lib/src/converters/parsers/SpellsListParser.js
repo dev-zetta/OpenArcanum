@@ -1,7 +1,7 @@
 const readerHelper = require('../../helpers/ReaderHelper');
-var Spell = require('../../classes/Spell');
+const Spell = require('../../classes/Spell');
 
-var spells = new Map();
+const spells = new Map();
 spells.set('Disarm', 'disarm');
 spells.set('Unlocking Cantrip', 'unlockingCantrip');
 spells.set('Unseen Force', 'unseenForce');
@@ -83,7 +83,7 @@ spells.set('Hasten', 'hasten');
 spells.set('Stasis', 'stasis');
 spells.set('Tempus Fugit', 'tempusFugit');
 
-var colleges = new Map();
+const colleges = new Map();
 colleges.set('Conveyance', 'conveyance');
 colleges.set('Divination', 'divination');
 colleges.set('Air', 'air');
@@ -111,8 +111,8 @@ module.exports = {
 };
 
 function parseSpells(filePath) {
-  var data = readerHelper.readFile(filePath);
-  var records = readerHelper.readRecords(filePath);
+  const data = readerHelper.readFile(filePath);
+  const records = readerHelper.readRecords(filePath);
   if (data === null) {
     return null;
   }
@@ -124,19 +124,18 @@ function parseSpells(filePath) {
 // *********
 
 function prepareSpells(data) {
-  var messageTypes = {};
-  var spellNames = Array.from(spells.keys());
-  var collegeNames = Array.from(colleges.keys());
-  for (var i = 0; i < collegeNames.length; ++i) {
-    var collegeName = colleges.get(collegeNames[i]);
+  const messageTypes = {};
+  const spellNames = Array.from(spells.keys());
+  const collegeNames = Array.from(colleges.keys());
+  for (let i = 0; i < collegeNames.length; ++i) {
+    const collegeName = colleges.get(collegeNames[i]);
     messageTypes[collegeName] = {};
-    for (var j = 0; j < 5; ++j) {
-      var spellName = spellNames[i * 5 + j];
-      var startAt = 1000 + (i * 5 + j) * 50;
-      var endAt = startAt + 49;
-      var spellRecords = readerHelper.fetchRecordsForRange(data, startAt, endAt);
-      var spell = new Spell(spellNames[i * 5 + j], spellRecords, startAt);
-      messageTypes[collegeName][spells.get(spellName)] = spell;
+    for (let j = 0; j < 5; ++j) {
+      const spellName = spellNames[i * 5 + j];
+      const startAt = 1000 + (i * 5 + j) * 50;
+      const endAt = startAt + 49;
+      const spellRecords = readerHelper.fetchRecordsForRange(data, startAt, endAt);
+      messageTypes[collegeName][spells.get(spellName)] = new Spell(spellName, spellRecords, startAt);
     }
   }
   return messageTypes;

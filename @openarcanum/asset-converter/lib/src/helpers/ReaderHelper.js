@@ -21,7 +21,7 @@ module.exports = {
     }
   },
 
-  readJSONFile: function readJSONFile(filePathAndName) {
+  readJSONFile: function (filePathAndName) {
     const fs = require('fs');
     return fs.readFileSync(filePathAndName, {encoding: 'utf-8'}, function (err) {
       if (!err) {
@@ -57,7 +57,7 @@ module.exports = {
 function parseTextRecords(data) {
   const textRecords = [];
   // {(FIRST GROUP)}{(SECOND GROUP)} // (THIRD GROUP)
-  const regex = /{(\d+)}{([\S\s]*?)}(?:[\s]*\/\/[\s]*(.+))?/g;
+  const regex = /{(\d+)}{([\S\s]*?)}(?:[ \t]*?\/\/[ \t]*([\S].*))?/g;
   let regexExec;
   while ((regexExec = regex.exec(data)) !== null) {
     const record = new Record(regexExec[1], regexExec[2], regexExec[3]);

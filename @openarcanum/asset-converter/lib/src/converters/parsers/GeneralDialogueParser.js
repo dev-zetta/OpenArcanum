@@ -5,9 +5,9 @@ const DialogueType = require('../../classes/DialogueType');
 // GENERATORS
 //* ************
 module.exports = {
-  prepareJson: function prepareJson(parserPatternFilePath, inputFilePath) {
+  prepareJson: function (parserPatternFilePath, inputFilePath) {
     try {
-      var allFiles = fetchDialogFiles(JSON.parse(readerHelper.readJSONFile(parserPatternFilePath)));
+      const allFiles = fetchDialogFiles(JSON.parse(readerHelper.readJSONFile(parserPatternFilePath)));
       allFiles.forEach(file => {
         assignRecordsToFile(inputFilePath, file);
       });
@@ -20,7 +20,7 @@ module.exports = {
 
 
 function assignRecordsToFile(inputFilePath, file) {
-  var records = readerHelper.readRecords(inputFilePath + file.filename + '.mes');
+  const records = readerHelper.readRecords(inputFilePath + file.filename + '.mes');
   records.forEach((record) => {
     if (!addRecordToDialogTypes(file.dialogueTypes, record)) {
       logError(file.filename, record);
@@ -33,9 +33,9 @@ function logError(filename, record) {
 }
 
 function fetchDialogFiles(json) {
-  var dialogFiles = [];
-  for (var fileIndex in json) {
-    var dialogueTypes = fetchDialogueTypesList(json[fileIndex]);
+  const dialogFiles = [];
+  for (const fileIndex in json) {
+    const dialogueTypes = fetchDialogueTypesList(json[fileIndex]);
     dialogFiles.push({
       filename: json[fileIndex].filename,
       dialogueTypes: dialogueTypes
@@ -45,7 +45,7 @@ function fetchDialogFiles(json) {
 }
 
 function fetchDialogueTypesList(file) {
-  var list = [];
+  const list = [];
   file.dialogueTypes.forEach((item) => {
     list.push(new DialogueType(item.type, item.description, item.recordRanges))
   });
@@ -53,7 +53,7 @@ function fetchDialogueTypesList(file) {
 }
 
 function addRecordToDialogTypes(dialogueTypes, record) {
-  for (var i = 0; i < dialogueTypes.length; ++i) {
+  for (let i = 0; i < dialogueTypes.length; ++i) {
     if (dialogueTypes[i].addRecord(record)) {
       return true;
     }

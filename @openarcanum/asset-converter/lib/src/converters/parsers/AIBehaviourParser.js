@@ -7,8 +7,8 @@ const AIBehaviour = require('../../classes/AIBehaviour');
 
 module.exports = {
   parseAI: function (file, inputFolder) {
-    var data = readerHelper.readFile(inputFolder + file + '.mes');
-    var records = readerHelper.readRecords(inputFolder + file + '.mes');
+    const data = readerHelper.readFile(inputFolder + file + '.mes');
+    const records = readerHelper.readRecords(inputFolder + file + '.mes');
     if (data === null) {
       return null;
     }
@@ -17,7 +17,7 @@ module.exports = {
 };
 
 function parseAIs(records) {
-  var ai_params = parseAIBehaviours(records);
+  const ai_params = parseAIBehaviours(records);
   return {ai_params};
 }
 
