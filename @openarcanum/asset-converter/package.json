@@ -32,9 +32,9 @@
   },
   "scripts": {
     "start": "node lib/start.js",
-    "prepublish": "nsp check",
-    "pretest": "eslint .",
-    "precommit": "lint-staged",
+    "dev:prepublish": "nsp check",
+    "dev:pretest": "eslint .",
+    "dev:precommit": "lint-staged",
     "test": "jest"
   },
   "lint-staged": {
