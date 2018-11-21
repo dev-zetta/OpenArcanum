@@ -3,7 +3,7 @@ const Record = require('../classes/Record');
 module.exports = {
   writeJsonObjectToFile: function (obj, filePathAndName) {
     const fs = require('fs');
-    fs.writeFileSync(filePathAndName, JSON.stringify(obj), {}, function (err) {
+    fs.writeFileSync(filePathAndName, JSON.stringify(obj, null, 2), {}, function (err) {
       if (err) {
         return console.log(err);
       }
