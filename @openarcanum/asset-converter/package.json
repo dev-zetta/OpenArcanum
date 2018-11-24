@@ -30,6 +30,9 @@
     "nsp": "^3.2.1",
     "prettier": "^1.7.0"
   },
+  "dependencies": {
+    "iconv-lite": "^0.4.24"
+  },
   "scripts": {
     "start": "node lib/start.js",
     "dev:prepublish": "nsp check",

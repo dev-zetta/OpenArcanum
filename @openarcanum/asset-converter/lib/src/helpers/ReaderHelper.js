@@ -1,9 +1,11 @@
 const Record = require('../classes/Record');
 
+const fs = require('fs');
+const iconv = require('iconv-lite');
+
 module.exports = {
   writeJsonObjectToFile: function (obj, filePathAndName) {
-    const fs = require('fs');
-    fs.writeFileSync(filePathAndName, JSON.stringify(obj, null, 2), {}, function (err) {
+    fs.writeFileSync(filePathAndName, JSON.stringify(obj, null, 2), {encoding: 'utf-8'}, function (err) {
       if (err) {
         return console.log(err);
       }
@@ -12,9 +14,16 @@ module.exports = {
   },
 
   readFile: function (filePathAndName) {
-    const fs = require('fs');
+
     try {
-      return fs.readFileSync(filePathAndName, {encoding: 'utf-8'});
+      let data = fs.readFileSync(filePathAndName);
+      if (!data) {
+        console.error(`Unable to read ${filePathAndName}`);
+        return null;
+      }
+
+      data = iconv.decode(data, 'win1251');
+      return data.toString('utf8');
     } catch (e) {
       console.log('Error while reading the file: ' + filePathAndName);
       return null;
@@ -22,7 +31,6 @@ module.exports = {
   },
 
   readJSONFile: function (filePathAndName) {
-    const fs = require('fs');
     return fs.readFileSync(filePathAndName, {encoding: 'utf-8'}, function (err) {
       if (!err) {
       } else {
@@ -43,13 +51,14 @@ module.exports = {
   },
 
   readRecords: function (filePathAndName) {
-    const fs = require('fs');
-    const data = fs.readFileSync(filePathAndName, {encoding: 'utf-8'}, function (err) {
+    let data = fs.readFileSync(filePathAndName, {}, function (err) {
       if (!err) {
       } else {
         console.log(err);
       }
     });
+
+    data = iconv.decode(data, 'win1251')
     return parseTextRecords(data);
   }
 };
