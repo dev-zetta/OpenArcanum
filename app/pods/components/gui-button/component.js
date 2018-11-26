@@ -1,6 +1,7 @@
 import GuiWidget from '../gui-widget'
 
-import { className, attribute } from '@ember-decorators/component'
+import { className, classNames, attribute } from '@ember-decorators/component'
+import { action, computed } from '@ember-decorators/object'
 
 class GuiButton extends GuiWidget {
   @className(`active`)
@@ -15,7 +16,8 @@ class GuiButton extends GuiWidget {
   /**
    *
    */
-  click(e) {
+  @action
+  onClick(e) {
     super.click(...arguments)
 
     let action = this.get(`onClick`)

@@ -113,7 +113,7 @@ module.exports = {
       },
       methods: {
         createSlots() {
-          let size = [28, 28]
+          let size = [31, 31]
 
           this.addSlots({
             hotSlot0: {

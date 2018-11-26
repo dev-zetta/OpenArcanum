@@ -1,37 +1,8 @@
 & {
   display: block;
-  position: relative;
+  position: static;
   z-index: 999;
   background-repeat: no-repeat;
   background-size: contain;
-}
-/*
-&.item-hidden {
-  z-index: 0;
-}
-&.item-releasing {
-  z-index: 998 !important;
-}
-&.item-positioning {
-  z-index: 998 !important;
-  border: 1px solid #ffc107;
-}
-
-&.item-dragging {
-  z-index: 999 !important;
-  border: 1px solid #ffc107;
-}
-
-.item-content {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-&.dragging .item-content {
 
 }
-&.releasing .item-content {
-
-}
-*/

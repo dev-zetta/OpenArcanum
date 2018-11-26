@@ -9,6 +9,12 @@ module.exports = {
     title: `Video`
   },
 
+  listeners: {
+    'showPlayer': () => {
+      this.show()
+    }
+  },
+
   components: {
     videoPlayer: {
       type: `video`,

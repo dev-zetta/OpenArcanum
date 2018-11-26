@@ -12,18 +12,36 @@ module.exports = {
   components: {
     recordPanel: {
       type: `screen-record`,
-      position: [30, 30],
+      position: [20, 20],
       size: [400, 400]
     },
 
-    reloadBtn: {
-      visible: false,
+    startBtn: {
+      visible: true,
       type: `button`,
-      position: [100, 20],
-      prototype: `btn btn-success`,
+      position: [80, 200],
+      prototype: ``,
+      options: {
+        label: `Start`
+      },
       events: {
         click(event) {
-          this.emitEvent(`gameReload`)
+          this.emitEvent(`game.reload`)
+        }
+      }
+    },
+
+    playBtn: {
+      visible: true,
+      type: `button`,
+      position: [20, 200],
+      prototype: ``,
+      options: {
+        label: `Play`
+      },
+      events: {
+        click(event) {
+          this.emitEvent(`showPlayer`)
         }
       }
     }

@@ -1,4 +1,4 @@
-import Lance from '../libs/lance'
+import Lance from '../libs/Lance'
 
 export class Renderer extends Lance.Renderer {
   /**

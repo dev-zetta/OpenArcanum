@@ -1,11 +1,12 @@
 /* global AGate */
-import Lance from '../libs/lance'
+import Lance from '../libs/Lance'
 import { Client } from '../client/Client'
 import { GameMap } from './map/GameMap'
 import { AssetLoader } from './assets'
 import { WorkerPool } from './misc/WorkerPool'
 import { EventEmitter } from './misc/EventEmitter'
 import { ServerEngine } from '../server/ServerEngine'
+import Database from '../shared/realm/Database'
 
 const socketIo = requireNode(`socket.io`)
 
@@ -32,6 +33,8 @@ export class Engine extends Lance.GameEngine {
     this.events = new EventEmitter()
     this.workerPool = new WorkerPool(this)
     this.assetLoader = new AssetLoader(this)
+    this.database = new Database(this)
+
     this.map = new GameMap(this)
 
     this.createServer()
@@ -44,6 +47,7 @@ export class Engine extends Lance.GameEngine {
    */
   async createClient(canvas) {
     await this.assetLoader.initialize()
+    await this.database.initialize()
 
     this.client = new Client(this, this.options, canvas)
 
@@ -67,8 +71,6 @@ export class Engine extends Lance.GameEngine {
   load() {
     let path = AGate.getDataPath(`Bates Mansion Lev 2`)
     this.map.load(path)
-
-
   }
 
   /**

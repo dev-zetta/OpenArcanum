@@ -25,15 +25,19 @@ protocolServe({
   endpoint: "dist"
 });
 
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
 protocols.register("asset", uri => {
   let base = config.dataPath; // app.getAppPath();
-  console.log(uri.host);
+  //console.log(uri.host);
 
   if (uri.pathname) {
-    console.log(join(base, uri.host, uri.pathname))
+    //console.error(base, uri.host, uri.pathname);
     return join(base, uri.host, uri.pathname);
   }
-  console.log(join(base, uri.host))
+  //console.error(join(base, uri.host));
   return join(base, uri.host);
 });
 

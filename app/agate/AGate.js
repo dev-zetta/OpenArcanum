@@ -38,6 +38,24 @@ class AGate {
 
   /**
    *
+   * @param path
+   * @returns {string}
+   */
+  getAppUrl(path = ``) {
+    return `${this.config.appProtocol}${path}`
+  }
+
+  /**
+   *
+   * @param path
+   * @returns {string}
+   */
+  getGfxUrl(path = ``) {
+    return `${this.config.appProtocol}Gfx/2D/${path}`
+  }
+
+  /**
+   *
    * @param subDir
    * @returns {string}
    */
@@ -58,5 +76,8 @@ class AGate {
     return requireNode(name)
   }
 }
+
+
+window.lll = console.error
 
 export default AGate

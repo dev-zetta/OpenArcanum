@@ -3,7 +3,7 @@ module.exports = {
   type: `window`,
   sprite: `MapMain`,
   position: `center`,
-  visible: true,
+  visible: false,
   options: {
     toolbar: true,
     title: `Map`
@@ -24,13 +24,13 @@ module.exports = {
 
     zoomBtn: {
       type: `button`,
-      position: [20, 165],
+      position: [19, 164],
       sprite: `MapZoomBut`
     },
 
     wholeBtn: {
       type: `button`,
-      position: [19, 267],
+      position: [19, 266],
       sprite: `MapWholeBut`
     },
 

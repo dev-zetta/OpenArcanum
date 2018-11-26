@@ -1,6 +1,5 @@
 /* global AGate */
 import { ECS } from '../libs/ecs'
-import { GfxTypes } from './assets'
 import { Sprite } from '../client/Sprite'
 import { Utils } from '../client/Utils'
 import { Light } from '../client/Light'
@@ -8,8 +7,9 @@ import { Location } from './Location'
 import { Sector } from './map/Sector'
 import Enums from './enums'
 
-export class Entity extends ECS.Entity {
+const {GfxTypes} = Enums
 
+export class Entity extends ECS.Entity {
   /**
    *
    * @param map
@@ -91,23 +91,23 @@ export class Entity extends ECS.Entity {
       switch (
         sprite.currentStage // Counter clockwise
       ) {
-        case 'NorthEast':
+        case `NorthEast`:
           // South east, indoor (Up right)
           //x += 20; //(Sector.TileWidth / 2) - 1
           y -= Sector.TileWidthHalf //(Sector.TileHeight / 2)
           break
-        case 'SouthEast':
+        case `SouthEast`:
           // South west, outdoor
           //x -= 20;
           //offset.y -= 40;
           break
-        case 'SouthWest':
+        case `SouthWest`:
           // South east, outdoor (Down left)
           //offset.x -= 20;
           //offset.y -= 20;
           break
 
-        case 'NorthWest':
+        case `NorthWest`:
           // South west, indoor (Up left)
           x -= Sector.TileWidthHalf //(Sector.TileWidth / 2) + 1
           //y -= 20; //(Sector.TileHeight / 2)
@@ -154,11 +154,11 @@ export class Entity extends ECS.Entity {
 
         for (let i = 0; i < flags.length; i++) {
           switch (flags[i]) {
-            case 'BlendAdd':
-              sprite.setBlendMode('BlendAdd')
+            case `BlendAdd`:
+              sprite.setBlendMode(`BlendAdd`)
               break
-            case 'BlendMul':
-              sprite.setBlendMode('BlendMul')
+            case `BlendMul`:
+              sprite.setBlendMode(`BlendMul`)
               break
           }
         }

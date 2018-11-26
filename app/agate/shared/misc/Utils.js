@@ -27,11 +27,11 @@ export class Utils extends lodash {
 
   /**
    *
-   * @param path
-   * @returns {string | *}
+   * @param str
+   * @returns {boolean}
    */
-  static getLastDir(path) {
-    return path.substring(path.lastIndexOf(`/`) + 1)
+  static isFirstUpperCase(str) {
+    return (/^[A-Z]/).test(str)
   }
 
   /**
@@ -80,6 +80,23 @@ export class Utils extends lodash {
     let dotPos = path.lastIndexOf(`.`)
     let slashPos = path.lastIndexOf(`/`)
     return path.substring(slashPos + 1, dotPos)
+  }
+
+  /**
+   *
+   * @param path
+   * @returns {string | *}
+   */
+  static getFileName(path) {
+    return path.substring(path.lastIndexOf(`/`) + 1)
+  }
+
+  /**
+   *
+   * @param str
+   */
+  static upperCamelCase(str) {
+    return Utils.upperFirst(Utils.camelCase(str))
   }
 
   /**

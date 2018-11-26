@@ -286,7 +286,7 @@ export class GameMap {
   }
 
   async addPlayer(location = null) {
-    let file = `16093.json`
+    /*let file = `16093.json`
     let path = AGate.getDataPath()
 
     let data = await this.engine.assetLoader.loadJsonFile(`${path}/${file}`)
@@ -297,7 +297,7 @@ export class GameMap {
     let id = AGate.Utils.getFileBase(path)
     let entity = await this.entitySystem.newEntity(id, data)
 
-    return entity
+    return entity*/
   }
 
   getCenterLocation() {

@@ -1,5 +1,5 @@
 /* global AGate */
-import Phaser from '../libs/phaser'
+import Phaser from '../libs/Phaser'
 
 import { Isometric } from '../libs/phaser-isometric/Isometric'
 import { Point3 } from '../libs/phaser-isometric/Point3'

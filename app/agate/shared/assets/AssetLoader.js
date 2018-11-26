@@ -1,7 +1,5 @@
-/* global AGate, requireNode */
+/* global AGate, requireNode, createImageBitmap */
 //var liquidfun = requireNode('liquidfun')
-
-import {GfxPathBuilder} from './GfxPathBuilder'
 
 const fs = AGate.requireNode(`fs`)
 const util = AGate.requireNode(`util`)
@@ -76,7 +74,7 @@ export class AssetLoader {
         for (let i = 0; i < parts.length; i++) {
           let part = parts[i]
 
-          if (i + 1 == parts.length) {
+          if (i + 1 === parts.length) {
             if (parent.has(part)) {
               console.log(`Overriding file? ${entry.name}`)
             }
@@ -304,7 +302,7 @@ export class AssetLoader {
   /**
    *
    * @param src
-   * @returns {Promise<any>}
+   * @returns {Promise<*>}
    */
   async createAndLoadImage(src) {
     if (AGate.Utils.isUndefined(createImageBitmap)) {
@@ -346,7 +344,7 @@ export class AssetLoader {
         return new Image()
       }
 
-      return await createImageBitmap(blob)
+      return createImageBitmap(blob)
     }
   }
 
@@ -388,7 +386,7 @@ export class AssetLoader {
 
       return parseJson(data.toString(`binary`))
     } catch (err) {
-      AGate.Utils.logError(err.message)
+      AGate.Utils.logError(filePath, err)
       return null
     }
   }
@@ -401,7 +399,7 @@ export class AssetLoader {
    */
   async saveJsonFile(filePath, object) {
     try {
-      return await writeJsonFile(filePath, object)
+      return await writeJsonFile(filePath, object, {indent: 2})
     } catch (err) {
       AGate.Utils.logError(err.message)
       return null
@@ -470,7 +468,13 @@ export class AssetLoader {
         return
       }
 
-      let list = find.fileSync(regExp, dir)
+      let path = AGate.getAppPath(dir)
+      let list = find.fileSync(regExp, path)
+      /*for (let i = 0; i < list.length; i++) {
+        list[i] = list[i].substring(path.length)
+      }*/
+
+
       resolve(list)
     })
   }
@@ -493,7 +497,12 @@ export class AssetLoader {
         return
       }
 
-      let list = find.dirSync(pattern, dir)
+      let path = AGate.getAppPath(dir)
+      let list = find.dirSync(pattern, path)
+      /*for (let i = 0; i < list.length; i++) {
+        list[i] = list[i].substring(path.length)
+      }*/
+
       resolve(list)
     })
   }
@@ -550,4 +559,3 @@ export class AssetLoader {
   }
 }
 
-export {GfxPathBuilder}

@@ -148,10 +148,21 @@ class Manager {
     await assetLoader.saveJsonFile(`${targetPath}/gui-images.json`, json)
   }
 
+  /*loadImage(path) {
+    let assetLoader = this.engine.assetLoader
+    assetLoader.loadAsset({
+      key,
+      type: `atlas`,
+      texture: [`${path}.gif`, `${path}.png`],
+      data: jsonFile,
+      output: `base64`
+    })
+  }*/
+
   /**
    *
    * @param key
-   * @returns {V | undefined}
+   * @returns {*}
    */
   getSprite(key) {
     //key = AGate.Utils.kebabCase(key);
@@ -159,6 +170,10 @@ class Manager {
     if (sprite) {
       return sprite
     }
+
+    sprite = Sprite.fromUrl(key + '.gif')
+    this.sprites.set(key, sprite)
+    return sprite
   }
 
   /**
@@ -174,6 +189,7 @@ class Manager {
    * @param widget
    */
   addWidget(widget) {
+    console.error(`Adding widget ${widget.get(`widget.id`)}`)
     this.widgets.set(widget.get(`widget.id`), widget)
   }
 
@@ -188,12 +204,18 @@ class Manager {
       children = this.widgets
     }
 
+    /*if (id == 'plugSlots')
+      console.error('found', children)*/
+
     let widget = children.get(id)
     if (widget) {
       return widget
     }
 
     for (let [key, value] of children) {
+      if (!value.children)
+        console.error('shit')
+
       let widget = this.findWidget(id, value.children)
       if (widget) {
         return widget

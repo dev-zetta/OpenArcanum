@@ -123,11 +123,10 @@ class GuiInventory extends GuiWidget {
         id: `${parentId}.${id}`,
         type: `inventory-item`,
         size: [slotSize * size[0], slotSize * size[1]],
-        sprite: item.sprite,
+        //sprite: item.sprite,
         events: {
           created() {
-            /*let element = this.get(`element`)
-            grid.add(element, { layout: doLayout })*/
+            this.setEntity(item.entity)
           }
         }
       }

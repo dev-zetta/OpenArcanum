@@ -1,8 +1,8 @@
 /* global AGate */
-import { GfxTypes, GfxPathBuilder } from '../shared/assets'
-import Enums from '../shared/enums'
+import {GfxPathBuilder} from '../shared/assets'
+import {GfxTypes} from '../shared/enums'
 
-import Phaser from '../libs/phaser'
+import Phaser from '../libs/Phaser'
 import { Math } from '../shared/misc/Math'
 
 export class Sprite {
@@ -113,6 +113,10 @@ export class Sprite {
     await Promise.all(promises)
   }
 
+  /**
+   *
+   * @returns {{key: string, frame: string}}
+   */
   makeTextureInfo() {
     let frame, key
     let currentPath = `${this.path}/${this.selectedVariant}`
@@ -140,6 +144,14 @@ export class Sprite {
     return { key, frame }
   }
 
+  /**
+   *
+   * @param target
+   * @param x
+   * @param y
+   * @param z
+   * @param offset
+   */
   addToScene(target, x, y, z = 0, offset = null) {
     let { key, frame } = this.makeTextureInfo()
 
@@ -197,10 +209,18 @@ export class Sprite {
     //this.sprite.setPipeline('Light2D');
   }
 
+  /**
+   *
+   * @param data
+   */
   setData(data) {
     this.data = data
   }
 
+  /**
+   *
+   * @param index
+   */
   setFrame(index) {
     let sprite = this.sprite
     let texture = sprite.texture
@@ -220,8 +240,12 @@ export class Sprite {
     this.frame = index
   }
 
+  /**
+   *
+   * @param stage
+   */
   setStage(stage) {
-    if (stage == this.currentStage) return
+    if (stage === this.currentStage) {return}
 
     console.log(`Changing to stage ${stage}`)
 
@@ -238,10 +262,19 @@ export class Sprite {
     this.currentStage = stage
   }
 
+  /**
+   *
+   * @returns {boolean}
+   */
   isValid() {
     return !!this.sprite
   }
 
+  /**
+   *
+   * @param x
+   * @param y
+   */
   move(x, y) {
     //let delta = (elapsed % 1001) / 1000;
     let sprite = this.sprite
@@ -251,6 +284,11 @@ export class Sprite {
     sprite.postUpdate()
   }
 
+  /**
+   *
+   * @param elapsed
+   * @param speed
+   */
   update(elapsed, speed = 1.0) {
     this.totalElapsed += elapsed
 
@@ -266,6 +304,10 @@ export class Sprite {
     this.setFrame(frameIndex)
   }
 
+  /**
+   *
+   * @param mode
+   */
   setBlendMode(mode) {
     switch (mode) {
       case `BlendAdd`:
@@ -281,14 +323,27 @@ export class Sprite {
     this.sprite.setBlendMode(mode)
   }
 
+  /**
+   *
+   * @param color
+   */
   setTint(color) {
     this.sprite.setTint(color)
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   get isoPosition() {
     return this.sprite.isoPosition
   }
 
+  /**
+   *
+   * @param data
+   * @returns {Promise<void>}
+   */
   async change(data) {
     await this.load(data)
     this.frame = 0

@@ -17,7 +17,7 @@ class GuiVideo extends GuiWidget {
   }
 
   setup = {
-    autoplay: true,
+    autoplay: false,
     controls: true,
     fluid: true
   }
@@ -220,7 +220,7 @@ class GuiVideo extends GuiWidget {
   }
 
   click() {
-    this.player.play()
+    //this.player.play()
   }
 
   @action

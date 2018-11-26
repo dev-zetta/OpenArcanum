@@ -13,7 +13,7 @@
   user-select: none;
 
   //background-position: left center;
-  -webkit-transform: translateZ(0); /* Bugfix for chrome https://github.com/marceljuenemann/angular-drag-and-drop-lists/issues/256 */
+  /*-webkit-transform: translateZ(0);*/ /* Bugfix for chrome https://github.com/marceljuenemann/angular-drag-and-drop-lists/issues/256 */
 }
 
 /*@function remote-image-url($name) {
@@ -53,7 +53,7 @@ html {
 }
 
 #gui {
-  z-index: 99;
+  z-index: 999;
   background-color: transparent;
   width: 100%;
   height: 100vh;
@@ -64,7 +64,7 @@ html {
   bottom: 0;
   user-select: none;
   pointer-events: none;
-  -webkit-transform: translateZ(0);
+  /*-webkit-transform: translateZ(0);*/
 }
 
 
@@ -125,7 +125,6 @@ html {
   border-radius: 8px;
 }
 
-
 .jsPanel .jsPanel-content {
   background: none;
   overflow: hidden;
@@ -135,10 +134,18 @@ html {
 .jsPanel .jsPanel-hdr * {
   color: #a38642
 }
-/*
-.tilePane {
-  z-index: 0;
+
+.draggable-mirror {
+  z-index: 9999 !important;
 }
-*/
+
+.jsPanel-theme-default {
+  background-color: transparent;
+}
+
+.ui.button {
+  background: inherit;
+  /*background-size: inherit;*/
+}
 
 @import "pod-styles";

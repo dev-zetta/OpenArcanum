@@ -1,4 +1,6 @@
 {
-  "dataPath": "/media/maxli/Data/dev/ArcanumAlive/Data/converted",
-  "scriptsPath": "/media/maxli/Data/dev/OpenArcanum/app/agate"
+  "dataPath": "/media/maxli/Data/dev/OpenArcanum/asset-db",
+  "scriptsPath": "/media/maxli/Data/dev/OpenArcanum/app/agate",
+
+  "appProtocol": "asset://"
 }

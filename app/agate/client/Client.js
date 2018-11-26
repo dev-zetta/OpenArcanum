@@ -1,11 +1,12 @@
 /* global AGate, window */
 
-import Phaser from '../libs/phaser'
+import Phaser from '../libs/Phaser'
 //import {AssetServer} from '../server/AssetServer';
-import Lance from '../libs/lance'
+import Lance from '../libs/Lance'
 import { Scene } from './Scene'
 import { Manager } from './Gui'
 import { Renderer } from './Renderer'
+
 
 export class Client extends Lance.ClientEngine {
   /**
@@ -40,7 +41,7 @@ export class Client extends Lance.ClientEngine {
     await this.guiManager.loadAssets()
 
     this.engine.events.listenUI(`game.reload`, () => {
-      //this.guiManager.
+      this.start()
     })
 
     let contextCreationConfig = {
@@ -73,11 +74,11 @@ export class Client extends Lance.ClientEngine {
 
     this.scene = new Scene(this)
     this.game.scene.add(`default`, this.scene)
-    //this.game.scene.start(`default`)
 
     this.engine.events.listenUI(`window.resize`, (e) => {
       this.game.resize(e.width, e.height)
     })
+
   }
 
   /**
@@ -105,11 +106,15 @@ export class Client extends Lance.ClientEngine {
     map.placeToScene(this.scene)
 
     let location = map.getCenterLocation()
-    map.addPlayer(location).then(player => {
+    /*map.addPlayer(location).then(player => {
       this.player = player
 
       this.player.placeToScene(map.rootGroup)
-    })
+    })*/
+  }
+
+  start() {
+    this.game.scene.start(`default`)
   }
 
   update() {}

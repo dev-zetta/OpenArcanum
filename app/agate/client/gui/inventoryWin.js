@@ -1,3 +1,8 @@
+
+
+
+
+
 module.exports = {
   //parent: 'middleWin',
   type: `window`,
@@ -10,12 +15,8 @@ module.exports = {
   },
 
   listeners: {
-    'plugSlots:created': () => {
-      //this.callComponent(`plugSlots`, `createSlots`)
-    },
-
-    'hotSlots:created': () => {
-      console.error('dfdfd')
+    'topWin:created': () => {
+      this.callComponent(`plugSlots`, `createSlots`)
       this.callComponent(`hotSlots`, `createSlots`)
     }
   },
@@ -53,26 +54,111 @@ module.exports = {
       },
       events: {
         created() {
+
+          let test = {
+            "Ammo": {
+              "quantity": 10,
+              "type": "Arrows"
+            },
+            "Base": {
+              "armorClass": 0,
+              "category": 1,
+              "descIndex": 7038,
+              "flags": [
+                "Flat",
+                "SeeThrough",
+                "ShootThrough",
+                "NoBlock"
+              ],
+              "health": {
+                "adjustment": 0,
+                "damage": 0,
+                "points": 1
+              },
+              "location": [
+                0,
+                0
+              ],
+              "material": 2,
+              "nameIndex": 2400,
+              "offset": [
+                0,
+                0
+              ],
+              "prototype": 7058,
+              "resistance": {
+                "damage": 0,
+                "electrical": 0,
+                "fire": 0,
+                "magic": 0,
+                "poison": 0
+              },
+              "soundEffect": 0,
+              "type": "Ammo"
+            },
+            "Item": {
+              "aiAction": 0,
+              "descriptionEffects": 7038,
+              "descriptionUnknown": 7038,
+              "discipline": 0,
+              "invLocation": 0,
+              "inventory": {
+                "category": "Ammo",
+                "display": "Inventory",
+                "resource": "iArrows.ART",
+                "subcat": "Arrows",
+                "type": "Item"
+              },
+              "magicTechComplexity": 0,
+              "magicWeightAdj": 0,
+              "manaStore": 0,
+              "spellManaStore": 0,
+              "weight": 1,
+              "worth": 1
+            },
+            "Visual": {
+              "classes": {
+                "current": {
+                  "category": "Ammo",
+                  "display": "Ground",
+                  "resource": "garrows.ART",
+                  "subcat": "Arrows",
+                  "type": "Item"
+                }
+              },
+              "light": {
+                "color": "rgba(171, 171, 171, 171)",
+                "flags": "00000000"
+              },
+              "render": {
+                "alpha": 255,
+                "color": "rgba(171, 171, 171, 171)",
+                "scale": 100
+              }
+            }
+          }
+
+
           this.addItems({
             test: {
-              sprite: `MagicksIcon`,
+              entity: test,
               size: [1, 2]
             },
             test2: {
-              sprite: `MagicRingIcon`,
+              entity: test,
               size: [2, 2]
             },
             test3: {
-              sprite: `MagicClothesIcon`
+              entity: test,
             },
             test4: {
-              sprite: `MagicBowsIcon`
+              entity: test,
             },
             test5: {
-              sprite: `MagicMeleeIcon`
+              entity: test,
             },
             test6: {
-              sprite: `MagicBowsIcon`
+              entity: test,
             }
           })
         }

@@ -1,4 +1,4 @@
-import Phaser from '../libs/phaser'
+import Phaser from '../libs/Phaser'
 
 export class Light {
   constructor() {}

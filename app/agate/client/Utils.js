@@ -1,6 +1,6 @@
 /* global AGate */
 
-import Phaser from '../libs/phaser'
+import Phaser from '../libs/Phaser'
 
 class CUtils {
   stringToColor(value) {

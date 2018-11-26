@@ -1,6 +1,6 @@
 /* global AGate */
 
-import Lance from '../libs/lance'
+import Lance from '../libs/Lance'
 
 export class ServerEngine extends Lance.ServerEngine {
   constructor(io, gameEngine, inputOptions) {

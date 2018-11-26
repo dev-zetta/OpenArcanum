@@ -22,9 +22,9 @@ import anime from 'ember-animejs'
 @classNames(`gui-widget ${getWidgetClass(`widget`)}`)
 class GuiWidget extends Component {
   @attribute(`data-id`)
-  @computed('widget')
+  @computed(`widget`)
   get dataId() {
-    return this.get('widget.id') || 0
+    return this.get(`widget.id`) || 0
   }
 
   @service
@@ -32,13 +32,10 @@ class GuiWidget extends Component {
   @service
   hifi
 
-  /*@attribute
-  draggable = false*/
-
-  @attribute
   visible = true
-
   sprite = null
+
+  MethodListeners = [`show`, `hide`, `toggle`]
 
   /**
    *
@@ -91,7 +88,7 @@ class GuiWidget extends Component {
    */
   getWidget(id) {
     if (!this.cachedWidgets) {
-      return null
+      this.cachedWidgets = new Map()
     }
 
     let widget = this.cachedWidgets.get(id)
@@ -104,7 +101,6 @@ class GuiWidget extends Component {
     if (widget) {
       this.cachedWidgets.set(id, widget)
     }
-
 
     return widget
   }
@@ -235,20 +231,37 @@ class GuiWidget extends Component {
   callComponent(id, method, ...args) {
     let widget = this.getWidget(id)
     if (!widget) {
-      AGate.Utils.logError(`Component ${id} not found`)
+      this.listenComponentEventOnce(id, `created`, () => {
+        this.callComponent(id, method, ...args)
+      })
+
+      AGate.Utils.logError(`Component ${id} not found`, widget)
       return
     }
 
-    if (AGate.Utils.isFunction(widget[method])) {
-      widget[method].apply(widget, this, ...args)
-      AGate.Utils.logError(`Calling component method ${method}`)
-    }else {
+    this.callMethod(widget, method, args)
+  }
+
+  /**
+   *
+   * @param widget
+   * @param method
+   * @param args
+   * @private
+   */
+  callMethod(widget, method, args) {
+    args = [this].concat(args)
+
+    /*if (AGate.Utils.isFunction(widget[method])) {
+      widget[method].apply(widget, args)
+      AGate.Utils.logError(`Calling native component method ${method}`)
+    } else {*/
       let methods = widget.getMethods()
       if (methods && AGate.Utils.isFunction(methods[method])) {
-        methods[method].apply(widget, this, ...args)
-        AGate.Utils.logError(`Calling component method ${method}`)
+        methods[method].apply(widget, args)
+        AGate.Utils.logError(`Calling user component method ${method}`)
       }
-    }
+    //}
   }
 
   /**
@@ -307,6 +320,15 @@ class GuiWidget extends Component {
   }
 
   /**
+   * Listen to events of given component using its id
+   * @param name
+   * @param listener
+   */
+  listenComponentEventOnce(id, name, listener) {
+    this.getEngine().events.listenOnceUI(`${id}:${name}`, listener)
+  }
+
+  /**
    * Calls own event and emits event to the world, so listeners can receive the event as well
    * @param name
    * @param args
@@ -325,18 +347,34 @@ class GuiWidget extends Component {
     this.emitComponentEvent(this.getId(), name)
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   getComponentName() {
     return this.get(`widget.componentName`)
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   getEvents() {
     return this.get(`widget.events`)
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   getListeners() {
     return this.get(`widget.listeners`)
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   getMethods() {
     return this.get(`widget.methods`)
   }
@@ -363,6 +401,13 @@ class GuiWidget extends Component {
    */
   getManager() {
     return this.getEngine().client.guiManager
+  }
+
+  /**
+   *
+   */
+  getDatabase() {
+    return this.getEngine().database
   }
 
   /**
@@ -569,10 +614,19 @@ class GuiWidget extends Component {
     return this.get(`widget.sprite`)
   }
 
+  /**
+   *
+   * @param key
+   */
   setSpriteKey(key) {
     this.set(`widget.sprite`, key)
   }
 
+  /**
+   *
+   * @param key
+   * @returns {*}
+   */
   getSprite(key) {
     return this.get(`sprite`)
   }
@@ -593,10 +647,10 @@ class GuiWidget extends Component {
 
     let previous = this.getSprite()
     if (AGate.Utils.isObjectLike(previous)) {
-      element.removeClass(previous.className)
+      previous.detachFromElement(element)
     }
 
-    element.addClass(sprite.className)
+    sprite.attachToElement(element)
 
     let size = this.getSize()
     if (!size) {
@@ -613,9 +667,7 @@ class GuiWidget extends Component {
    * @returns {V}
    */
   getSpriteByKey(key) {
-    let guiManager = this.getManager()
-
-    let sprite = guiManager.getSprite(key)
+    let sprite = this.getManager().getSprite(key)
     return sprite
   }
 
@@ -752,6 +804,9 @@ class GuiWidget extends Component {
     return true
   }
 
+  /**
+   *
+   */
   getRandomId() {
     return AGate.Utils.getRandomUUID()
   }
@@ -857,6 +912,9 @@ class GuiWidget extends Component {
     this.setStyle(style)
   }
 
+  /**
+   *
+   */
   applySize() {
     // set size
     let size = this.get(`widget.size`)
@@ -865,6 +923,9 @@ class GuiWidget extends Component {
     }
   }
 
+  /**
+   *
+   */
   applySprite() {
     // Set background sprite
     let spriteKey = this.getSpriteKey()
@@ -873,6 +934,9 @@ class GuiWidget extends Component {
     }
   }
 
+  /**
+   *
+   */
   applyVisibility() {
     // set visibility
     let visible = this.get(`widget.visible`)
@@ -882,6 +946,9 @@ class GuiWidget extends Component {
     }
   }
 
+  /**
+   *
+   */
   applyPrototype() {
     let prototype = this.get(`widget.prototype`)
     if (!prototype) {
@@ -896,6 +963,9 @@ class GuiWidget extends Component {
     }
   }
 
+  /**
+   *
+   */
   applyStyle() {
     // Set user-defined style
     let rawStyle = this.get(`widget.style`)
@@ -904,6 +974,9 @@ class GuiWidget extends Component {
     }
   }
 
+  /**
+   *
+   */
   updateWidgetAttrs() {
     let element = this.getElement()
     if (!element) {
@@ -916,6 +989,64 @@ class GuiWidget extends Component {
     this.applyVisibility()
     this.applyStyle()
     this.applyPrototype()
+  }
+
+  /**
+   *
+   */
+  applyMethods()     { // Hook methods
+    let methods = this.getMethods()
+    if (AGate.Utils.isString(methods)) {
+      methods = Manager.jsonToObject(methods)
+      this.set(`widget.methods`, methods)
+    }
+
+    for (let name in methods) {
+      let method = methods[name]
+      this[name] = method.bind(this, this) // sel caller as this
+    }
+  }
+
+  /**
+   *
+   */
+  applyEvents()     { // Hook events
+    let events = this.getEvents()
+    if (AGate.Utils.isString(events)) {
+      events = Manager.jsonToObject(events)
+      this.set(`widget.events`, events)
+    }
+  }
+
+  /**
+   *
+   */
+  applyListeners()     {
+    // Hook listeners
+    let listeners = this.getListeners()
+    if (AGate.Utils.isString(listeners)) {
+      listeners = Manager.jsonToObject(listeners)
+
+      this.set(`widget.listeners`, listeners)
+    }
+
+    for (let name in listeners) {
+      let listener = listeners[name]
+      //console.error(`hooking ${name}`)
+      this.listenEvent(name, (...args) => {
+        AGate.Utils.logError(`calling listener ${name}`)
+        listener.apply(this, args)
+      })
+    }
+
+    {
+      for (let name of this.MethodListeners) {
+        this.listenComponentEvent(this.getId(), name, (...args) => {
+          AGate.Utils.logError(`calling method listener ${name}`)
+          this[name](...args)
+        })
+      }
+    }
   }
 
   /**
@@ -946,55 +1077,9 @@ class GuiWidget extends Component {
       element.addClass(componentName)
     }
 
-    {
-      let methods = this.getMethods()
-      if (AGate.Utils.isString(methods)) {
-        methods = Manager.jsonToObject(methods)
-        this.set(`widget.methods`, methods)
-      }
-
-      /*console.error(methods)
-      for (let method in methods) {
-        console.error(method)
-      }*/
-
-    }
-
-    {
-      let events = this.getEvents()
-      if (AGate.Utils.isString(events)) {
-        events = Manager.jsonToObject(events)
-        this.set(`widget.events`, events)
-      }
-    }
-
-    { // Hook listeners
-      let listeners = this.getListeners()
-      if (AGate.Utils.isString(listeners)) {
-        listeners = Manager.jsonToObject(listeners)
-
-        this.set(`widget.listeners`, listeners)
-      }
-
-      for (let name in listeners) {
-        let listener = listeners[name]
-        console.error(`hooking ${name}`)
-        this.listenEvent(name, (...args) => {
-          AGate.Utils.logError(`calling listener ${name}`)
-          listener.apply(this, args)
-        })
-      }
-    }
-
-    {
-      let listeners = [`show`, `hide`, `toggle`]
-      for (let name of listeners) {
-        this.listenComponentEvent(this.getId(), name, (...args) => {
-          AGate.Utils.logError(`calling listener ${name}`)
-          this[name](...args)
-        })
-      }
-    }
+    this.applyMethods()
+    this.applyEvents()
+    this.applyListeners()
 
     this.updateWidgetAttrs()
     this.emitOwnEvent(`created`)

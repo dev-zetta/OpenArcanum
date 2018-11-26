@@ -2,7 +2,7 @@ module.exports = {
   type: `window`,
   sprite: `SchematicBase`,
   position: `center`,
-  visible: false,
+  visible: true,
   options: {
     toolbar: true,
     title: `Schematics`
@@ -11,7 +11,7 @@ module.exports = {
   events: {
     created() {
       let disciplines = {
-        Anatomical: {
+        Herbology: {
           button: `AnatomicalTab`
         },
         Chemistry: {
@@ -32,7 +32,7 @@ module.exports = {
         Smithy: {
           button: `SmithyTab`
         },
-        Theraputics: {
+        Therapeutics: {
           button: `TheraputicsTab`
         }
       }
@@ -40,9 +40,10 @@ module.exports = {
       let x = 707
       let y = 17
       let i = 0
-      let selected = 0
+      //let selected = 0
       let selectedBtn = null
 
+      let window = this
       for (let name in disciplines) {
         let discipline = disciplines[name]
 
@@ -60,17 +61,67 @@ module.exports = {
                 selectedBtn.toggle()
               }
 
-              selected = name
+              //selected = name
               selectedBtn = this
               selectedBtn.toggle()
+
+              window.showTab(name)
             }
           }
-
         })
 
         y += 45
         i += 1
       }
+
+      this.schematicModel = this.getDatabase().getModel(`Schematic`)
+      this.currentDiscipline = `Herbology`
+      this.switchToType(`learned`)
+    }
+  },
+
+  methods: {
+    showTab(caller, name) {
+      this.schematics = this.schematicModel.filtered(
+        `discipline = "${name}" AND type = "${this.schematicType}"`
+      )
+      // console.error(name, this.schematics, this.schematicType)
+
+      this.pageIndex = 0
+      this.showSchematic(this.pageIndex)
+
+      this.currentDiscipline = name
+    },
+
+    showSchematic(caller, index) {
+      let schematic = this.schematics[index]
+
+      this.getChild(`schemeTitle`).setValue(schematic.description.name)
+      this.getChild(`schemeDescription`).setValue(
+        schematic.description.description
+      )
+
+      let url = AGate.getGfxUrl(`Interface`)
+      this.getChild(`schemeImage`).setSprite(`${url}/${schematic.sprite}`)
+    },
+
+    nextPage(caller) {
+      if (this.pageIndex < this.schematics.length - 1) {
+        this.pageIndex += 1
+        this.showSchematic(this.pageIndex)
+      }
+    },
+
+    previousPage(caller) {
+      if (this.pageIndex > 0) {
+        this.pageIndex -= 1
+        this.showSchematic(this.pageIndex)
+      }
+    },
+
+    switchToType(caller, type) {
+      this.schematicType = type
+      this.showTab(this.currentDiscipline)
     }
   },
 
@@ -84,25 +135,45 @@ module.exports = {
     nextBtn: {
       type: `button`,
       position: [685, 16],
-      sprite: `SchmRArrow`
+      sprite: `SchmRArrow`,
+      events: {
+        click() {
+          this.callComponent(`schemaWin`, `nextPage`)
+        }
+      }
     },
 
     prevBtn: {
       type: `button`,
       position: [206, 16],
-      sprite: `SchmLArrow`
+      sprite: `SchmLArrow`,
+      events: {
+        click() {
+          this.callComponent(`schemaWin`, `previousPage`)
+        }
+      }
     },
 
-    schemeBtn: {
+    switchToLearnedBtn: {
       type: `button`,
       position: [29, 160],
-      sprite: `BGRNBUT`
+      sprite: `BGRNBUT`,
+      events: {
+        click() {
+          this.callComponent(`schemaWin`, `switchToType`, `learned`)
+        }
+      }
     },
 
-    schemeBtn2: {
+    switchToFoundBtn: {
       type: `button`,
       position: [29, 248],
-      sprite: `BGRNBUT`
+      sprite: `BGRNBUT`,
+      events: {
+        click() {
+          this.callComponent(`schemaWin`, `switchToType`, `found`)
+        }
+      }
     },
 
     combineBtn: {
@@ -117,6 +188,12 @@ module.exports = {
       sprite: `CombineIndicator3`
     },
 
+    schemeBlank: {
+      type: `image`,
+      position: [240, 146],
+      sprite: `Blankscheme`
+    },
+
     schemeImage: {
       type: `image`,
       position: [240, 146],
@@ -129,16 +206,34 @@ module.exports = {
       sprite: `SchemHaveItem`
     },
 
-    schemeItemIco: {
+    schemeItem1Ico: {
       type: `icon`,
       position: [579, 181],
-      sprite: `SchemHaveItem`
+      size: [30, 30]
     },
 
     schemeItem2: {
       type: `image`,
       position: [579, 277],
       sprite: `SchemHaveItem`
+    },
+
+    schemeTitle: {
+      type: `text`,
+      position: [245, 30],
+      style: {
+        color: `black`,
+        fontSize: `2rem`
+      }
+    },
+
+    schemeDescription: {
+      type: `text`,
+      position: [220, 68],
+      size: [475, 200],
+      style: {
+        color: `black`
+      }
     }
   }
 }

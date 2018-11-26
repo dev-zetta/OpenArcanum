@@ -14,7 +14,7 @@ module.exports = {
 
     characterBtn: {
       type: `button`,
-      position: [4, 1],
+      position: [4, 2],
       sprite: `CharBut`,
       events: {
         click(event) {
@@ -24,7 +24,7 @@ module.exports = {
     },
     logbookBtn: {
       type: `button`,
-      position: [41, 1],
+      position: [41, 2],
       sprite: `LogBut`,
       events: {
         click(event) {
@@ -34,7 +34,7 @@ module.exports = {
     },
     mapBtn: {
       type: `button`,
-      position: [78, 1],
+      position: [78, 2],
       sprite: `TMapBut` /* WMapBut */,
       events: {
         click(event) {
@@ -44,7 +44,7 @@ module.exports = {
     },
     inventoryBtn: {
       type: `button`,
-      position: [115, 1],
+      position: [115, 2],
       sprite: `InvnBut`,
       events: {
         click(event) {

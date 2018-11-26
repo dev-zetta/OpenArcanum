@@ -1,9 +1,8 @@
 /* global AGate */
 
-const events = AGate.requireNode('events')
+const events = AGate.requireNode(`events`)
 
 export class EventEmitter extends events {
-
   _queue = {}
 
   /**
@@ -17,8 +16,20 @@ export class EventEmitter extends events {
     super.on(topic, fn)
 
     let topics = this._queue[topic]
-    if(topics) {
-      console.log(`Delayed call of ${topic}`)
+    if (topics) {
+      console.error(`Delayed call of ${topic}`)
+      for (let item of topics) {
+        fn.apply(this, item)
+      }
+      delete this._queue[topic]
+    }
+  }
+
+  once(topic, fn) {
+    super.once(topic, fn)
+    let topics = this._queue[topic]
+    if (topics) {
+      console.error(`Delayed call of ${topic}`)
       for (let item of topics) {
         fn.apply(this, item)
       }
@@ -27,7 +38,7 @@ export class EventEmitter extends events {
   }
 
   emit(topic, ...args) {
-    if(this.listenerCount(topic) > 0) {
+    if (this.listenerCount(topic) > 0) {
       return super.emit(topic, ...args)
     } else {
       console.log(`Queuing call of ${topic}`)
@@ -76,5 +87,4 @@ export class EventEmitter extends events {
    * @returns {boolean}
    */
   emitUI = (name, ...args) => this.emit(`ui.${name}`, ...args)
-
 }

@@ -4,17 +4,21 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>OpenArcanum</title>
   <meta name="description" content="">
 
   {{content-for "head"}}
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="styles/app.css"> </head>
+
   {{content-for "head-footer"}}
+
 <body>
   <link integrity="" rel="stylesheet" href="{{rootURL}}assets/vendor.css">
   <link integrity="" rel="stylesheet" href="{{rootURL}}assets/open-arcanum.css">
 
+  <!--
+  <link integrity="" rel="stylesheet" href="https://cdn.conversejs.org/css/converse.min.css">
+  <script src="https://cdn.conversejs.org/dist/converse.min.js"></script>
+-->
   {{content-for "body"}}
 
   <script src="{{rootURL}}assets/vendor.js"></script>

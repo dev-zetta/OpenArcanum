@@ -1,39 +1,40 @@
-export var GfxTypes = new AGate.Enum([
-  `Tile`,
-  `Wall`,
-  `Portal`,
-  `Critter`,
-  `Scenery`,
-  `Item`,
-  `Container`,
-  `Light`,
-  `Roof`,
-  `Facade`,
-  `Monster`,
-  `UniqueNpc`,
-  `EyeCandy`
-])
+/* global AGate */
 
+import {GfxTypes} from '../enums/Gfx'
 
 export class GfxPathBuilder {
+  /**
+   *
+   * @param data
+   */
   constructor(data) {
     this.build(data)
   }
 
+  /**
+   *
+   * @returns {string}
+   */
   toPath() {
     return `${this.path}`
   }
 
+  /**
+   *
+   * @param data
+   */
   build(data) {
     let base = `${data.type.key}/`
 
-    //console.log(data.type);
+    if (AGate.Utils.isString(data.type)) {
+      data.type = GfxTypes.get(data.type)
+    }
 
     switch (data.type) {
       case GfxTypes.Tile:
         base += `${data.start.category}/${data.end.category}/${
           data.start.version
-          }/${data.end.version}`
+        }/${data.end.version}`
         break
       case GfxTypes.Wall:
         base += `${data.category}/${data.part}/${data.side}/${data.version}`
@@ -61,12 +62,12 @@ export class GfxPathBuilder {
         let gender = data.race == `Human` ? data.gender : `Male`
         base += `${data.race}/${gender}/${data.armor}/${data.shield}/${
           data.weapon
-          }/${data.animation}`
+        }/${data.animation}`
         break
       case GfxTypes.Monster:
         base += `${data.name}/${data.armor}/${data.shield}/${data.weapon}/${
           data.animation
-          }`
+        }`
         break
       case GfxTypes.UniqueNpc:
         base += `${data.name}/${data.shield}/${data.weapon}/${data.animation}`

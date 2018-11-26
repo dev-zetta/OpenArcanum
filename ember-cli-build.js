@@ -84,5 +84,8 @@ module.exports = function(defaults) {
   app.import(path.join(modulesDir, `video.js/dist/video-js.swf`), {
     destDir: `assets`
   })
+
+  //app.import('vendor/realm/lib/index.js')
+
   return app.toTree()
 }

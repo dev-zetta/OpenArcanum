@@ -1,1 +1,10 @@
-{{yield}}
+
+{{#if widget.sprite}}
+
+{{else}}
+
+{{#bs-button type='primary' onClick=(action "onClick")}}
+  {{widget.options.label}}
+{{/bs-button}}
+
+{{/if}}
