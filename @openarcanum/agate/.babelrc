@@ -1,0 +1,17 @@
+{
+  "presets": [
+    ["@babel/preset-env",
+    {
+      "debug": true,
+      "targets": {
+        "electron": "4",
+        "node": "current"
+      }
+    }],
+    "@babel/preset-flow"
+  ],
+  "plugins": [
+    "@babel/plugin-transform-runtime",
+    "@babel/plugin-transform-flow-strip-types"
+  ]
+}

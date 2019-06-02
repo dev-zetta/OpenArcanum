@@ -1,5 +1,4 @@
 import GuiWidget from '../gui-widget'
-import {alias, overridableReads} from '@ember-decorators/object/computed'
 
 class GuiPropertyGauge extends GuiWidget {
   //@alias('gauge.value') setValue
@@ -44,17 +43,17 @@ class GuiPropertyGauge extends GuiWidget {
         type: `text`,
         position: this.getAdvancedPosition(0, -21),
         size: [60, 20],
-        value: this.getOption('title')
+        value: this.getOption(`title`)
       },
 
       counter: {
         type: `text`,
         position: this.getAdvancedPosition(0, 0),
         size: [60, 20],
-        position: 'center',
+        position: `center`,
         style: {
           zIndex: 1,
-          textAlign: 'center'
+          textAlign: `center`
         }
       },
 

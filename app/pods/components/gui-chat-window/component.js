@@ -7,14 +7,12 @@ import GuiWidget from '../gui-widget'
 
 class GuiChatWindow extends GuiWidget {
   default = {
-    type: 'chat-window',
-    size: ['100%', '100%']
+    type: `chat-window`,
+    size: [`100%`, `100%`]
   }
 
   constructor() {
     super(...arguments)
-
-
   }
 
   didInsertElement() {
@@ -28,7 +26,7 @@ class GuiChatWindow extends GuiWidget {
 
     // https://conversejs.org/docs/html/configuration.html
     //window.addEventListener("converse-loaded", function(event) {
-      /*let result = converse.initialize({
+    /*let result = converse.initialize({
         jid: 'maxli@jwchat.org',
         authentication: 'login', // 'prebind',
         keepalive: true,
@@ -61,13 +59,7 @@ class GuiChatWindow extends GuiWidget {
         ]
       })*/
     //})
-
-
-
   }
-
-
-
 }
 
 export default GuiChatWindow

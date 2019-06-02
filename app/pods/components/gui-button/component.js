@@ -1,7 +1,7 @@
 import GuiWidget from '../gui-widget'
 
-import { className, classNames, attribute } from '@ember-decorators/component'
-import { action, computed } from '@ember-decorators/object'
+import { className } from '@ember-decorators/component'
+import { action } from '@ember/object'
 
 class GuiButton extends GuiWidget {
   @className(`active`)
@@ -10,7 +10,7 @@ class GuiButton extends GuiWidget {
   bubble = false
   active = false
   disabled = false
-  onClick = null
+  //onClick = null
   toggled = false
 
   /**
@@ -20,9 +20,9 @@ class GuiButton extends GuiWidget {
   onClick(e) {
     super.click(...arguments)
 
-    let action = this.get(`onClick`)
-    if (action !== null) {
-      let promise = action(this.get(`value`))
+    let action2 = this.get(`onClick`)
+    if (action2 !== null) {
+      let promise = action2(this.get(`value`))
       if (
         promise &&
         typeof promise.then === `function` &&

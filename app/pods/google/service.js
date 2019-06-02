@@ -1,11 +1,10 @@
-import Service from '@ember/service';
+import Service from '@ember/service'
 
-import GoogleApis from '../../agate/libs/google'
+//import GoogleApis from '@openarcanum/agate/src/libs/google'
 
 export default class GoogleService extends Service {
   constructor() {
     super(...arguments)
-    this.api = new GoogleApis()
+    //this.api = new GoogleApis()
   }
-
 }

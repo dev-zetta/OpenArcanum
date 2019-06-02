@@ -29,21 +29,21 @@ export default function() {
 
   function parseFilterQueryParams(queryParams) {
     let filterQueryParams = {}
-    for (var key in queryParams) {
-      if (key.startsWith('filter')) {
-        let field = key.slice(7, key.indexOf(']'))
+    for (let key in queryParams) {
+      if (key.startsWith(`filter`)) {
+        let field = key.slice(7, key.indexOf(`]`))
         filterQueryParams[field] = queryParams[key]
       }
     }
     return filterQueryParams
   }
 
-  this.get('/gui-widgets', (schema, request) => {
+  this.get(`/gui-widgets`, (schema, request) => {
     let filter = parseFilterQueryParams(request.queryParams)
     return schema.guiWidgets.where(filter)
   })
 
-  this.get('/gui-widgets/:id', ({ guiWidgets }, request) => {
+  this.get(`/gui-widgets/:id`, ({ guiWidgets }, request) => {
     let id = request.params.id
 
     return guiWidgets.find(id) // users in the second case
@@ -52,5 +52,4 @@ export default function() {
   //this.passthrough('https://conversejs.org/**');
 
   /*this.get('/gui-widgets');*/
-
 }

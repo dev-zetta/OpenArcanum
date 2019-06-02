@@ -3,25 +3,29 @@ import Resolver from './resolver'
 import loadInitializers from 'ember-load-initializers'
 import config from './config/environment'
 
+//import AGate from '@openarcanum/agate'
+const AGate = requireNode('@openarcanum/agate')
+global.AGate = new AGate(config.AGate)
+
 const App = Application.extend({
+  LOG_TRANSITIONS: false,
+  LOG_TRANSITIONS_INTERNAL: false,
+
   modulePrefix: config.modulePrefix,
   podModulePrefix: config.podModulePrefix,
   Resolver,
 
-  engines: {
+  /*engines: {
     'game-core': {
       dependencies: {
         externalRoutes: {
-          index: 'index'
+          index: `index`
         }
       }
     }
-  }
+  }*/
 })
 
 loadInitializers(App, config.modulePrefix)
-
-import AGate from './agate/AGate'
-global.AGate = new AGate(config.AGate)
 
 export default App

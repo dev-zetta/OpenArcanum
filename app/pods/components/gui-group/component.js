@@ -1,14 +1,10 @@
 import GuiWidget from '../gui-widget'
 
-import { className, attribute } from '@ember-decorators/component';
-
+import { className, attribute } from '@ember-decorators/component'
 
 class GuiGroup extends GuiWidget {
-
   @className(`active`)
   @className(`disabled`)
-
-
   @attribute
   bubble = false
 

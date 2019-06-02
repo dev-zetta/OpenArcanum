@@ -5,9 +5,8 @@ const fs = require(`fs`)
 
 import moment from 'moment'
 
-import {action} from '@ember-decorators/object'
-import {attribute} from '@ember-decorators/component'
-import {service} from '@ember-decorators/service'
+import {action} from '@ember/object'
+import {inject as service} from '@ember/service'
 
 // TODO https://github.com/youtube/api-samples/blob/master/javascript/upload_video.js
 
@@ -28,7 +27,7 @@ class GuiScreenRecord extends GuiWidget {
   authUrl = ``
 
   default = {
-    size: ['100%', '100%']
+    size: [`100%`, `100%`]
   }
 
   constructor() {
@@ -39,15 +38,15 @@ class GuiScreenRecord extends GuiWidget {
     super.didInsertElement(...arguments)
 
     let google = this.get(`google`).api
-    this.youTube = google.getService(`youtube`)
+    if (google) {
+      this.youTube = google.getService(`youtube`)
 
-    google.getAuthUrl(this.youTube)
-      .then((authUrl) => {
+      google.getAuthUrl(this.youTube).then((authUrl) => {
         this.set(`authUrl`, authUrl)
-      })
-      .catch((e) => {
+      }).catch((e) => {
         console.log(e)
       })
+    }
   }
 
   async initRecorder() {
@@ -136,8 +135,8 @@ class GuiScreenRecord extends GuiWidget {
   }
 
   handleStream(stream) {
-    this.set('videoName', `OpenArcanum-${moment().format(`YMMDD-HHmm`)}`)
-    this.set('localVideoPath', `/home/maxli/${this.videoName}.mp4`)
+    this.set(`videoName`, `OpenArcanum-${moment().format(`YMMDD-HHmm`)}`)
+    this.set(`localVideoPath`, `/home/maxli/${this.videoName}.mp4`)
 
     this.mediaRecorder = new MediaRecorder(stream)
     this.chunks = []
@@ -202,7 +201,7 @@ class GuiScreenRecord extends GuiWidget {
 
   @action
   upload() {
-    this.set('uploading', true)
+    this.set(`uploading`, true)
     this.youTube.upload(
       {
         params: {part: `snippet,status` },
@@ -217,11 +216,11 @@ class GuiScreenRecord extends GuiWidget {
           'status.privacyStatus': `private`,
           'status.publicStatsViewable': ``
         },
-        mediaFilename: this.get('localVideoPath')
+        mediaFilename: this.get(`localVideoPath`)
       },
       (stats) => {
         if (stats.percentComplete === 100) {
-          this.set('uploading', false)
+          this.set(`uploading`, false)
         } else {
         }
 

@@ -51,6 +51,9 @@ protocols.register("asset", uri => {
 // });
 //app.commandLine.appendSwitch('--disable-gpu') // --ignore-gpu-blacklist
 
+//app.commandLine.appendSwitch('--experimental-modules')
+
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
@@ -71,7 +74,7 @@ app.on("ready", () => {
     devTools: true,
     webPreferences: {
       webviewTag: true,
-      //nodeIntegration: true,
+      nodeIntegration: true,
       webSecurity: false,
       experimentalFeatures: true,
       nodeIntegrationInWorker: true

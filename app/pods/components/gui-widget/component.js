@@ -1,26 +1,23 @@
 /* global AGate */
 
 import Component from '@ember/component'
-import { service } from '@ember-decorators/service'
-import { action, computed } from '@ember-decorators/object'
+import { inject as service } from '@ember/service'
+import { action, computed } from '@ember/object'
 import { classNames, attribute } from '@ember-decorators/component'
 import { runTask, runDisposables } from 'ember-lifeline'
 
-import { Engine } from 'open-arcanum/agate/shared/Engine'
-import { Manager } from 'open-arcanum/agate/client/Gui'
-
 import widgetLayout from 'open-arcanum/pods/components/gui-widget/template'
 import podNames from 'ember-component-css/pod-names'
+//import cash from 'cash-dom'
+
+const cash = require('cash-dom')
 
 const getWidgetClass = (type, dot = false) =>
   dot ? `.${podNames[`gui-${type}`]}` : podNames[`gui-${type}`]
 
-let cash = requireNode(`cash-dom`)
-
-import anime from 'ember-animejs'
-
 @classNames(`gui-widget ${getWidgetClass(`widget`)}`)
 class GuiWidget extends Component {
+
   @attribute(`data-id`)
   @computed(`widget`)
   get dataId() {
@@ -123,18 +120,36 @@ class GuiWidget extends Component {
     return this.getManager().findWidget(id, this.children)
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   getStore() {
     return this.store // this.get('store')
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   getOptions() {
     return this.get(`widget.options`)
   }
 
+  /**
+   *
+   * @param name
+   * @returns {*}
+   */
   getOption(name) {
     return this.get(`widget.options.${name}`)
   }
 
+  /**
+   *
+   * @param key
+   * @returns {string}
+   */
   makeChildId(key) {
     let id = this.getId()
     return `${id}.${key}`
@@ -196,7 +211,6 @@ class GuiWidget extends Component {
    *
    * @param definition
    */
-
   createChildren(definition) {
     for (let key in definition) {
       let widget = Object.assign(
@@ -256,11 +270,11 @@ class GuiWidget extends Component {
       widget[method].apply(widget, args)
       AGate.Utils.logError(`Calling native component method ${method}`)
     } else {*/
-      let methods = widget.getMethods()
-      if (methods && AGate.Utils.isFunction(methods[method])) {
-        methods[method].apply(widget, args)
-        AGate.Utils.logError(`Calling user component method ${method}`)
-      }
+    let methods = widget.getMethods()
+    if (methods && AGate.Utils.isFunction(methods[method])) {
+      methods[method].apply(widget, args)
+      AGate.Utils.logError(`Calling user component method ${method}`)
+    }
     //}
   }
 
@@ -381,15 +395,15 @@ class GuiWidget extends Component {
 
   /**
    *
-   * @returns {Engine}
+   * @returns {GameEngine}
    */
   getEngine() {
-    return Engine.instance
+    return AGate.engine
   }
 
   /**
    *
-   * @returns {Client}
+   * @returns {ClientEngine}
    */
   getClient() {
     return this.getEngine().client
@@ -994,10 +1008,11 @@ class GuiWidget extends Component {
   /**
    *
    */
-  applyMethods()     { // Hook methods
+  applyMethods() {
+    // Hook methods
     let methods = this.getMethods()
     if (AGate.Utils.isString(methods)) {
-      methods = Manager.jsonToObject(methods)
+      methods = AGate.Utils.jsonToObject(methods)
       this.set(`widget.methods`, methods)
     }
 
@@ -1010,10 +1025,11 @@ class GuiWidget extends Component {
   /**
    *
    */
-  applyEvents()     { // Hook events
+  applyEvents() {
+    // Hook events
     let events = this.getEvents()
     if (AGate.Utils.isString(events)) {
-      events = Manager.jsonToObject(events)
+      events = AGate.Utils.jsonToObject(events)
       this.set(`widget.events`, events)
     }
   }
@@ -1021,18 +1037,18 @@ class GuiWidget extends Component {
   /**
    *
    */
-  applyListeners()     {
+  applyListeners() {
     // Hook listeners
     let listeners = this.getListeners()
     if (AGate.Utils.isString(listeners)) {
-      listeners = Manager.jsonToObject(listeners)
+      listeners = AGate.Utils.jsonToObject(listeners)
 
       this.set(`widget.listeners`, listeners)
     }
 
     for (let name in listeners) {
       let listener = listeners[name]
-      //console.error(`hooking ${name}`)
+
       this.listenEvent(name, (...args) => {
         AGate.Utils.logError(`calling listener ${name}`)
         listener.apply(this, args)
@@ -1154,16 +1170,19 @@ class GuiWidget extends Component {
 
   mouseDown() {
     console.log(`mouseDown`)
+    return false
   }
 
   mouseUp() {
     console.log(`mouseUp`)
+    return false
   }
 
   /**
    *
    */
   click() {
+
     /*this.startAnimation(`glow`, {
       duration: 1000
     })*/
@@ -1174,6 +1193,7 @@ class GuiWidget extends Component {
     });*/
 
     this.emitOwnEvent(`click`)
+    return false
   }
 
   async fetchAudio(id) {

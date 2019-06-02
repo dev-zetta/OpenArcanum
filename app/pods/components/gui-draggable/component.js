@@ -1,8 +1,5 @@
 import GuiWidget from '../gui-widget'
-import EmberObject, {observer} from '@ember/object'
-
-import { className, attribute } from '@ember-decorators/component'
-import { computed, observes } from '@ember-decorators/object'
+import { observes } from '@ember-decorators/object'
 
 class GuiDraggable extends GuiWidget {
   x = 0
@@ -62,13 +59,10 @@ class GuiDraggable extends GuiWidget {
 
   didInsertElement() {
     super.didInsertElement(...arguments)
-
   }
 
   // Remember to unbind the document event handlers
-  didDestroyElement() {
-
-  }
+  didDestroyElement() {}
 }
 
 export default GuiDraggable

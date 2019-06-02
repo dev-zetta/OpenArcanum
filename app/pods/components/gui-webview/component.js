@@ -2,7 +2,7 @@
 
 import GuiWidget from '../gui-widget'
 
-import { classNames, attribute } from '@ember-decorators/component'
+import { attribute } from '@ember-decorators/component'
 import { tagName } from '@ember-decorators/component'
 
 @tagName(`webview`)
@@ -45,10 +45,7 @@ class GuiWebview extends GuiWidget {
     webview.addEventListener(`did-navigate`, (...args) =>
       this.onDidNavigate(...args)
     )
-    webview.addEventListener(`close`, (...args) =>
-      this.onClose(...args)
-    )
-
+    webview.addEventListener(`close`, (...args) => this.onClose(...args))
   }
 
   isLoading() {
@@ -62,28 +59,28 @@ class GuiWebview extends GuiWidget {
   }
 
   onLoadingStart(e) {
-    let callback = this.get('onLoadingStart')
+    let callback = this.get(`onLoadingStart`)
     if (callback) {
       callback(e)
     }
   }
 
   onLoadingStop(e) {
-    let callback = this.get('onLoadingStop')
+    let callback = this.get(`onLoadingStop`)
     if (callback) {
       callback(e)
     }
   }
 
   onWillNavigate(e) {
-    let callback = this.get('onWillNavigate')
+    let callback = this.get(`onWillNavigate`)
     if (callback) {
       callback(e)
     }
   }
 
   onDidNavigate(e) {
-    let callback = this.get('onDidNavigate')
+    let callback = this.get(`onDidNavigate`)
     if (callback) {
       callback(e)
     }
@@ -91,7 +88,7 @@ class GuiWebview extends GuiWidget {
 
   onClose() {
     let webview = this.get(`element`)
-    webview.src = 'about:blank'
+    webview.src = `about:blank`
   }
 
   click() {

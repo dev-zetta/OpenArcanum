@@ -142,13 +142,6 @@ $text-white: #fff;
   }
 }
 
-// fix yiq for backgrounds
-@each $name, $value in $theme-colors {
-  .bg-#{$name} {
-    background: color-yiq($value);
-  }
-}
-
 html,body {
    height:100%;
 }

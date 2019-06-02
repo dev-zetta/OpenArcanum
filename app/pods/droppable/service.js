@@ -28,7 +28,7 @@ export default class DroppableService extends Service {
       draggable: `.draggable-source`,
       mirror: {
         constrainDimensions: true,
-        appendTo: document.getElementById('gui'),
+        appendTo: document.getElementById(`gui`)
       }
     })
 

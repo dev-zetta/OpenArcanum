@@ -2,9 +2,7 @@
 
 import GuiWidget from '../gui-widget'
 
-import { classNames, attribute } from '@ember-decorators/component'
-import { tagName } from '@ember-decorators/component'
-import { action, computed } from '@ember-decorators/object'
+import { action } from '@ember/object'
 
 let videojs = requireNode(`video.js`)
 
@@ -108,7 +106,6 @@ class GuiVideo extends GuiWidget {
     volumechange: `volumechange`,
     waiting: `waiting`
   }
-
 
   /*constructor() {
     super(...arguments)

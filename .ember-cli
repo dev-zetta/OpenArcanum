@@ -1,5 +1,6 @@
 {
   "disableAnalytics": true,
   "usePods": true,
-  "liveReload" : false
+  "liveReload" : true,
+  "watcher": "polling"
 }

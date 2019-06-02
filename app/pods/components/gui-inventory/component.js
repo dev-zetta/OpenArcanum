@@ -2,7 +2,7 @@ import GuiWidget from '../gui-widget'
 //const Muuri = requireNode(`muuri`)
 
 import { classNames } from '@ember-decorators/component'
-import { service } from '@ember-decorators/service'
+import { inject as service } from '@ember/service'
 
 @classNames(``)
 class GuiInventory extends GuiWidget {
@@ -78,7 +78,7 @@ class GuiInventory extends GuiWidget {
     let parentId = this.getId()
     let grid = this.getGrid()
 
-    console.error('adding')
+    console.error(`adding`)
 
     for (let id in slots) {
       let slot = slots[id]
@@ -96,7 +96,7 @@ class GuiInventory extends GuiWidget {
         position: slot.position,
         events: {
           created() {
-            console.error('grid')
+            console.error(`grid`)
             let element = this.get(`element`)
             grid.addDropzone(element)
           }

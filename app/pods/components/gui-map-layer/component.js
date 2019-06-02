@@ -1,6 +1,6 @@
 /* global L */
 import GuiWidget from '../gui-widget'
-import { action, computed } from '@ember-decorators/object'
+import { action, computed } from '@ember/object'
 
 import leaflet from 'ember-leaflet'
 

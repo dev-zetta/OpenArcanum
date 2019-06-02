@@ -1,6 +1,6 @@
 /* global L */
 import GuiWidget from '../gui-widget'
-import { action, computed } from '@ember-decorators/object'
+import { action, computed } from '@ember/object'
 
 class GuiMapView extends GuiWidget {
   default = {
@@ -16,7 +16,7 @@ class GuiMapView extends GuiWidget {
   hotel = [2000, 2000]
 
   @computed
-  get tileSize(){
+  get tileSize() {
     return L.point(250, 250)
   }
 
@@ -31,8 +31,6 @@ class GuiMapView extends GuiWidget {
     let bounds = new L.LatLngBounds(southWest, northEast)
     return bounds
   }
-
-
 
   /**
    *

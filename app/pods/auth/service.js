@@ -1,7 +1,3 @@
-import Service from '@ember/service';
+import Service from '@ember/service'
 
-export default class AuthService extends Service {
-
-
-
-}
+export default class AuthService extends Service {}

@@ -1,19 +1,22 @@
+/* global AGate */
+
 import Component from '@ember/component'
-
-import { Engine } from 'open-arcanum/agate/shared/Engine'
-import { Manager } from 'open-arcanum/agate/client/Gui'
-
-import { classNames, className, attribute } from '@ember-decorators/component'
-import { service } from '@ember-decorators/service'
-
+import { classNames } from '@ember-decorators/component'
+import { inject as service } from '@ember/service'
+import { action } from '@ember/object'
 
 @classNames(`game-render`)
 class GameRender extends Component {
   @service
   store
 
-  @attribute
+  //@attribute
   shouldRender = false
+
+  @action
+  onClick() {
+
+  }
 
   /**
    *
@@ -21,16 +24,19 @@ class GameRender extends Component {
   constructor() {
     super(...arguments)
 
-    this.get('resizeService').on('didResize', event => {
-      this.engine.events.emitUI('window.resize', this.engine.client.getWindowRect())
-    })
+   /* this.get(`resizeService`).on(`didResize`, event => {
+      this.engine.events.emitUI(
+        `window.resize`,
+        this.engine.client.getWindowRect()
+      )
+    })*/
   }
 
   /**
    *
    */
   getElement() {
-    return this.get('element')
+    return this.get(`element`)
   }
 
   /**
@@ -41,6 +47,10 @@ class GameRender extends Component {
     return this.engine.client.guiManager
   }
 
+  /**
+   *
+   * @returns {Promise<*>}
+   */
   async loadWindows() {
     return this.get(`store`).query(`gui-widget`, {
       include: `components,components.components`,
@@ -58,16 +68,14 @@ class GameRender extends Component {
   didInsertElement() {
     super.didInsertElement(...arguments)
 
-    Engine.instance = new Engine()
-    this.engine = Engine.instance
-
     let canvas = document.getElementById(`render2d`)
 
-    this.engine.createClient(canvas).then(() => {
+    this.engine = AGate.engine
+    AGate.createClient(canvas).then(() => {
       this.loadWindows().then(data => {
         let manager = this.getManager()
         manager.setRootWidget(this)
-        //manager.setMouseSprite(`cursor`)
+        manager.setMouseSprite(`cursor`)
 
         this.set(`widgets`, data)
       })

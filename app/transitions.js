@@ -1,8 +1,8 @@
-export default function(){
+export default function() {
   this.transition(
-    this.fromRoute('index'),
-    this.toRoute('ingame'),
-    this.use('toLeft'),
-    this.reverse('toRight')
-  );
+    this.fromRoute(`index`),
+    this.toRoute(`ingame`),
+    this.use(`toLeft`),
+    this.reverse(`toRight`)
+  )
 }

@@ -5,7 +5,7 @@ module.exports = {
   root: true,
   parser: "babel-eslint",
   parserOptions: {
-    ecmaVersion: 7,
+    ecmaVersion: 2018,
     sourceType: "module"
   },
   plugins: [
@@ -23,7 +23,7 @@ module.exports = {
     "prettier/standard"
   ],
   env: {
-    browser: false,
+    browser: true,
     node: true
   },
   rules: {
@@ -82,12 +82,13 @@ module.exports = {
       ],
       parserOptions: {
         sourceType: "script",
-        ecmaVersion: 2017
+        ecmaVersion: 2018
       },
       env: {
         browser: false,
         node: true
-      }
+      },
+      plugins: ['node']
     },
 
     // test files

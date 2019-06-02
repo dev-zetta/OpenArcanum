@@ -1,6 +1,6 @@
 import GuiWidget from '../gui-widget'
-import { action, computed } from '@ember-decorators/object'
 import { attribute, classNames, className } from '@ember-decorators/component'
+import {  action, computed } from '@ember/object'
 
 let jsPanel = requireNode(`jspanel4/dist/jspanel`)
 

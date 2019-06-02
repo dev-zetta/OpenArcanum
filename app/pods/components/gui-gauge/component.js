@@ -1,8 +1,7 @@
 /* global AGate */
 
 import GuiWidget from '../gui-widget'
-import { Math } from 'open-arcanum/agate/shared/misc/Math'
-import { action, computed } from '@ember-decorators/object'
+import { computed } from '@ember/object'
 
 class GuiGauge extends GuiWidget {
   /**
@@ -78,17 +77,14 @@ class GuiGauge extends GuiWidget {
 
     //console.log(this.get('sprite'), this.get('widget.sprite'))
     if (sprite) {
-      console.log('sprite', orientation)
+      console.log(`sprite`, orientation)
       let frame = sprite.getFrame()
       switch (orientation) {
         case `horizontal`: {
           let pixels = (frame.width / 100.0) * percent
 
-
           //style['width'] = `${pixels}px`;
-          style[`background-position-x`] = `-${
-            frame.width -
-            pixels}px`
+          style[`background-position-x`] = `-${frame.width - pixels}px`
           style[`background-repeat`] = `no-repeat`
 
           console.log(pixels, percent, frame.width, size.width)

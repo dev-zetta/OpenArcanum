@@ -1,4 +1,31 @@
-import { Manager } from '../../agate/client/Gui'
+
+/**
+ *
+ * @returns {{}}
+ */
+function loadComponents() {
+  let resolve = {}
+  let result = {}
+
+  return result
+
+  AGate.Utils.loadScripts(`client/gui`, (name, script) => {
+    let widget = script
+    if (widget.parent) {
+      resolve[name] = widget
+    } else {
+      result[name] = widget
+    }
+  })
+
+  for (let key in resolve) {
+    let widget = resolve[key]
+    result[widget.parent][`components`][key] = widget
+  }
+
+  return result
+}
+
 
 export default function(server) {
   /*
@@ -19,15 +46,15 @@ export default function(server) {
       widget.size = {'width': widget.size[0], 'height': widget.size[1]};*/
 
     if (widget.events) {
-      widget.events = Manager.objectToJson(widget.events)
+      widget.events = AGate.Utils.objectToJson(widget.events)
     }
 
     if (widget.listeners) {
-      widget.listeners = Manager.objectToJson(widget.listeners)
+      widget.listeners = AGate.Utils.objectToJson(widget.listeners)
     }
 
     if (widget.methods) {
-      widget.methods = Manager.objectToJson(widget.methods)
+      widget.methods = AGate.Utils.objectToJson(widget.methods)
     }
 
     let components = widget.components
@@ -51,7 +78,7 @@ export default function(server) {
     return instance
   }
 
-  let components = Manager.loadComponents()
+  let components = loadComponents()
   for (let key in components) {
     let component = components[key]
 

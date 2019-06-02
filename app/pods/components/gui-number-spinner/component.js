@@ -35,9 +35,7 @@ class GuiNumberSpinner extends GuiWidget {
         type: `button`,
         sprite: `CharMinus`,
         position: this.getAdvancedPosition(0, 0),
-        options: {
-
-        },
+        options: {},
         events: {
           click(event) {
             self.adjustValue(-1)

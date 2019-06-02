@@ -38,12 +38,11 @@ export default class MyDroppable extends Droppable {
   dropZones = []
 
   constructor(container, options) {
-    const dropzone = () => {
+    const dropzone = () =>
       //console.error(this.dropZones)
-      return this.dropZones
-    }
+      this.dropZones
 
-    super(container, Object.assign(options, {dropzone/*, plugins: [Plugins.ResizeMirror]*/}))
+    super(container, Object.assign(options, {dropzone}))
 
     /*for (let name of this.methods) {
       this[name] = (...args) => this.draggable[name](...args)

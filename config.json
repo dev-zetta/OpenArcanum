@@ -1,6 +1,13 @@
 {
-  "dataPath": "/media/maxli/Data/dev/OpenArcanum/asset-db",
-  "scriptsPath": "/media/maxli/Data/dev/OpenArcanum/app/agate",
+  "dataPath": "/home/maxli/OpenArcanum/@openarcanum/asset-db",
+  "scriptsPath": "/home/maxli/OpenArcanum/@openarcanum/asset-db/scripts",
+  "appProtocol": "asset://",
 
-  "appProtocol": "asset://"
+  "client": {
+    "serverURL": "ws://127.0.0.1:3000"
+  },
+
+  "server": {
+    "listenPort": 3000
+  }
 }

@@ -2,19 +2,16 @@
 
 import GuiWindow from '../gui-window'
 
-import { classNames, attribute } from '@ember-decorators/component'
-import { tagName } from '@ember-decorators/component'
-import { action, computed } from '@ember-decorators/object';
-import {service} from '@ember-decorators/service'
+import { action } from '@ember/object'
+import {inject as service} from '@ember/service'
 
-const Url = requireNode(`url`)
+import Url from 'url'
 
 class GuiGoogleAuth extends GuiWindow {
-
   @service
   google
 
-  authUrl = ''
+  authUrl = ``
   onAuthCode = null
 
   default = {
