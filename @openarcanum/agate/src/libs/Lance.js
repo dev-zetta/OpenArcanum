@@ -1,20 +1,29 @@
-export const ClientEngine = require(`lance-gg/es5/ClientEngine`).default
-export const GameEngine = require(`lance-gg/es5/GameEngine`).default
-export const GameWorld = require(`lance-gg/es5/GameWorld`).default
-export const ServerEngine = require(`lance-gg/es5/ServerEngine`).default
-export const Renderer = require(`lance-gg/es5/render/Renderer`).default
-export const SimplePhysicsEngine = require(`lance-gg/es5/physics/SimplePhysicsEngine`)
-  .default
-export const KeyboardControls = require(`lance-gg/es5/controls/KeyboardControls`)
-  .default
-export const Serializer = require(`lance-gg/es5/serialize/Serializer`).default
-export const Serializable = require(`lance-gg/es5/serialize/Serializable`)
-  .default
-export const DynamicObject = require(`lance-gg/es5/serialize/DynamicObject`)
-  .default
-export const GameComponent = require(`lance-gg/es5/serialize/GameComponent`)
-  .default
-export const BaseTypes = require(`lance-gg/es5/serialize/BaseTypes`).default
+
+const lance = require('lance-gg') // imports server
+
+export default lance
+
+/*export {default as ClientEngine} from '../../vendor/lance/src/ClientEngine'
+export {default as GameEngine} from '../../vendor/lance /src/GameEngine'
+export {default as GameWorld} from '../../vendor/lance /src/GameWorld'
+export {default as ServerEngine} from '../../vendor/lance /src/ServerEngine'
+export {default as Renderer} from '../../vendor/lance /src/render/Renderer'
+export {
+  default as SimplePhysicsEngine
+} from '../../vendor/lance /src/physics/SimplePhysicsEngine'
+
+export {
+  default as KeyboardControls
+} from '../../vendor/lance /src/controls/KeyboardControls'
+
+export {default as Serializer} from '../../vendor/lance /src/serialize/Serializer'
+export {default as Serializable} from '../../vendor/lance /src/serialize/Serializable'
+
+export {default as DynamicObject} from '../../vendor/lance /src/serialize/DynamicObject'
+
+export {default as GameComponent} from '../../vendor/lance /src/serialize/GameComponent'
+
+export {default as BaseTypes} from '../../vendor/lance /src/serialize/BaseTypes'
 
 export default {
   GameEngine,
@@ -29,4 +38,4 @@ export default {
   BaseTypes,
   KeyboardControls,
   SimplePhysicsEngine
-}
+}*/

@@ -10,7 +10,7 @@ import GameEngine from './shared/GameEngine'
 import ServerEngine from './server/ServerEngine'
 import AssetLoader from './shared/assets/AssetLoader'
 
-global.lll = console.error
+global.lll = console.warn
 
 class AGateEngine {
   Const: Object
@@ -131,11 +131,13 @@ class AGateEngine {
    * @returns {Promise<void>}
    */
   async createClient(canvas: HTMLCanvasElement): Promise<*> {
+    this.engine.events.on(`Client:Created`, this.onClientCreated, this)
+
     await this.assetLoader.initialize()
     await this.database.initialize()
 
     if (this.config.server) {
-      this.createServer()
+      await this.createServer()
       this.engine.server = this.server
     }
 
@@ -143,20 +145,28 @@ class AGateEngine {
     this.engine.client = this.client
 
     await this.client.create()
+    await this.client.start()
+
   }
 
   /**
    *
    */
-  createServer() {
+  async createServer() {
     this.server = new ServerEngine(this.engine, {
       debug: {},
       updateRate: 6,
       timeoutInterval: 0 // no timeout
     })
 
-    this.server.start()
+    await this.server.start()
   }
+
+  onClientCreated() {
+    this.engine.load()
+  }
+
+
 }
 
 export default AGateEngine

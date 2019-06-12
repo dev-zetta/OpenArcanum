@@ -24,6 +24,16 @@ import Math from './Math'
  */
 
 export default class IsoSprite extends Phaser.GameObjects.Sprite {
+  /**
+   *
+   * @param scene
+   * @param x
+   * @param y
+   * @param z
+   * @param key
+   * @param frame
+   * @param offset
+   */
   constructor(scene, x, y, z, key, frame, offset) {
     super(scene, undefined, undefined, key, frame)
 
@@ -32,6 +42,8 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
 
     this.originX = 0.0
     this.originY = 0.0
+
+    //z = 10000 - ((y * 64) + x)
 
     /**
      * @property {number} type - The const type of this object.
@@ -130,7 +142,9 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
    * @private
    */
   _project() {
-    if (!this._isoPositionChanged) return
+    if (!this._isoPositionChanged) {
+      return
+    }
 
     let pos = this.scene.iso.project(this._isoPosition)
 
@@ -145,8 +159,8 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
 
     if (this.snap > 0) {
       this.setPosition(
-        Phaser.Math.snapTo(pos.x, this.snap),
-        Phaser.Math.snapTo(pos.y, this.snap)
+        Phaser.Math.Snap.To(pos.x, this.snap),
+        Phaser.Math.Snap.To(pos.y, this.snap)
       )
     } else {
       this.setPosition(pos.x, pos.y)
@@ -277,6 +291,10 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
     return this._isoPosition
   }
 
+  /**
+   *
+   * @param position
+   */
   set isoPosition(position) {
     this._isoPosition = position
     this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true

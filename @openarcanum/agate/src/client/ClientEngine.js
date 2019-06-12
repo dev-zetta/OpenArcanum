@@ -5,10 +5,13 @@ import Lance from '../libs/Lance'
 import Scene from './Scene'
 import Manager from './Gui'
 import Renderer from './Renderer'
-import type GameEngine from '../shared/GameEngine';
-import type GameMap from '../shared/map/GameMap';
+import type GameEngine from '../shared/GameEngine'
+import type GameMap from '../shared/map/GameMap'
 
 export default class ClientEngine extends Lance.ClientEngine {
+
+  socket: Object // lance
+
   /**
    *
    * @param engine
@@ -35,6 +38,33 @@ export default class ClientEngine extends Lance.ClientEngine {
     this.guiManager = new Manager(engine)
 
     this.player = null
+
+    //this.engine.events = this.engine.events
+    this.engine.events.on(`Map:Loading`, this.onMapLoading, this)
+    this.engine.events.on(`Map:Loaded`, this.onMapLoaded, this)
+    this.engine.events.on(`Scene:Created`, this.onSceneCreated, this)
+
+    // https://github.com/lance-gg/spaaace/blob/master/src/client/SpaaaceClientEngine.js
+    this.networkMonitor.on(`RTTUpdate`, (e) => {
+      //this.renderer.updateHUD(e);
+    })
+
+    //this.socket.emit('requestRestart');
+
+    'client__syncReceived'
+
+    //this.socket.emit
+  }
+
+
+
+
+  /**
+   *
+   * @returns {HTMLCanvasElement}
+   */
+  get canvas(): HTMLCanvasElement {
+    return this._canvas
   }
 
   /**
@@ -64,7 +94,7 @@ export default class ClientEngine extends Lance.ClientEngine {
       depth: true,
       antialias: true,
       premultipliedAlpha: true,
-      //stencil: true,
+      stencil: true,
       preserveDrawingBuffer: false,
       failIfMajorPerformanceCaveat: false,
       powerPreference: `default`
@@ -83,72 +113,51 @@ export default class ClientEngine extends Lance.ClientEngine {
       transparent: true,
       //antialias: true,
       multiTexture: false,
-      enableDebug: false
+      enableDebug: false,
+      input: {
+        queue: false,
+        windowEvents: false
+      },
+      scale: {
+        mode: Phaser.Scale.ENVELOP,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+      },
+      autoRound: false
     })
 
     this.scene = new Scene(this)
     this.game.scene.add(`default`, this.scene)
 
-    this.engine.events.listenUI(`window.resize`, (e) => {
-      this.game.resize(e.width, e.height)
-    })
+    this.engine.events.listenUI(`window.resize`, () => {
+      let rect = this.getWindowRect()
 
-    this.start()
-  }
-
-  /**
-   *
-   * @returns {HTMLCanvasElement}
-   */
-  get canvas(): HTMLCanvasElement {
-    return this._canvas
-  }
-
-  /**
-   *
-   * @param map
-   */
-  onMapLoading(map: GameMap) {
-    this.scene.onMapLoading(map)
-  }
-
-  /**
-   *
-   * @param map
-   */
-  onMapLoaded(map: GameMap) {
-    this.scene.onMapLoaded(map)
-
-    let location = map.getCenterLocation()
-    map.addPlayer(location).then(player => {
-      this.player = player
-
-      this.scene.addEntity(this.player, map.rootGroup)
+      //this.physics.world.setBounds(x, y, width, height, true, true, true, true);
+      //this.scene.resizeViewport(rect.width, rect.height)
     })
   }
 
-  /**
-   *
-   */
-  async connect() {
-    let result = await super.connect()
-  }
+
+
+
 
   /**
    *
    */
-  start() {
+  async start() {
     super.start()
-    this.connect().then(() => {
-      this.game.scene.start(`default`)
-    })
+    await this.connect()
+
+    lll(`Client - Starting`)
+
+    this.engine.events.emit(`Client:Started`, `default`)
+    this.game.scene.start(`default`)
 
     //this.gameEngine.once('renderer.ready', () => {
     //  Game input
     /*if (Utils.isTouchDevice()){
         this.controls = new MobileControls(this.renderer);
       } else {*/
-    this.controls = new Lance.KeyboardControls(this)
+    //this.controls = new Lance.KeyboardControls(this)
     //}
 
     /*this.controls.bindKey(`left`, `left`, {repeat: true})
@@ -172,8 +181,70 @@ export default class ClientEngine extends Lance.ClientEngine {
     })
   }
 
+
+
   /**
    *
+   * @param scene
+   */
+  onSceneCreated(scene: Scene) {
+    this.engine.events.emit(`Client:Created`, this)
+  }
+
+  /**
+   *
+   * @param map
+   */
+  onMapLoading(map: GameMap) {}
+
+  /**
+   *
+   * @param map
+   */
+  onMapLoaded(map: GameMap) {
+    let location = map.getCenterLocation()
+    map.addPlayer(location).then(player => {
+      this.player = player
+      this.engine.events.emit(`Player:Joined`, player)
+      this.scene.addEntity(this.player, map.rootGroup)
+    })
+  }
+
+
+  /**
+   *
+   */
+  async connect() {
+    return super.connect()
+  }
+
+  /**
+   * Disconnect from game server
+   * @returns {*}
+   */
+  disconnect() {
+    return super.disconnect()
+  }
+
+  /**
+   * This function should be called by the client whenever a user input occurs.
+   * This function will emit the input event, forward the input to the client's
+   * game engine (with a delay if so configured) and will transmit the input to the server as well.
+   *
+   * This function can be called by the extended client engine class, typically at
+   the beginning of client-side step processing {@see GameEngine#client__preStep}.
+   * @param input
+   * @param inputOptions
+   */
+  sendInput(input: string, inputOptions: Object) {
+    console.log('Sending input', input, inputOptions)
+
+    super.sendInput(input, {})
+  }
+
+
+  /**
+   *  handle a message that has been received from the server
    * @param syncData
    */
   handleInboundMessage(syncData: Object) {
@@ -182,4 +253,9 @@ export default class ClientEngine extends Lance.ClientEngine {
     super.handleInboundMessage(syncData)
   }
 
+
+  // emit an input to the authoritative server
+  handleOutboundInput() {
+    super.handleOutboundInput()
+  }
 }

@@ -30,6 +30,7 @@ module.exports = function(defaults) {
       //modules: false,
       plugins: [
         //"@babel/plugin-transform-flow-strip-types"
+        "@babel/plugin-syntax-dynamic-import"
       ]
     },
 

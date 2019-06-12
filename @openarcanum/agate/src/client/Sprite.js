@@ -4,11 +4,10 @@ import Gfx from '../shared/enums/Gfx'
 
 import Phaser from '../libs/Phaser'
 import Math from '../shared/misc/Math'
-import type ClientEngine from './ClientEngine';
-import IsoSprite from '../libs/phaser-isometric/IsoSprite';
+import type ClientEngine from './ClientEngine'
+import IsoSprite from '../libs/phaser-isometric/IsoSprite'
 
 export default class Sprite {
-
   client: ClientEngine
   totalElapsed: number
   iso: IsoSprite
@@ -228,7 +227,7 @@ export default class Sprite {
   }
 
   /**
-   *
+   * move sprite, pixel based
    * @param x
    * @param y
    */
@@ -320,9 +319,13 @@ export default class Sprite {
     }
   }
 
+  /**
+   *
+   * @param name
+   */
   setPipeline(name: string) {
     let sprite = this.iso
-    sprite.setPipeline(name);
+    sprite.setPipeline(name)
   }
 
   /**
@@ -332,7 +335,13 @@ export default class Sprite {
    * @param z
    * @param offset
    */
-  addToScene(target: Object, x: number, y: number, z: number = 0, offset: Object = null) {
+  addToScene(
+    target: Object,
+    x: number,
+    y: number,
+    z: number = 0,
+    offset: Object = null
+  ) {
     let {key, frame} = this.makeTextureInfo()
 
     //if (this.type == GfxTypes.Tile)
@@ -352,7 +361,7 @@ export default class Sprite {
         break
     }
 
-    isoSprite.setInteractive()
+    isoSprite.setInteractive(this.client.scene.spriteClickHandler)
 
     if (this.flipped && this.type !== Gfx.Types.Facade) {
       //this.sprite.originX = 0.5;
@@ -387,13 +396,7 @@ export default class Sprite {
         this.sprite.anims.play(stagePath);
       }
     }*/
-
-    //if (sprite.type == Gfx.Types.Tile)
-    //isoSprite.setPipeline('Light2D');
   }
-
-
-
 
   //  Canvas and WebGL:
 

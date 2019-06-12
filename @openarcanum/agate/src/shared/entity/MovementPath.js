@@ -13,9 +13,12 @@ export default class MovementPath {
   movedDistance: number
   nextTo: boolean
 
-  velocity: number
+  velocity: Array<number>
   directionName: string
 
+  /**
+   *
+   */
   constructor() {
     this.waypoints = []
     this.currentIndex = 0
@@ -52,7 +55,7 @@ export default class MovementPath {
    */
   start(nextTo: boolean) {
     if (this.currentIndex + 1 >= this.waypoints.length) {
-      console.log(this.waypoints)
+      //lll(`movement finished`, this.waypoints)
       return false
     }
 
@@ -75,15 +78,15 @@ export default class MovementPath {
    * @param elapsed
    * @returns {boolean}
    */
-  process(entity: Entity, elapsed: number) {
+  process(entity: Entity, elapsed: number): boolean {
     if (this.currentIndex + 1 >= this.waypoints.length) {
       entity.moved = false
-      // console.log(this.currentIndex, this.waypoints.length)
+      //lll(`movement finished`, this.currentIndex, this.waypoints.length)
       this.processVisual(entity, null, null)
       return false
     }
 
-    let speed = entity.npc.getMovementSpeed()
+    let speed = entity.critter.getMovementSpeed()
     let delta = Location.calculateMultiply(
       this.velocity,
       speed * Sector.TileWidthHalf * (elapsed / 1000)
@@ -121,14 +124,21 @@ export default class MovementPath {
    */
   processVisual(entity: Entity, dx: ?number, dy: ?number) {
     let visualClass = entity.visual.getCurrent()
-    if (!visualClass) return false
+    if (!visualClass) {
+      return false
+    }
 
     let sprite = visualClass.sprite
-    if (!sprite || !sprite.isValid()) {return false}
+    if (!sprite || !sprite.isValid()) {
+      return false
+    }
 
     sprite.setStage(this.directionName)
 
-    if (dx != null && dy != null) {sprite.move(dx, dy)}
+    if (dx != null && dy != null) {
+      //lll('sprite move', dx, dy)
+      sprite.move(dx, dy)
+    }
 
     return true
   }

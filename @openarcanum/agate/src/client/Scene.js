@@ -16,6 +16,7 @@ import type ClientEngine from './ClientEngine'
 import type Sprite from './Sprite'
 import type GameMap from '../shared/map/GameMap'
 import type Entity from '../shared/entity/Entity'
+import type EventEmitter from '../shared/misc/EventEmitter'
 
 const ShaderTest: string = `outline`
 const ShaderTest2: string = `gamma`
@@ -23,6 +24,7 @@ const ShaderTest2: string = `gamma`
 export default class Scene extends Phaser.Scene {
   customLoader: boolean
   shaders: Object
+  events: EventEmitter
 
   /**
    *
@@ -35,8 +37,13 @@ export default class Scene extends Phaser.Scene {
     this.game = client.game
     //this.renderToTexture = true
     this.customLoader = true
-
     this.shaders = {}
+
+    //this.engine.events = this.engine.events
+
+    this.engine.events.on(`Map:Loading`, this.onMapLoading, this)
+    this.engine.events.on(`Map:Loaded`, this.onMapLoaded, this)
+    // this.engine.events.on(`client.started`, super.start, this)
   }
 
   /**
@@ -59,25 +66,19 @@ export default class Scene extends Phaser.Scene {
     //this.client.engine.update()
 
     /*if (!AGate.Utils.isUndefined(this.player)) {
-        //this.player.body.setZeroVelocity()
+      //this.player.body.setZeroVelocity()
 
-        if (this.cursorKeys.up.isDown)
-        {
-            this.player.body.moveUp(300)
-        }
-        else if (this.cursorKeys.down.isDown)
-        {
-            this.player.body.moveDown(300);
-        }
+      if (this.cursorKeys.up.isDown) {
+        this.player.body.moveUp(300)
+      } else if (this.cursorKeys.down.isDown) {
+        this.player.body.moveDown(300)
+      }
 
-        if (this.cursorKeys.left.isDown)
-        {
-            this.player.body.velocity.x = -300;
-        }
-        else if (this.cursorKeys.right.isDown)
-        {
-            this.player.body.moveRight(300);
-        }
+      if (this.cursorKeys.left.isDown) {
+        this.player.body.velocity.x = -300
+      } else if (this.cursorKeys.right.isDown) {
+        this.player.body.moveRight(300)
+      }
     }*/
 
     if (!AGate.Utils.isUndefined(this.cameraControls)) {
@@ -138,6 +139,7 @@ export default class Scene extends Phaser.Scene {
 
     //this.text = this.add.text(0, 0, 'Phaser');
 
+    this.spriteClickHandler = this.input.makePixelPerfect(/*150*/)
     this.cursorKeys = this.input.keyboard.createCursorKeys()
 
     const controlConfig = {
@@ -165,13 +167,22 @@ export default class Scene extends Phaser.Scene {
       this.onObjectClick(pointer, gameObject)
     })
 
-    this.lights.enable()
-    this.lights.setAmbientColor(0xffffff)
+    this.lights.enable().setAmbientColor(0x333333)
+
+    let light = this.lights
+      .addLight(180, 80, 200)
+      .setColor(0xffffff)
+      .setIntensity(20)
+
+    this.input.on(`pointermove`, function(pointer) {
+      light.x = pointer.worldX
+      light.y = pointer.worldY
+    })
 
     this.loadAssets()
     //this.game.physics.startSystem(Phaser.Physics.P2JS);
 
-    this.engine.events.emit(`scene.created`)
+    this.engine.events.emit(`Scene:Created`)
   }
 
   async loadAssets() {
@@ -190,13 +201,26 @@ export default class Scene extends Phaser.Scene {
       let sprite = gameObject.data
 
       if (sprite.data) {
-        this.client.guiManager.addDatGui(sprite.data)
+        let data = sprite.data
+
+        const isObject = AGate.Utils.isUndefined(data.type)
+        if (isObject) {
+          this.client.sendInput(`Player:EntitySelect`, {entity: data})
+        } else {
+          this.client.sendInput(`Player:TileSelect`, {tile: data})
+        }
+
+
+
+        if (data.type !== `Tile`) {
+          this.client.guiManager.addDatGui(data)
+        }
       } else {
         this.client.guiManager.addDatGui(sprite)
       }
     }
 
-    //gameObject.setTint(Math.random() * 16000000)
+    gameObject.setTint(0x66eeee)
 
     gameObject.setPipeline(ShaderTest)
 
@@ -223,7 +247,7 @@ export default class Scene extends Phaser.Scene {
    * @param map
    */
   onMapLoading(map: GameMap) {
-    AGate.Utils.logError(`Scene: onMapLoading`)
+    lll(`Scene: onMapLoading`)
 
     let dataUrl = AGate.getDataPath(`Gfx/2D`)
     this.loadAsset(`tiles`, `atlas`, {
@@ -237,7 +261,7 @@ export default class Scene extends Phaser.Scene {
    * @param map
    */
   onMapLoaded(map: GameMap) {
-    AGate.Utils.logError(`Scene: onMapLoaded`)
+    lll(`Scene: onMapLoaded`)
 
     //
     let center = this.iso.projectXY({
@@ -277,6 +301,10 @@ export default class Scene extends Phaser.Scene {
     cam.scrollY = center.y
   }
 
+  resizeViewport(width: number, height: number) {
+    //this.cameras.main.setViewport(0, 0, width, height, true)
+  }
+
   /**
    *
    * @param name
@@ -286,7 +314,7 @@ export default class Scene extends Phaser.Scene {
     let pipeline: Pipeline = shader.pipeline
     //pipeline.setFloat1('brightPassThreshold', 0.1)
 
-    console.log('pipeline', pipeline)
+    //console.log('pipeline', pipeline)
     this.cameras.main.setRenderToTexture(pipeline)
 
     pipeline.setFloat2(`uResolution`, pipeline.width, pipeline.height)
@@ -298,18 +326,18 @@ export default class Scene extends Phaser.Scene {
    */
   highlightTiles(tiles: Array<Object>) {
     let color = Math.random() * 16000000
-    let sectors = this.engine.map.sectors
 
     for (let i = 0; i < tiles.length; i++) {
       let pos = tiles[i]
       let location = new Location(pos[1], pos[0])
 
-      let sector = sectors[location.sectorY][location.sectorX]
+      let sector = this.engine.map.getSector(location.sectorX, location.sectorY)
+
       if (!sector || !sector.tiles) {
         continue
       }
 
-      let tile = sector.tiles[location.tileY][location.tileX]
+      let tile = sector.getTile(location.tileX, location.tileY)
       if (!tile || !tile.sprite) {
         continue
       }
@@ -326,15 +354,23 @@ export default class Scene extends Phaser.Scene {
    * @param map
    * @param target
    */
-  addMap(map: GameMap, target: Object = this) {
+  addMap(map: GameMap/*, target: Object = this*/) {
     AGate.Utils.logError(`Placing to scene: ${map.path}`)
 
-    map.rootGroup = target.add.group()
+    map.rootGroup = this.add.group()
     map.rootGroup.autoCull = true
 
-    let sortGroups = []
+    let sectors = map.getActiveSectors()
 
-    for (let col = 0; col < map.height; col++) {
+    let sortGroups = []
+    for (let sector of sectors) {
+      this.addSector(sector, map.rootGroup)
+      sortGroups.push(sector.staticGroup)
+    }
+
+
+
+    /*for (let col = 0; col < map.height; col++) {
       for (let row = 0; row < map.width; row++) {
         let sector = map.sectors[col][row]
 
@@ -343,9 +379,12 @@ export default class Scene extends Phaser.Scene {
           sortGroups.push(sector.staticGroup)
         }
       }
-    }
+    }*/
 
-    map.engine.client.scene.sortGroups(sortGroups)
+
+
+
+    //sortGroups(sortGroups)
   }
 
   /**
@@ -355,27 +394,30 @@ export default class Scene extends Phaser.Scene {
    */
   addSector(sector: Sector, target: Object) {
     if (!sector.tiles) {
+      lll('Invalid sector')
       return
     }
 
     // Add tiles
-    sector.tileGroup = target.scene.add.group(target) //new Phaser.GameObjects.Group(target.scene);
+    sector.tileGroup = this.add.group(target) //new Phaser.GameObjects.Group(target.scene);
     //target.add(this.tileGroup);
 
     let ax = sector.x * Sector.Width * Sector.TileWidthHalf
     let ay = sector.y * Sector.Height * Sector.TileWidthHalf
 
+    lll('Adding sector to scene', ax, ay)
     for (let y = 0; y < Sector.Height; y++) {
       let dx = ax
       for (let x = 0; x < Sector.Width; x++) {
         let tile = sector.getTile(x, y)
         if (!tile) {
+          lll('No tile for sector')
           continue
         }
 
         if (tile.type) {
           this.addSprite(tile.sprite, sector.tileGroup, ay, dx, 0, [0, 20])
-
+          //tile.sprite.setPipeline('Light2D')
           tile.sprite.setData(tile)
         }
 
@@ -389,8 +431,14 @@ export default class Scene extends Phaser.Scene {
       ay += Sector.TileWidthHalf
     }
 
+    if (sector.lights) {
+      for (let light of sector.lights) {
+        this.addLight(light, this)
+      }
+    }
+
     // Add static objects
-    sector.staticGroup = target.scene.add.group(target) //new Phaser.GameObjects.Group(target.scene);
+    sector.staticGroup = this.add.group(target) //new Phaser.GameObjects.Group(target.scene);
     //target.add(this.staticGroup);
 
     sector.entities.forEach(entity => {
@@ -531,16 +579,12 @@ export default class Scene extends Phaser.Scene {
     let lightComponent = visualComponent.light
     if (lightComponent) {
       if (lightComponent.color) {
-        let color = Utils.stringToColor(lightComponent.color)
         //sprite.setTint(color);
 
-        entity.light = new Light()
-        this.addLight(
-          entity.light,
-          target.scene,
-          sprite.iso.x,
-          sprite.iso.y,
-          color
+        entity.light = this.addLight(
+          lightComponent,
+          this,
+          baseComponent.location
         )
       }
     }
@@ -569,15 +613,40 @@ export default class Scene extends Phaser.Scene {
   /**
    *
    * @param light
-   * @param scene
-   * @param x
-   * @param y
-   * @param color
+   * @param target
+   * @param location
    */
-  addLight(light: Light, scene: Object, x: number, y: number, color: string) {
-    console.log(`light`, x, y)
-    light.instance = scene.lights.addLight(x, y, 40.0)
-    //light.instance.setColor(color)
+  addLight(light: Object, target: Object, location: ?Location = null) {
+    if (!location) {
+      location = light.location
+    }
+
+    if (!location) {
+      lll(`wrong light`)
+      return null
+    }
+
+    let pos = this.iso.unprojectAbsolute({
+      x: location[0],
+      y: location[1]
+    })
+
+    if (light.offset) {
+      pos.x += light.offset[0]
+      pos.y += light.offset[1]
+    }
+
+    let color = Utils.stringToColor(light.color)
+
+    let resultLight = new Light()
+    let light2 = this.lights.addLight(pos.x, pos.y, 200, 0xffffff, 200.0)
+
+    //resultLight.instance =light2
+    //light2.setIntensity(1.5)
+    //light2.setColor(color)
+
+    //lll(`light`, resultLight, location, pos)
+    return resultLight
   }
 
   /**
@@ -630,7 +699,7 @@ export default class Scene extends Phaser.Scene {
       promises.push(
         this.loadAsset(name, `shader`, {
           fragment: file,
-          vertex: path + '.vertex.glsl'
+          vertex: path + `.vertex.glsl`
         })
       )
     }

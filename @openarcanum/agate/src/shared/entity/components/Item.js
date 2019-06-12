@@ -1,6 +1,6 @@
-import Core from './Core'
+import Component from './Component'
 
-export default class Item extends Core {
+export default class Item extends Component {
   /**
    *
    */

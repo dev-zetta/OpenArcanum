@@ -1,6 +1,6 @@
-import Core from './Core'
+import Component from './Component'
 
-export default class Portal extends Core {
+export default class Portal extends Component {
   /**
    *
    */

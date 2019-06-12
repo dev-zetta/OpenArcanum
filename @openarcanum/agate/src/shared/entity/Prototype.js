@@ -1,22 +1,31 @@
+//@flow
+
 import Flags from '../Flags'
 import Components from './components'
 
-import ECS from '../../libs/ECS'
 import Entity from './Entity'
+import type GameEngine from '../GameEngine'
 
 const ClassTransformer = require(`class-transformer`)
 
-export default class Prototype extends ECS.Entity {
-  constructor() {
-    super()
+export default class Prototype extends Entity {
+  /**
+   *
+   */
+  constructor(engine: GameEngine, options: Object = {}) {
+    super(engine, options)
   }
 
   /**
    *
    * @param data
+   * @param target
    * @returns {*}
    */
-  static createComponentsFromData(data, onComponent = null) {
+  static createComponentsFromData(
+    data: Object,
+    target: ?Entity | ?Function
+  ): Object {
     let components = {}
 
     for (let key in data) {
@@ -33,8 +42,13 @@ export default class Prototype extends ECS.Entity {
         instance.flags = new Flags(instance.flags)
       }
 
-      if (onComponent) {
-        onComponent(instance)
+      if (target) {
+        if (typeof target === `function`) {
+          target(instance)
+        } else {
+          instance.entity = target
+          target.addComponent(instance)
+        }
       } else {
         components[Prototype.componentInstanceToName(instance)] = instance
       }
@@ -48,17 +62,22 @@ export default class Prototype extends ECS.Entity {
    * @param data
    * @returns {*}
    */
-  static fromData(data) {
-    let prototype = new Prototype()
-
-    Prototype.createComponentsFromData(data, (component) => {
-      prototype.addComponent(component)
-    })
-
-    return prototype
+  loadComponents(data: Object) {
+    Prototype.createComponentsFromData(data, this)
   }
 
-  static wrapObjectToProxy(source, prototype, parent = source) {
+  /**
+   *
+   * @param source
+   * @param prototype
+   * @param parent
+   * @returns {*}
+   */
+  static wrapObjectToProxy(
+    source: Object,
+    prototype: Object,
+    parent: Object = source
+  ): Proxy<Object> {
     if (source !== parent) {
       for (let key in source) {
         let value = source[key]
@@ -100,11 +119,15 @@ export default class Prototype extends ECS.Entity {
     return result
   }
 
-  createEntity(engine, data) {
+  /**
+   *
+   * @param engine
+   * @param data
+   * @returns {*}
+   */
+  createEntity(engine: GameEngine, data: Object): Object {
     let entity = new Entity(engine)
-    Prototype.createComponentsFromData(data, (component) => {
-      entity.addComponent(component)
-    })
+    Prototype.createComponentsFromData(data, entity)
 
     return Prototype.wrapObjectToProxy(entity, this)
   }
@@ -112,8 +135,9 @@ export default class Prototype extends ECS.Entity {
   /**
    *
    * @param entity
+   * @param source
    */
-  copyToEntity(entity, source = null) {
+  copyToEntity(entity: Entity, source: ?Prototype = null) {
     let prototype = source || this
 
     for (let key in prototype) {

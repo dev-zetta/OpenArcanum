@@ -3,7 +3,7 @@
 
 import System from '../System'
 import type Location from '../../Location'
-import Enums from '../../enums'
+import * as Enums from '../../enums'
 import type Entity from '../Entity';
 
 export default class Combat extends System {
@@ -14,7 +14,7 @@ export default class Combat extends System {
    * @returns {boolean}
    */
   test(entity: Entity) {
-    return !!entity.npc
+    return !!entity.critter
   }
 
   /**

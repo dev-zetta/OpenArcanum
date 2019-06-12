@@ -1,6 +1,6 @@
-import Core from './Core'
+import Component from './Component'
 
-export default class Generic extends Core {
+export default class Generic extends Component {
   /**
    *
    */

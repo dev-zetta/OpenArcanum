@@ -1,5 +1,3 @@
-/* global AGate */
-import Core from './Core'
 export default class Position {
   constructor() {
     this._x = 0

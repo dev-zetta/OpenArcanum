@@ -1,7 +1,6 @@
 // @flow
-
 import System from '../System'
-import ObjectEnum from '../../enums/Object'
+import * as Enums from '../../enums/Entity'
 import Location from '../../Location'
 import type Entity from '../Entity'
 
@@ -12,7 +11,7 @@ export default class Npc extends System {
    * @returns {boolean}
    */
   test(entity: Entity) {
-    return !!entity.npc
+    return !!entity.critter
   }
 
   /**
@@ -23,20 +22,17 @@ export default class Npc extends System {
   update(entity: Entity, elapsed: number) {
     super.update(entity, elapsed)
 
-    //if (entity.nearbyEntities)
-    //  return;
-
     // Get entities within vicinity
     if (entity.nearbyEntities) {
       return
     }
 
-    let { base, npc } = entity
+    let { base, critter, npc } = entity
 
     entity.nearbyEntities = this.map.getEntitiesInRange({
-      types: [ObjectEnum.Entity.Npc, ObjectEnum.Entity.Pc],
+      types: [Enums.Entity.Npc, Enums.Entity.Pc],
       center: base.location,
-      range: npc.getViewRange(),
+      range: critter.getViewRange(),
       ignore: [entity]
     })
 
@@ -66,18 +62,18 @@ export default class Npc extends System {
    * @param elapsed
    */
   processAi(entity: Entity, elapsed: number) {
-    let evaluator = this.map.aiSystem.getEvaluator(`npc`)
+    let evaluator = this.map.aiSystem.getEvaluator(entity.base.type)
     let result = evaluator.process({
       entity,
-      Enums: ObjectEnum
+      Enums: Enums
     })
 
-    if (result.score <= 0) {
+    if (result.score <= 0 || !result.action) {
       return
     }
 
     // Call AI action
-    //console.log(result)
+    lll(`action`, result)
     let actionName = AGate.Utils.camelCase(result.action)
     this[actionName].call(this, entity)
   }
@@ -88,18 +84,19 @@ export default class Npc extends System {
    * @param elapsed
    */
   processMovement(entity: Entity, elapsed: number) {
-    let { base, npc } = entity
+    let { base, critter, npc } = entity
+    let {aiState} = critter
 
-    if (!npc.aiState.has(ObjectEnum.AiState.Moving)) {
+    if (!aiState.has(Enums.AiState.Moving)) {
       entity.moved = false
       return
     }
 
-    let moved = base.movementPath.process(entity, elapsed)
+    let moved = critter.movementPath.process(entity, elapsed)
 
     if (!moved) {
       //npc.aiState.remove([Enums.AiState.Moving, Enums.AiState.MovingToWaypoint]);
-      base.movementPath.clear()
+      critter.movementPath.clear()
       /*if (npc.aiState.has(Enums.AiState.MovingToWaypoint)) {
 
       }*/
@@ -112,7 +109,8 @@ export default class Npc extends System {
    * @param elapsed
    */
   processCombat(entity: Entity, elapsed: number) {
-    let { base, npc, targetEntity } = entity
+    let { base, critter, npc, targetEntity } = entity
+    let {aiState} = critter
 
     if (!targetEntity) {
       return
@@ -124,12 +122,12 @@ export default class Npc extends System {
       targetEntity.base.location
     )
 
-    if (!npc.hasRangedWeapon()) {
+    if (!critter.hasRangedWeapon()) {
       // Is close enough for meelee attack?
-      if (distance > npc.getMeeleDistance()) {
-        let moving = npc.aiState.hasAny([
-          ObjectEnum.AiState.Moving,
-          ObjectEnum.AiState.PlanningToMove
+      if (distance > critter.getMeleeDistance()) {
+        let moving = aiState.hasAny([
+          Enums.AiState.Moving,
+          Enums.AiState.PlanningToMove
         ])
         if (
           !moving ||
@@ -141,12 +139,12 @@ export default class Npc extends System {
         }
       } else {
         // Already close
-        if (npc.aiState.has(ObjectEnum.AiState.PreparingToAttack)) {
-          npc.aiState.remove([
-            ObjectEnum.AiState.Moving,
-            ObjectEnum.AiState.PreparingToAttack
+        if (aiState.has(Enums.AiState.PreparingToAttack)) {
+          aiState.remove([
+            Enums.AiState.Moving,
+            Enums.AiState.PreparingToAttack
           ])
-          npc.aiState.set(ObjectEnum.AiState.Attacking)
+          aiState.set(Enums.AiState.Attacking)
 
           this.changeVisual(entity, {
             animation: `Attack`,
@@ -157,19 +155,19 @@ export default class Npc extends System {
     }
   }
 
-  // ACTIONS
+  // AI - ACTIONS
 
   /**
    *
    * @param entity
    */
   moveToWaypoint(entity: Entity) {
-    let { base, npc } = entity
-
-    //if (npc.aiState.has(ObjectEnum.AiState.MovingToWaypoint))
+    let { base, critter, npc } = entity
+    let {aiState} = critter
+    //if (npc.aiState.has(Enums.AiState.MovingToWaypoint))
     //  return;
 
-    npc.aiState.set(ObjectEnum.AiState.MovingToWaypoint)
+    aiState.set(Enums.AiState.MovingToWaypoint)
 
     //if (npc.currentWaypoint == 0)
     //  return;
@@ -197,13 +195,14 @@ export default class Npc extends System {
    * @param entity
    */
   attackNearby(entity: Entity) {
-    let { base, npc } = entity
+    let { base, critter, npc } = entity
+    let {aiState} = critter
 
     for (let another of entity.nearbyEntities) {
       //console.log(entity.id, another.id );
       entity.targetEntity = another
 
-      npc.aiState.set(ObjectEnum.AiState.PreparingToAttack)
+      aiState.set(Enums.AiState.PreparingToAttack)
       break
     }
   }
@@ -215,35 +214,38 @@ export default class Npc extends System {
    * @param nextTo
    */
   moveToLocation(entity: Entity, location: Location, nextTo: boolean = false) {
-    let { base, npc } = entity
+    let { base, critter, npc } = entity
+    let {movementPath, aiState} = critter
 
     console.log(`Moving to: ${base.location}`)
 
     entity.moved = false
 
-    if (npc.aiState.has(ObjectEnum.AiState.Moving)) {
-      npc.aiState.remove(ObjectEnum.AiState.Moving)
+    if (aiState.has(Enums.AiState.Moving)) {
+      aiState.remove(Enums.AiState.Moving)
     }
 
-    npc.aiState.set(ObjectEnum.AiState.PlanningToMove)
+    aiState.set(Enums.AiState.PlanningToMove)
 
     let path = this.map.pathFind.findPath(base.location, location)
     if (path.length === 0) {
-      npc.aiState.remove(ObjectEnum.AiState.PlanningToMove)
+      aiState.remove(Enums.AiState.PlanningToMove)
       return
     }
 
-    base.movementPath.clear()
-    base.movementPath.addPoints(path)
-    base.movementPath.start(nextTo)
+    movementPath.clear()
+    movementPath.addPoints(path)
+    movementPath.start(nextTo)
 
     this.changeVisual(entity, { animation: `Walk`})
 
-    this.engine.client.scene.highlightTiles(path)
+    if (this.engine.client) {
+      this.engine.client.scene.highlightTiles(path)
+    }
     //console.log(path);
 
-    npc.aiState.remove(ObjectEnum.AiState.PlanningToMove)
-    npc.aiState.set(ObjectEnum.AiState.Moving)
+    aiState.remove(Enums.AiState.PlanningToMove)
+    aiState.set(Enums.AiState.Moving)
   }
 
   /**
@@ -253,7 +255,7 @@ export default class Npc extends System {
    */
   changeVisual(entity: Entity, options: Object) {
     let {classes} = entity.visual
-    classes._change = options
-    classes.current = Object.assign(classes.current, options)
+    classes.next = options
+
   }
 }

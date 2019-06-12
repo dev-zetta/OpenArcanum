@@ -1,17 +1,20 @@
-/* global AGate */
+//@flow
 import Evaluator from './Evaluator'
+import Evaluators from './Evaluators'
+import type GameMap from '../../map/GameMap';
 
-let Evaluators = {
-  npc: {
-    actions: {
-      MoveToWaypoint: {},
-      AttackNearby: {}
-    }
-  }
-}
 
-export default class AiSystem {
-  constructor(map) {
+
+export default class System {
+  map: GameMap
+  actions: Map<string, any>
+  evaluators: Map<string, any>
+
+  /**
+   *
+   * @param map
+   */
+  constructor(map: GameMap) {
     this.map = map
     this.actions = new Map()
     this.evaluators = new Map()
@@ -20,6 +23,9 @@ export default class AiSystem {
     this.loadEvaluators()
   }
 
+  /**
+   *
+   */
   loadActions() {
     AGate.Utils.loadScripts(`shared/entity/ai/actions`, (name, script) => {
       let action = script.action
@@ -40,17 +46,30 @@ export default class AiSystem {
     })
   }
 
+  /**
+   *
+   */
   loadEvaluators() {
     for (let key in Evaluators) {
       this.newEvaluator(key)
     }
   }
 
-  getEvaluator(type) {
+  /**
+   *
+   * @param type
+   * @returns {Evaluator}
+   */
+  getEvaluator(type: string): Evaluator {
     return this.newEvaluator(type)
   }
 
-  newEvaluator(type) {
+  /**
+   *
+   * @param type
+   * @returns {*}
+   */
+  newEvaluator(type: string): Evaluator {
     if (!type) {
       let evaluator = new Evaluator(this)
 

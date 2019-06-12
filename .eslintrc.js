@@ -49,7 +49,7 @@ module.exports = {
     "arrow-spacing": "warn",
     "no-await-in-loop": "warn",
     "no-loop-func": "warn",
-    "no-magic-numbers": "error",
+    "no-magic-numbers": "warn",
     "no-return-await": "error",
     "new-parens": "error",
     quotes: [2, "backtick"],

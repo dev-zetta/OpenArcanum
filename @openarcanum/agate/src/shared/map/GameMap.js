@@ -1,19 +1,59 @@
-/* global AGate */
+//@flow
 
-import EntitySystem from '../entity/EntitySystem'
+import ComponentSystem from '../entity/ComponentSystem'
 import Location from '../Location'
 import Sector from './Sector'
-import AiSystem from '../entity/ai/AiSystem'
+import AiSystem from '../entity/ai/System'
 import PathFind from '../PathFind'
+import type GameEngine from '../GameEngine'
+import Entity from '../entity/Entity'
+import SectorCache from './SectorCache'
+import type {LocationRaw} from '../entity/Types'
+import {SectorGrid} from './SectorGrid'
 
 export default class GameMap {
-  constructor(engine) {
+  engine: GameEngine
+  entitySystem: ComponentSystem
+  aiSystem: AiSystem
+  pathFind: PathFind
+  isLoaded: boolean
+  isLoading: boolean
+  width: number
+  height: number
+  sectors: SectorGrid
+  center: Location
+  path: string
+  name: string
+  width: number
+  height: number
+
+  constructor(engine: GameEngine) {
     this.engine = engine
-    this.entitySystem = new EntitySystem(this)
+    this.assetLoader = engine.assetLoader
+    this.entitySystem = new ComponentSystem(this)
     this.aiSystem = new AiSystem(this)
     this.pathFind = new PathFind(this)
-
     this.isLoaded = false
+
+    this.sectors = new SectorGrid(this)
+  }
+
+  /**
+   *
+   * @returns {number[]}
+   */
+  getCenterLocation(): Location {
+    return this.center
+  }
+
+  /**
+   *
+   * @param x
+   * @param y
+   * @returns {string}
+   */
+  getSectorPath(x: number, y: number): string {
+    return `${this.path}/Sector/${x}/${y}`
   }
 
   /**
@@ -21,24 +61,26 @@ export default class GameMap {
    * @param path
    * @returns {Promise<void>}
    */
-  async load(path) {
+  async load(path: string) {
     this.path = path
     this.name = ``
     this.isLoading = true
     this.isLoaded = false
 
-    this.engine.onMapLoading(this)
+    this.engine.events.emit(`Map:Loading`, this)
 
     await this.entitySystem.loadPrototypes()
 
     AGate.Utils.logError(`Loading map: ${path}`)
-    let data = await this.engine.assetLoader.loadJsonFile(`${path}/Map.json`)
+    let data = await this.assetLoader.loadJsonFile(`${path}/Map.json`)
 
     this.width = data.width
     this.height = data.height
-    this.sectors = []
+    this.center = new Location([(this.width / 2) * 64, (this.height / 2) * 64])
 
-    let promises = []
+    this.sectors.clear()
+
+    /*let promises = []
     for (let col = 0; col < this.height; col++) {
       this.sectors[col] = []
       for (let row = 0; row < this.width; row++) {
@@ -47,71 +89,25 @@ export default class GameMap {
     }
 
     await Promise.all(promises)
+*/
 
-    this.engine.onMapLoaded(this)
+    await this.sectors.load(this.center.sectorX, this.center.sectorY)
+
     this.isLoading = false
     this.isLoaded = true
+
+    this.engine.events.emit(`Map:Loaded`, this)
   }
 
   /**
    *
-   * @param x
-   * @param y
-   * @returns {Promise<void>}
    */
-  async loadSector(x, y) {
-    let sector = new Sector(this)
-    await sector.load(this.getSectorPath(y, x), y, x)
-    this.sectors[y][x] = sector
-  }
-
-  /**
-   *
-   * @param path
-   * @param onLoaded
-   * @returns {Promise<void>}
-   */
-  async loadEntities(path, onLoaded) {
-    AGate.Utils.logError(`Loading entities...`)
-
-    let entityTypes = await this.engine.assetLoader.findDirs(`${path}/`)
-
-    for (let [key, value] of entityTypes) {
-      let entityFiles = await this.engine.assetLoader.findFiles(
-        `${path}/${key}`,
-        `.json`
-      )
-
-      for (let [key, value] of entityFiles) {
-        let entity = await this.loadEntity(value.name)
-        onLoaded(entity)
-      }
+  async update(params: Object) {
+    if (!this.isLoaded) {
+      return
     }
-  }
 
-  /**
-   *
-   * @param path
-   * @returns {Promise<Entity>}
-   */
-  async loadEntity(path) {
-    //AGate.Utils.logError(`Loading entity: ${path}`)
-
-    let data = await this.engine.assetLoader.loadJsonFile(`${path}`)
-
-    let id = AGate.Utils.getFileBase(path)
-    let entity = await this.entitySystem.newEntity(id, data)
-
-    return entity
-  }
-
-  /**
-   *
-   */
-  async update() {
-    if (!this.isLoaded) {return}
-
-    let promises = []
+    /*let promises = []
     for (let col = 0; col < this.height; col++) {
       for (let row = 0; row < this.width; row++) {
         let sector = this.sectors[col][row]
@@ -124,14 +120,7 @@ export default class GameMap {
     }
 
     await Promise.all(promises)
-
-    /*if (!this.isLoaded && !AGate.Utils.isUndefined(this.path)) {
-        this.isLoaded = !this.engine.client.game.load.isLoading
-
-        if (this.isLoaded)
-            this.engine.onMapLoaded(this)
-    }*/
-
+*/
     await this.entitySystem.update()
   }
 
@@ -139,10 +128,57 @@ export default class GameMap {
    *
    * @param x
    * @param y
-   * @returns {string}
+   * @returns {Promise<void>}
    */
-  getSectorPath(x, y) {
-    return `${this.path}/Sector/${x}/${y}`
+  async loadSector(x: number, y: number): Promise<Sector> {
+    let sector = new Sector(this)
+    await sector.load(this.getSectorPath(y, x), y, x)
+    return sector
+  }
+
+  /**
+   *
+   * @param path
+   * @param target
+   * @returns {Promise<void>}
+   */
+  async loadEntities(path: string, target: Function | Object) {
+    AGate.Utils.logError(`Loading entities...`)
+
+    let entityTypes = await this.assetLoader.findDirs(`${path}/`)
+
+    for (let [key, value] of entityTypes) {
+      let entityFiles = await this.assetLoader.findFiles(
+        `${path}/${key}`,
+        `.json`
+      )
+
+      for (let [key, value] of entityFiles) {
+        let entity = await this.loadEntity(value.name)
+
+        if (typeof target === `function`) {
+          target(entity)
+        } else {
+          target.addEntity(entity)
+        }
+      }
+    }
+  }
+
+  /**
+   *
+   * @param path
+   * @returns {Promise<Entity>}
+   */
+  async loadEntity(path: string) {
+    //AGate.Utils.logError(`Loading entity: ${path}`)
+
+    let data = await this.assetLoader.loadJsonFile(`${path}`)
+
+    let id = AGate.Utils.getFileBase(path)
+    let entity = await this.entitySystem.newEntity(id, data)
+
+    return entity
   }
 
   /**
@@ -151,9 +187,11 @@ export default class GameMap {
    * @param y
    * @returns {boolean}
    */
-  isTileBlocked(x, y) {
+  isTileBlocked(x: number, y: number): boolean {
     let tile = this.getTile(x, y)
-    if (!tile) return true
+    if (!tile) {
+      return true
+    }
 
     return tile.blocked
   }
@@ -164,16 +202,32 @@ export default class GameMap {
    * @param y
    * @returns {*}
    */
-  getTile(x, y) {
+  getSector(x: number, y: number): Sector {
+    return this.sectors.get(x, y)
+  }
+
+  /**
+   *
+   * @param x
+   * @param y
+   * @returns {*}
+   */
+  getTile(x: number, y: number): Object {
     let location = new Location(x, y)
 
-    let col = this.sectors[location.sectorY]
-    if (!col) return null
-
-    let sector = col[location.sectorX]
-    if (!sector) return null
+    let sector = this.getSector(location.sectorX, location.sectorY)
+    if (!sector) {
+      return null
+    }
 
     return sector.getTile(location.tileX, location.tileY)
+  }
+
+  /**
+   *
+   */
+  getActiveSectors(): Array<Sector> {
+    return this.sectors.getAll()
   }
 
   /**
@@ -181,7 +235,7 @@ export default class GameMap {
    * @param options
    * @returns {Array}
    */
-  getEntitiesInRange(options) {
+  getEntitiesInRange(options: Object): Array<Entity> {
     let { types, center, range, ignore, filter } = options
 
     let names = []
@@ -225,7 +279,10 @@ export default class GameMap {
         let tileX = x % Sector.Width
         let sectorX = Math.floor(x / Sector.Width)
 
-        let sector = this.sectors[sectorY][sectorX]
+        let sector = this.getSector(sectorX, sectorY)
+        if (!sector) {
+          continue
+        }
 
         let tile = sector.getTile(tileX, tileY)
         if (!tile) {
@@ -250,13 +307,13 @@ export default class GameMap {
                 }
               }
 
-              if (ignored) {continue}
-            }
-
-            if (filter) {
-              if (!filter(entity)) {
+              if (ignored) {
                 continue
               }
+            }
+
+            if (filter && !filter(entity)) {
+              continue
             }
 
             // Put entity into list
@@ -278,22 +335,36 @@ export default class GameMap {
     return result
   }
 
-  async addPlayer(location = null) {
-    let file = `16086.json`
-    let path = AGate.getAppPath(file)
+  /**
+   *
+   * @param location
+   * @returns {Promise<Entity>}
+   */
+  async addPlayer(location: Location) {
+    let player = await this.loadPlayer()
 
-    let data = await this.engine.assetLoader.loadJsonFile(path)
-    if (location && data[`Base`]) {
-      data[`Base`].location = location
+    if (location && player[`Base`]) {
+      player[`Base`].location = Location.transformToRaw(location)
     }
 
-    let id = AGate.Utils.getFileBase(path)
-    let entity = await this.entitySystem.newEntity(id, data)
+    //await this.sectors.load(location.sectorX, location.sectorY)
+
+    let id = undefined // AGate.Utils.getFileBase(path)
+    let entity = await this.entitySystem.newEntity(id, player)
 
     return entity
   }
 
-  getCenterLocation() {
-    return [60, 93] //[(this.width / 2) * 64, (this.height / 2) * 64]
+  /**
+   *
+   * @returns {Promise<*>}
+   */
+  async loadPlayer(): Entity {
+    let file = `16086.json`
+    let path = AGate.getAppPath(file)
+
+    let data = await this.assetLoader.loadJsonFile(path)
+
+    return data
   }
 }

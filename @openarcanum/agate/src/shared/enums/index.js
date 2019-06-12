@@ -1,8 +1,8 @@
-import Object from './Object'
+import * as Entity from './Entity'
 import GfxTypes from './Gfx'
 
 export default {
-  Object,
+  Entity,
   GfxTypes
 }
 

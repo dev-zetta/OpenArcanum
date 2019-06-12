@@ -1,5 +1,5 @@
-/*@import url("gui-images.css");*/
-@import url("fonts.css");
+/*@import url("gui-images.css");
+@import url("fonts.css");*/
 @import "ember-bootstrap/bootstrap";
 @import "theme";
 
@@ -21,7 +21,7 @@
 }*/
 
 * {
-  font-family: Georgia;
+  font-family: Helvetica;
   color: #fff;
   text-shadow: #e0e0e0 1px 1px 0;
 }
@@ -48,8 +48,18 @@ html {
   position: relative;
 }
 
+.dg {
+  font: 13px Helvetica;
+}
+
 .dg.ac {
-  z-index: 100;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.dg.main {
+  pointer-events: auto;
+  z-index: 999;
 }
 
 #gui {

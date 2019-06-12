@@ -1,31 +1,49 @@
-/* global AGate */
+//@flow
 
 import Sprite from '../../client/Sprite'
 import Location from '../Location'
+import type GameMap from './GameMap'
+import type Entity from '../entity/Entity'
+import type GameEngine from '../GameEngine'
 
 export default class Sector {
-  static get TileWidth() {
+  static get TileWidth(): number {
     return 80
   }
-  static get TileWidthHalf() {
+  static get TileWidthHalf(): number {
     return 40
   }
 
-  static get TileHeight() {
+  static get TileHeight(): number {
     return 40
   }
-  static get TileHeightHalf() {
+  static get TileHeightHalf(): number {
     return 20
   }
 
-  static get Width() {
+  static get Width(): number {
     return 64
   }
-  static get Height() {
+  static get Height(): number {
     return 64
   }
 
-  constructor(map) {
+  map: GameMap
+  engine: GameEngine
+  tiles: Array<Array<Object>>
+  roofs: Array<Object>
+  lights: Array<Object>
+  entities: Map<string, Entity>
+
+  id: string
+  x: number
+  y: number
+
+  /**
+   *
+   * @param map
+   */
+  constructor(map: GameMap) {
     this.map = map
     this.engine = map.engine
   }
@@ -34,10 +52,33 @@ export default class Sector {
    *
    * @param x
    * @param y
+   * @returns {string}
+   */
+  static makeId(x: number, y: number): string {
+    return `${x}x${y}` // (y *  this.height) + this.width
+  }
+
+  /**
+   *
+   * @param x
+   * @param y
+   * @returns {boolean|Event|*}
+   */
+  isTileBlocked(x: number, y: number): boolean {
+    let tile = this.getTile(x, y)
+    return !tile || tile.blocked
+  }
+
+  /**
+   *
+   * @param x
+   * @param y
    * @returns {*}
    */
-  getTile(x, y) {
-    if (!this.tiles) return null
+  getTile(x: number, y: number): Object {
+    if (!this.tiles) {
+      return null
+    }
 
     let tile = this.tiles[y][x]
     return tile
@@ -48,9 +89,9 @@ export default class Sector {
    * @param entity
    * @returns {boolean}
    */
-  addEntity(entity) {
+  addEntity(entity: Entity) {
     if (this.entities.has(entity.id)) {
-      console.log(`Replacing entity: ${entity.id}`)
+      lll(`Replacing entity: ${entity.id}`)
 
       return false
     }
@@ -62,7 +103,7 @@ export default class Sector {
     let name = AGate.Utils.camelCase(entity.base.type)
     if (tile[name]) {
       //console.log(entity)
-      console.log(`Replacing entity: ${name}`)
+      lll(`Replacing entity: ${name}`)
     }
 
     tile[name] = entity
@@ -77,11 +118,11 @@ export default class Sector {
    * @param y
    * @returns {Promise<void>}
    */
-  async load(path, x, y) {
-    AGate.Utils.logError(`Loading sector: ${path}`)
+  async load(path: string, x: number, y: number) {
+    lll(`Loading sector: ${path}`)
 
     let data = await this.engine.assetLoader.loadJsonFile(`${path}/Sector.json`)
-    AGate.Utils.logError(`...Loaded`)
+    lll(`...Loaded`)
 
     if (!data.tiles) {
       return
@@ -90,6 +131,7 @@ export default class Sector {
     this.tiles = data.tiles
     this.x = x
     this.y = y
+    this.id = Sector.makeId(x, y)
 
     this.lights = data.lights
     this.roofs = data.roofs
@@ -113,9 +155,9 @@ export default class Sector {
     }
 
     this.entities = new Map()
-    await this.map.loadEntities(path, entity => {
-      this.addEntity(entity)
-    })
+    await this.map.loadEntities(path, this)
+
+    this.engine.events.emit('Sector:Loaded', this)
   }
 
   /**
@@ -156,10 +198,5 @@ export default class Sector {
         }
       }
     }*/
-  }
-
-  isTileBlocked(x, y) {
-    let tile = this.getTile(x, y)
-    return !tile || tile.blocked
   }
 }

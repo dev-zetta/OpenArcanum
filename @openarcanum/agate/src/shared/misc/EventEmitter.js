@@ -1,8 +1,8 @@
 //@flow
 
-const events = require(`events`) // EventEmitter
+const eventemitter3 = require(`eventemitter3`) // EventEmitter
 
-export default class EventEmitter extends events {
+export default class EventEmitter extends eventemitter3 {
   _queue: Object // map of topics + args
 
   /**
@@ -18,16 +18,16 @@ export default class EventEmitter extends events {
    * @param method
    * @param topic
    * @param fn
-   * @param self
+   * @param context
    */
   hookListener(
     method: Function,
     topic: string,
     fn: Function,
-    self: ?Object
+    context: ?Object
   ): EventEmitter {
-    if (self) {
-      fn = fn.bind(self)
+    if (context) {
+      fn = fn.bind(context)
     }
 
     method.call(this, topic, fn)
@@ -48,20 +48,20 @@ export default class EventEmitter extends events {
    *
    * @param topic
    * @param fn
-   * @param self
+   * @param context
    */
-  on(topic: string, fn: Function, self: ?Object): EventEmitter {
-    return this.hookListener(super.on, topic, fn, self)
+  on(topic: string, fn: Function, context: ?Object): EventEmitter {
+    return this.hookListener(super.on, topic, fn, context)
   }
 
   /**
    *
    * @param topic
    * @param fn
-   * @param self
+   * @param context
    */
-  once(topic: string, fn: Function, self: ?Object): EventEmitter {
-    return this.hookListener(super.once, topic, fn, self)
+  once(topic: string, fn: Function, context: ?Object): EventEmitter {
+    return this.hookListener(super.once, topic, fn, context)
   }
 
   /**

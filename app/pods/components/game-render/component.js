@@ -7,8 +7,12 @@ import { action } from '@ember/object'
 
 @classNames(`game-render`)
 class GameRender extends Component {
+
   @service
   store
+
+  @service
+  resize
 
   //@attribute
   shouldRender = false
@@ -24,12 +28,11 @@ class GameRender extends Component {
   constructor() {
     super(...arguments)
 
-   /* this.get(`resizeService`).on(`didResize`, event => {
+   this.get(`resize`).on(`didResize`, event => {
       this.engine.events.emitUI(
-        `window.resize`,
-        this.engine.client.getWindowRect()
+        `window.resize`
       )
-    })*/
+    })
   }
 
   /**

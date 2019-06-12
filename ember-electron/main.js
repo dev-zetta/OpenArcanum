@@ -77,7 +77,11 @@ app.on("ready", () => {
       nodeIntegration: true,
       webSecurity: false,
       experimentalFeatures: true,
-      nodeIntegrationInWorker: true
+      nodeIntegrationInWorker: true,
+      defaultFontFamily: {
+        standard: 'Helvetica'
+      }
+
     }
   });
   //mainWindow.webContents.openDevTools();

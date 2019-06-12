@@ -1,8 +1,7 @@
 // @flow
-/* global AGate */
 
 import System from '../System'
-import Object from '../../enums/Object'
+import * as Enums from '../../enums/Entity'
 import type Entity from '../Entity'
 
 export default class Render extends System {
@@ -50,13 +49,14 @@ export default class Render extends System {
     let rate = 1.0
 
     if (entity.npc) {
-      let { npc } = entity
+      let { critter, npc } = entity
+      let {aiState} = critter
 
-      if (npc.aiState.has(Object.AiState.Moving)) {
-        let speed = npc.getMovementSpeed()
+      if (aiState.has(Enums.AiState.Moving)) {
+        let speed = critter.getMovementSpeed()
         rate = speed
-      } else if (npc.aiState.has(Object.AiState.Attacking)) {
-        let speed = npc.getAttackSpeed()
+      } else if (aiState.has(Enums.AiState.Attacking)) {
+        let speed = critter.getAttackSpeed()
         rate = speed
       } else {
         rate = 0.1
@@ -77,11 +77,12 @@ export default class Render extends System {
       return
     }
 
-    let sprite = classes.current.sprite
-    if (classes._change) {
+    let {sprite} = classes.current
+    if (classes.next) {
       //this.totalElapsed = 0;
-      sprite.change(classes._change)
-      delete classes._change
+      classes.current = Object.assign(classes.current, classes.next)
+      sprite.change(classes.next)
+      delete classes.next
     }
 
     sprite.update(elapsed, this.getVisualRate(entity))

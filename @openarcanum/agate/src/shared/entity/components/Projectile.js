@@ -1,6 +1,6 @@
-import Core from './Core'
+import Component from './Component'
 
-export default class Projectile extends Core {
+export default class Projectile extends Component {
   /**
    *
    */

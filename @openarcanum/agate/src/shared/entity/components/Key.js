@@ -1,6 +1,6 @@
-import Core from './Core'
+import Component from './Component'
 
-export default class Key extends Core {
+export default class Key extends Component {
   /**
    *
    */

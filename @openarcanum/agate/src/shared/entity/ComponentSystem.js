@@ -1,3 +1,4 @@
+// @flow
 /**
  * Entity Component System module
  *
@@ -6,18 +7,35 @@
 
 import Entity from './Entity'
 import System from './System'
-import Performance from './Performance'
 import UID from './UID'
+import Prototype from './Prototype'
+import Utils from './Utils'
 
-/**
- * @class  ECS
- */
-class ECS {
+import Systems from './systems'
+import type GameMap from '../map/GameMap'
+import Components from './components'
+import type GameEngine from '../GameEngine';
+
+//const ClassTransformer = require('class-transformer')
+
+class ComponentSystem {
+
+  entities: Map<string, Entity>
+  entitiesSystemsDirty: Map<string, Entity>
+  systems: Map<string, System>
+  updateCounter: number
+  lastUpdate: number
+  map: GameMap
+  engine: GameEngine
+  prototypes: Map<string, Prototype>
+  components: Map<string, Object>
+
+
   /**
-   * @constructor
-   * @class  ECS
+   *
+   * @param map
    */
-  constructor() {
+  constructor(map: GameMap) {
     /**
      * Store all entities of the ECS.
      *
@@ -50,14 +68,29 @@ class ECS {
      */
     this.updateCounter = 0
 
-    this.lastUpdate = Performance.now()
+    this.lastUpdate = Utils.getCurrentTimestamp()
+
+    this.map = map
+    this.engine = map.engine
+
+    for (let key in Systems) {
+      let system = Systems[key]
+      console.log(`Adding entity system: ${key}`)
+      this.addSystem(new system(this.engine, this))
+    }
+
+    this.prototypes = new Map()
+    this.components = new Map()
+
+    //this.loadComponents()
   }
+
   /**
    * Retrieve an entity by id
    * @param  {Number} id id of the entity to retrieve
    * @return {Entity} The entity if found null otherwise
    */
-  getEntityById(id) {
+  getEntityById(id: string) {
     return this.entities.get(id)
   }
   /**
@@ -66,10 +99,11 @@ class ECS {
    * @method addEntity
    * @param {Entity} entity The entity to add.
    */
-  addEntity(entity) {
+  addEntity(entity: Entity) {
     this.entities.set(entity.id, entity)
     entity.addToECS(this)
   }
+
   /**
    * Remove an entity from the ecs by reference.
    *
@@ -77,7 +111,7 @@ class ECS {
    * @param  {Entity} entity reference of the entity to remove
    * @return {Entity}        the remove entity if any
    */
-  removeEntity(entity) {
+  removeEntity(entity: Entity) {
     this.entities.delete(entity.id)
 
     entity.dispose()
@@ -90,9 +124,11 @@ class ECS {
    * @param  {Entity} entityId id of the entity to remove
    * @return {Entity}          removed entity if any
    */
-  removeEntityById(entityId) {
+  removeEntityById(entityId: string) {
     let entity = this.entities.get(entityId)
-    if (!entity) {return null}
+    if (!entity) {
+      return null
+    }
 
     this.removeEntity(entity)
 
@@ -105,7 +141,7 @@ class ECS {
    * @method removeEntityIfDirty
    * @param  {[type]} entity entity to remove
    */
-  removeEntityIfDirty(entity) {
+  removeEntityIfDirty(entity: Entity) {
     entity = this.entitiesSystemsDirty.get(entity.id)
 
     if (entity) {
@@ -117,7 +153,7 @@ class ECS {
    *
    * @param entity
    */
-  addDirtyEntity(entity) {
+  addDirtyEntity(entity: Entity) {
     this.entitiesSystemsDirty.set(entity.id, entity)
   }
 
@@ -127,7 +163,7 @@ class ECS {
    * @method addSystem
    * @param {System} system system to add
    */
-  addSystem(system) {
+  addSystem(system: System) {
     this.systems.set(system.constructor.name, system)
 
     // iterate over all entities to eventually add system
@@ -143,10 +179,9 @@ class ECS {
    * @param system
    * @returns {any}
    */
-  getSystem(system) {
+  getSystem(system: string) {
     return this.systems.get(system)
   }
-
 
   /**
    * Remove a system from the ecs.
@@ -154,9 +189,9 @@ class ECS {
    * @method removeSystem
    * @param  {System} system system reference
    */
-  removeSystem(system) {
+  removeSystem(system: string) {
     let instance = this.systems.get(system)
-     this.systems.delete(system)
+    this.systems.delete(system)
 
     if (instance) {
       instance.dispose()
@@ -200,7 +235,7 @@ class ECS {
    * @method update
    */
   update() {
-    let now = Performance.now()
+    let now = Utils.getCurrentTimestamp()
     let elapsed = now - this.lastUpdate
 
     for (let [name, system] of this.systems) {
@@ -225,13 +260,99 @@ class ECS {
    * @param entity
    * @returns {*}
    */
-  getNewId(entity) {
+  getNewId(entity: Entity) {
     return UID.DefaultUIDGenerator.next()
+  }
+
+  /**
+   *
+   */
+  loadComponents() {
+    for (let key in Components) {
+      this.components.set(key, Components[key])
+    }
+
+    /*AGate.Utils.loadScripts('shared/entity/components', (name, script) => {
+      let component = script.component;
+
+      this.components.set(name, component)
+    })*/
+  }
+
+  /**
+   *
+   * @returns {Promise<void>}
+   */
+  async loadPrototypes(reload: boolean = false): Promise<*> {
+    if (this.prototypes.size > 0 && !reload) {
+      return
+    }
+
+    let assetLoader = this.engine.assetLoader
+    let dataPath = AGate.getDataPath(`Prototypes`)
+
+    let typeDirs = await assetLoader.findDirs(dataPath)
+    for (let [type, entries] of typeDirs) {
+      for (let [fileName, entry] of entries) {
+        let meta = await assetLoader.loadJsonFile(
+          `${dataPath}/${type}/${fileName}`
+        )
+
+        let key = AGate.Utils.getFileBase(fileName)
+
+        let prototype = new Prototype(this.engine)
+        prototype.loadComponents(meta)
+
+        this.prototypes.set(key, prototype)
+      }
+    }
+  }
+
+  /**
+   *
+   * @param id
+   * @param data
+   * @returns {Promise<Entity>}
+   */
+  async newEntity(id: string, data: Object): Promise<Entity> {
+
+    //baseComponent.location = new Location(baseComponent.location[0], baseComponent.location[1]);
+
+    // Apply prototype
+    let entity = null
+    if (data[`Base`]) {
+      let prototypeId = data[`Base`].prototype
+
+      if (!data[`Base`].type) {
+        lll('invalid entity type')
+        data[`Base`].type = 'Wall'
+      }
+
+      if (prototypeId) {
+        let prototype: Prototype = this.prototypes.get(`${prototypeId}`)
+        if (!prototype) {
+          console.log(`Invalid prototype: ${prototype}`)
+        } else {
+          entity = prototype.createEntity(this.engine, data)
+        }
+      }
+    }
+
+    // Load components' data and create instances
+    if (!entity) {
+      entity = new Entity(this.engine)
+    }
+
+    await entity.loadData()
+
+    // Add to system
+    entity.id = id
+    this.addEntity(entity)
+    return entity
   }
 }
 
-// expose user stuff
-ECS.Entity = Entity
-ECS.System = System
+/*ComponentSystem.Entity = Entity
+ComponentSystem.System = System*/
 
-export default ECS
+export default ComponentSystem

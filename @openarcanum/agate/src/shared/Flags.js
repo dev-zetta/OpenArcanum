@@ -1,11 +1,13 @@
-/* global AGate */
+// @flow
 
 export default class Flags {
+  _set: Set<string>
+
   /**
    *
    * @param list
    */
-  constructor(list) {
+  constructor(list: Array<string>) {
     //super(...arguments);
     this._set = new Set(list)
   }
@@ -14,26 +16,24 @@ export default class Flags {
    *
    * @param val
    */
-  add(val) {
+  add(val: string) {
     if (AGate.Utils.isArray(val)) {
       for (let i = 0; i < val.length; i++) {
         this.add(val[i])
       }
+    } else {
+      /*if (!AGate.Utils.isString(val))
+  return;*/
 
-      return
+      this._set.add(String(val))
     }
-
-    /*if (!AGate.Utils.isString(val))
-      return;*/
-
-    this._set.add(String(val))
   }
 
   /**
    *
    * @param val
    */
-  remove(val) {
+  remove(val: string) {
     if (AGate.Utils.isArray(val)) {
       for (let i = 0; i < val.length; i++) {
         this.remove(val[i])
@@ -50,7 +50,7 @@ export default class Flags {
    * @param val
    * @returns {*}
    */
-  getMissing(val) {
+  getMissing(val: string | Array<string>): Array<string> {
     if (AGate.Utils.isArray(val)) {
       let missing = []
       for (let i = 0; i < val.length; i++) {
@@ -60,9 +60,13 @@ export default class Flags {
       }
 
       return missing
+    } else {
+      if (!this.has(val)) {
+        return [val]
+      }
     }
 
-    return this.has(val)
+    return []
   }
 
   /**
@@ -70,7 +74,7 @@ export default class Flags {
    * @param val
    * @returns {*}
    */
-  hasAny(val) {
+  hasAny(val: string): boolean {
     if (AGate.Utils.isArray(val)) {
       for (let i = 0; i < val.length; i++) {
         if (this.has(val[i])) {
@@ -89,7 +93,7 @@ export default class Flags {
    * @param val
    * @returns {boolean}
    */
-  has(val) {
+  has(val: string): boolean {
     return this._set.has(String(val))
   }
 }

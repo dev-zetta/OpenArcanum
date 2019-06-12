@@ -1,9 +1,25 @@
-/* global AGate */
-import Core from './Core'
-import  Flags  from '../../Flags'
-import  AiState  from '../ai/AiState'
+import Component from './Component'
+import Flags from '../../Flags'
+import type {LocationRaw} from '../Types'
 
-export default class Npc extends Core {
+export default class Npc extends Component {
+  aiData: Object
+  expWorth: number
+  expPool: number
+  waypointCurrent: number
+  standpointDay: LocationRaw
+  standpointNight: LocationRaw
+  origin: string
+  faction: string
+  priceMul: string
+  reactionBase: number
+  socialClass: string
+  wait: any
+  generatorData: string
+  waypoints: Array<LocationRaw>
+
+  flags: Flags
+
   /**
    *
    */
@@ -11,41 +27,10 @@ export default class Npc extends Core {
     super(...arguments)
     this.waypoints = []
     this.currentWaypoint = null
-    this.aiState = new AiState()
+
 
     this.flags = null
-
-    //this._standpointDay = null;
-    //this._standpointNight = null;
   }
 
-  getViewRange() {
-    return 30
-  }
 
-  getMovementSpeed() {
-    return 1.0
-  }
-
-  getAttackSpeed() {
-    return 1.0
-  }
-
-  getMeeleDistance() {
-    return 1
-  }
-
-  hasMeeleWeapon() {
-    return true
-  }
-
-  hasRangedWeapon() {
-    return false
-  }
-
-  hasWeaponEquipped() {
-    return false
-  }
-
-  equipWeapon() {}
 }
