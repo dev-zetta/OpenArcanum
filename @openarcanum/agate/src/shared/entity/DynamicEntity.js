@@ -1,4 +1,7 @@
-import Lance, {BaseTypes, TwoVector, MathUtils} from '../../libs/Lance'
+import BaseTypes from '../serialize/BaseTypes'
+import TwoVector from '../serialize/TwoVector'
+import MathUtils from '../misc/MathUtils'
+
 import Entity from './Entity'
 
 export default class DynamicEntity extends Entity {

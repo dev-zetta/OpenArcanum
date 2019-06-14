@@ -63,7 +63,7 @@ class GuiGauge extends GuiWidget {
     let min = this.getMin()
     let max = this.getMax()
 
-    value = AGate.Utils.clamp(value, min, max)
+    value = Utils.clamp(value, min, max)
 
     let orientation = this.getOrientation()
     let position = this.getPosition()

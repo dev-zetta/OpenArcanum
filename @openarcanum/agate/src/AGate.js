@@ -14,8 +14,8 @@ global.lll = console.warn
 
 class AGateEngine {
   Const: Object
-  Utils: Utils
-  Math: Math
+  //Utils: Utils
+  //Math: Math
 
   config: Object
   eventEmitter: EventEmitter
@@ -32,8 +32,8 @@ class AGateEngine {
    * @param config
    */
   constructor(config: Object) {
-    this.Utils = Utils
-    this.Math = Math
+    //this.Utils = Utils
+   // this.Math = Math
 
     this.Const = {
       Sprite: {
@@ -52,12 +52,22 @@ class AGateEngine {
       traceLevel: 1000,
       delayInputCount: 8,
       scheduler: `render-schedule`,
+      //eventEmitter: this.eventEmitter,
       syncOptions: {
         sync: `extrapolate`,
         localObjBending: 0.2,
         remoteObjBending: 0.5
       }
     }
+  }
+
+  /**
+   *
+   * @param namespace
+   * @returns {*}
+   */
+  getConfig(namespace: string): Object {
+    return this.config[namespace]
   }
 
   get engine(): GameEngine {
@@ -146,14 +156,20 @@ class AGateEngine {
 
     await this.client.create()
     await this.client.start()
+    await this.client.join()
+  }
 
+  joinGame() {
+    this.client.join()
   }
 
   /**
    *
    */
   async createServer() {
+    let config = this.getConfig('server')
     this.server = new ServerEngine(this.engine, {
+      listenPort: config.listenPort,
       debug: {},
       updateRate: 6,
       timeoutInterval: 0 // no timeout

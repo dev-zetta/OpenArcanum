@@ -5,6 +5,7 @@ import System from '../System'
 import type Location from '../../Location'
 import * as Enums from '../../enums'
 import type Entity from '../Entity';
+import Utils from '../../misc/Utils'
 
 export default class Combat extends System {
 

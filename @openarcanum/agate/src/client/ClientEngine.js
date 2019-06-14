@@ -1,16 +1,15 @@
 // @flow
 
 import Phaser from '../libs/Phaser'
-import Lance from '../libs/Lance'
+import ClientNetwork from './ClientNetwork'
 import Scene from './Scene'
 import Manager from './Gui'
 import Renderer from './Renderer'
 import type GameEngine from '../shared/GameEngine'
 import type GameMap from '../shared/map/GameMap'
 
-export default class ClientEngine extends Lance.ClientEngine {
-
-  socket: Object // lance
+export default class ClientEngine extends ClientNetwork {
+  socket: Object // IO socket from lance
 
   /**
    *
@@ -19,12 +18,9 @@ export default class ClientEngine extends Lance.ClientEngine {
    * @param canvas
    */
   constructor(engine: GameEngine, options: Object, canvas: HTMLCanvasElement) {
-    const config = AGate.config.client
-
     options = Object.assign(
       {
         autoConnect: false,
-        serverURL: config.serverURL
       },
       options
     )
@@ -50,9 +46,6 @@ export default class ClientEngine extends Lance.ClientEngine {
     })
 
     //this.socket.emit('requestRestart');
-
-    'client__syncReceived'
-
     //this.socket.emit
   }
 
@@ -85,7 +78,7 @@ export default class ClientEngine extends Lance.ClientEngine {
   async create() {
     await this.guiManager.loadAssets()
 
-    this.engine.events.listenUI(`game.reload`, () => {
+    this.listenUI(`game.reload`, () => {
       this.start()
     })
 
@@ -128,7 +121,7 @@ export default class ClientEngine extends Lance.ClientEngine {
     this.scene = new Scene(this)
     this.game.scene.add(`default`, this.scene)
 
-    this.engine.events.listenUI(`window.resize`, () => {
+    this.listenUI(`window.resize`, () => {
       let rect = this.getWindowRect()
 
       //this.physics.world.setBounds(x, y, width, height, true, true, true, true);
@@ -145,7 +138,7 @@ export default class ClientEngine extends Lance.ClientEngine {
    */
   async start() {
     super.start()
-    await this.connect()
+    //await this.connect()
 
     lll(`Client - Starting`)
 
@@ -172,7 +165,7 @@ export default class ClientEngine extends Lance.ClientEngine {
     //})
 
     //play sound when user fire missle
-    this.gameEngine.on(`fireMissile`, () => {
+    this.gameEngine.events.on(`fireMissile`, () => {
       lll(`fireM`)
 
       if (this.renderer.scene) {
@@ -181,7 +174,11 @@ export default class ClientEngine extends Lance.ClientEngine {
     })
   }
 
-
+  async join() {
+    const config = this.engine.getConfig('client')
+    this.options.serverURL = config.serverURL
+    await this.connect()
+  }
 
   /**
    *
@@ -258,4 +255,35 @@ export default class ClientEngine extends Lance.ClientEngine {
   handleOutboundInput() {
     super.handleOutboundInput()
   }
+
+  /**
+   *
+   * @param name
+   * @param args
+   * @returns {EventEmitter}
+   */
+  listenUI(name: string, args: any) {
+    return this.engine.events.on(`ui.${name}`, args)
+  }
+
+  /**
+   *
+   * @param name
+   * @param args
+   * @returns {EventEmitter}
+   */
+  listenOnceUI(name: string, args: any) {
+    return this.engine.events.once(`ui.${name}`, args)
+  }
+
+  /**
+   *
+   * @param name
+   * @param args
+   * @returns {boolean}
+   */
+  emitUI(name: string, ...args: any) {
+    return this.engine.events.emit(`ui.${name}`, ...args)
+  }
+
 }

@@ -3,6 +3,7 @@ import System from '../System'
 import * as Enums from '../../enums/Entity'
 import Location from '../../Location'
 import type Entity from '../Entity'
+import Utils from '../../misc/Utils'
 
 export default class Npc extends System {
   /**
@@ -74,7 +75,7 @@ export default class Npc extends System {
 
     // Call AI action
     lll(`action`, result)
-    let actionName = AGate.Utils.camelCase(result.action)
+    let actionName = Utils.camelCase(result.action)
     this[actionName].call(this, entity)
   }
 

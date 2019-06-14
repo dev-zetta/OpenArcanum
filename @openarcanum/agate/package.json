@@ -34,7 +34,6 @@
     "node": "^4.5 || 6.* || >= 7.*"
   },
   "dependencies": {
-    "is-electron": "^2.2.0",
     "flow-remove-types": "^2.99.0",
     "@reactivex/rxjs": "^6.5.2",
     "@stdlib/stdlib": "file:vendor/stdlib",
@@ -52,7 +51,6 @@
     "jsonpath": "^1.0.1",
     "jspanel4": "^4.6.0",
     "kiwi-schema": "^0.3.15",
-    "lance-gg": "file:vendor/lance",
     "liquidfun": "file:vendor/liquidfun",
     "lodash": "^4.17.11",
     "mime-types": "^2.1.24",
@@ -60,7 +58,7 @@
     "node-stream-zip": "^1.8.0",
     "parse-json": "^4.0.0",
     "pathfinding": "^0.4.18",
-    "phaser": "file:vendor/phaser",
+    "pixi.js": "^5.0.4",
     "prettier": "^1.17.1",
     "rbush": "^3.0.0",
     "rbush-knn": "^2.1.0",
@@ -79,6 +77,13 @@
     "realm": "^2.28.0",
     "lru-cache": "^5.1.1",
     "mem": "^5.0.0",
-    "cacache": "11.3.2"
+    "cacache": "11.3.2",
+
+    "cannon": "^0.6.2",
+    "jsdoc": "^3.5.5",
+    "mkdirp": "^0.5.1",
+    "p2": "^0.7.1",
+    "bufferutil": "^4.0.1",
+    "utf-8-validate": "^5.0.2"
   }
 }

@@ -1,5 +1,5 @@
 //@flow
-import Lance from '../libs/Lance'
+import GameNetwork from './GameNetwork'
 import GameMap from './map/GameMap'
 import type AGateEngine from '../AGate'
 
@@ -7,9 +7,10 @@ import * as PlayerLogic from './logic/player'
 import type AssetLoader from './assets/AssetLoader'
 import type EventEmitter from './misc/EventEmitter'
 import type Database from './realm/Database'
+import SimplePhysicsEngine from './physics/SimplePhysicsEngine';
 
-export default class GameEngine extends Lance.GameEngine {
-  playerId: string // set by Lance
+export default class GameEngine extends GameNetwork {
+
   map: GameMap
   assetLoader: AssetLoader
   events: EventEmitter
@@ -29,7 +30,7 @@ export default class GameEngine extends Lance.GameEngine {
     this.map = new GameMap(this)
     this.commandEvaluators = new Map()
 
-    this.physicsEngine = new Lance.SimplePhysicsEngine({
+    this.physicsEngine = new SimplePhysicsEngine({
       gameEngine: this,
       collisions: {
         type: `brute`
@@ -42,6 +43,15 @@ export default class GameEngine extends Lance.GameEngine {
     //this.events.on(`player.command`, this.onPlayerCommand, this)
 
     this.addCommandEvaluators(`Player`, PlayerLogic)
+  }
+
+  /**
+   *
+   * @param namespace
+   * @returns {*}
+   */
+  getConfig(namespace: string): Object {
+    return AGate.config[namespace]
   }
 
   /**
@@ -203,5 +213,8 @@ export default class GameEngine extends Lance.GameEngine {
    * A synchronization update arrived from the server
    * @param sync
    */
-  syncReceived(sync: Object) {}
+  syncReceived(sync: Object) {
+    super.syncReceived(sync)
+
+  }
 }

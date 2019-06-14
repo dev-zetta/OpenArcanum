@@ -1,4 +1,5 @@
-import Realm from './Realm'
+import Realm from '../../libs/Realm'
+import Utils from '../misc/Utils'
 
 class RealmModel {
   constructor(realm, schema /*dbPath = null*/) {
@@ -15,7 +16,7 @@ class RealmModel {
     let linkedProperties = {}
     for (let property in this.schema.properties) {
       let typeName = this.schema.properties[property]
-      if (AGate.Utils.isFirstUpperCase(typeName)) {
+      if (Utils.isFirstUpperCase(typeName)) {
         linkedProperties[property] = typeName.replace(`[]`, ``)
       }
     }
@@ -50,7 +51,7 @@ class RealmModel {
   linkProperties(object) {
     for (let property in this.linkedProperties) {
       let value = object[property]
-      if (AGate.Utils.isObjectLike(value)) {
+      if (Utils.isObjectLike(value)) {
         continue
       }
 

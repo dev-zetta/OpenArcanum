@@ -20,7 +20,7 @@ class GuiWindow extends GuiWidget {
 
   applyPosition() {
     let position = this.getPosition()
-    if (!this.getOption(`toolbar`) || !AGate.Utils.isString(position)) {
+    if (!this.getOption(`toolbar`) || !Utils.isString(position)) {
       super.applyPosition()
     }
   }

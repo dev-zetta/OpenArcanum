@@ -29,7 +29,7 @@ class GameRender extends Component {
     super(...arguments)
 
    this.get(`resize`).on(`didResize`, event => {
-      this.engine.events.emitUI(
+      this.engine.client.emitUI(
         `window.resize`
       )
     })
@@ -73,16 +73,20 @@ class GameRender extends Component {
 
     let canvas = document.getElementById(`render2d`)
 
-    this.engine = AGate.engine
-    AGate.createClient(canvas).then(() => {
-      this.loadWindows().then(data => {
-        let manager = this.getManager()
-        manager.setRootWidget(this)
-        manager.setMouseSprite(`cursor`)
+    this.createClient(canvas)
+  }
 
-        this.set(`widgets`, data)
-      })
-    })
+  async createClient(canvas: HTMLCanvasElement) {
+    this.engine = AGate.engine
+    await this.engine.createClient(canvas)
+
+   let widgets = await this.loadWindows()
+
+    let manager = this.getManager()
+    manager.setRootWidget(this)
+    manager.setMouseSprite(`cursor`)
+
+    this.set(`widgets`, widgets)
   }
 
   /**

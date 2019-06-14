@@ -1,5 +1,7 @@
 // @flow
 
+import Utils from '../../misc/Utils'
+
 export default class State {
   counter: number
 
@@ -23,12 +25,12 @@ export default class State {
    * @param state
    */
   set(state: Object) {
-    if (AGate.Utils.isArray(state)) {
+    if (Utils.isArray(state)) {
       for (let i = 0; i < state.length; i++) {
         this.set(state[i])
       }
     } else {
-      this[state.value] = AGate.Utils.performance.now()
+      this[state.value] = Utils.performance.now()
       this.counter++
     }
 
@@ -49,7 +51,7 @@ export default class State {
    * @param state
    */
   remove(state: Object): boolean {
-    if (AGate.Utils.isArray(state)) {
+    if (Utils.isArray(state)) {
       for (let i = 0; i < state.length; i++) {
         this.remove(state[i])
       }
@@ -65,7 +67,7 @@ export default class State {
    * @returns {number}
    */
   getElapsed(state: Object): number {
-    return AGate.Utils.performance.now() - this[state.value]
+    return Utils.performance.now() - this[state.value]
   }
 
   /**

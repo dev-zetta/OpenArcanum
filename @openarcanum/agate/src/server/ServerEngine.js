@@ -1,36 +1,20 @@
 //@flow
 
-import Lance from '../libs/Lance'
+import ServerNetwork from './ServerNetwork'
 import type GameEngine from '../shared/GameEngine'
 
-const Server = require(`socket.io`)
 
-export default class ServerEngine extends Lance.ServerEngine {
 
-  io: Server
+export default class ServerEngine extends ServerNetwork {
 
 
   /**
    *
-   * @param gameEngine
+   * @param engine
    * @param options
    */
-  constructor(gameEngine: GameEngine, options: Object) {
-    //io.on(`connection`, client => {})
-
-    const config = AGate.config.server
-    let server = new Server()
-    server.attach(config.listenPort, () =>
-      lll(`Listening on ${config.listenPort}`)
-    )
-
-    /*server.on("connection", function(socket) {
-      lll("user connected");
-      socket.emit("welcome", "welcome man");
-    });*/
-
-    super(server, gameEngine, options)
-    this._socketServer = server
+  constructor(engine: GameEngine, options: Object) {
+    super(engine, options)
   }
 
   /**
@@ -54,7 +38,6 @@ export default class ServerEngine extends Lance.ServerEngine {
   }
 
   // create a serialized package of the game world
-  // TODO: this process could be made much much faster if the buffer creation and
   //       size calculation are done in a single phase, along with string pruning.
   serializeUpdate(roomName, options): Object {
     return super.serializeUpdate(roomName, options)
@@ -122,7 +105,7 @@ export default class ServerEngine extends Lance.ServerEngine {
   onPlayerDisconnected(socketId: number, playerId: number) {
     super.onPlayerDisconnected(socketId, playerId)
 
-    delete this.gameEngine.world.objects[playerId]
+    //delete this.gameEngine.world.objects[playerId]
   }
 
   // handle player timeout

@@ -4,7 +4,7 @@ import Sector from './map/Sector'
 import Math from './misc/Math'
 import {Direction} from './enums/Entity'
 import type {LocationRaw} from './entity/Types'
-
+import Utils from './misc/Utils'
 let Directions = [
   Direction.SouthEast,
   Direction.South,
@@ -23,7 +23,7 @@ export default class Location extends Math.Vec2 {
    * @param y
    */
   constructor(x: number | Array<number>, y: ?number) {
-    if (AGate.Utils.isArray(x)) {
+    if (Utils.isArray(x)) {
       super(x[0], x[1])
     } else {
       super(x, y)
@@ -40,9 +40,9 @@ export default class Location extends Math.Vec2 {
     x: number | LocationRaw | Location,
     y: ?number
   ): LocationRaw {
-    if (AGate.Utils.isArray(x)) {
+    if (Utils.isArray(x)) {
       return x
-    } else if (!AGate.Utils.isUndefined(y)) {
+    } else if (!Utils.isUndefined(y)) {
       return [x, y]
     } else {
       return [x.x, x.y] // Location
@@ -115,7 +115,7 @@ export default class Location extends Math.Vec2 {
    * @returns {Math.Vec2|*}
    */
   getVelocity(location: Location | Array<number>): Math.Vec2 {
-    if (AGate.Utils.isArray(location)) {
+    if (Utils.isArray(location)) {
       location = new Location(location)
     }
 

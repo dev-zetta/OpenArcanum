@@ -1,9 +1,9 @@
 // @flow
-import Lance from '../libs/Lance'
+import BaseRenderer from './render/BaseRenderer'
 import type GameEngine from '../shared/GameEngine';
 import type ClientEngine from './ClientEngine';
 
-export default class Renderer extends Lance.Renderer {
+export default class Renderer extends BaseRenderer {
   /**
    *
    * @param gameEngine

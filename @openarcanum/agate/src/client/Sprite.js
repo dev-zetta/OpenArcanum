@@ -6,6 +6,7 @@ import Phaser from '../libs/Phaser'
 import Math from '../shared/misc/Math'
 import type ClientEngine from './ClientEngine'
 import IsoSprite from '../libs/phaser-isometric/IsoSprite'
+import Utils from '../shared/misc/Utils'
 
 export default class Sprite {
   client: ClientEngine
@@ -55,12 +56,12 @@ export default class Sprite {
     let dataPath = AGate.getDataPath(`Gfx/2D`)
 
     let path = ``
-    if (AGate.Utils.isObject(data)) {
+    if (Utils.isObject(data)) {
       Object.assign(this, data)
 
-      this.frame = AGate.Utils.isUndefined(data.frame) ? 0 : data.frame
+      this.frame = Utils.isUndefined(data.frame) ? 0 : data.frame
 
-      if (!AGate.Utils.isUndefined(data.type)) {
+      if (!Utils.isUndefined(data.type)) {
         this.type = Gfx.Types.get(data.type)
       }
 
@@ -77,7 +78,7 @@ export default class Sprite {
         this.currentStage = `North`
         return
       default:
-        if (!AGate.Utils.isUndefined(data.stage)) {
+        if (!Utils.isUndefined(data.stage)) {
           this.currentStage = data.stage
         }
 

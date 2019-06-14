@@ -10,6 +10,7 @@ import Entity from '../entity/Entity'
 import SectorCache from './SectorCache'
 import type {LocationRaw} from '../entity/Types'
 import {SectorGrid} from './SectorGrid'
+import Utils from '../misc/Utils'
 
 export default class GameMap {
   engine: GameEngine
@@ -71,7 +72,7 @@ export default class GameMap {
 
     await this.entitySystem.loadPrototypes()
 
-    AGate.Utils.logError(`Loading map: ${path}`)
+    Utils.logError(`Loading map: ${path}`)
     let data = await this.assetLoader.loadJsonFile(`${path}/Map.json`)
 
     this.width = data.width
@@ -143,7 +144,7 @@ export default class GameMap {
    * @returns {Promise<void>}
    */
   async loadEntities(path: string, target: Function | Object) {
-    AGate.Utils.logError(`Loading entities...`)
+    Utils.logError(`Loading entities...`)
 
     let entityTypes = await this.assetLoader.findDirs(`${path}/`)
 
@@ -175,7 +176,7 @@ export default class GameMap {
 
     let data = await this.assetLoader.loadJsonFile(`${path}`)
 
-    let id = AGate.Utils.getFileBase(path)
+    let id = Utils.getFileBase(path)
     let entity = await this.entitySystem.newEntity(id, data)
 
     return entity
@@ -241,7 +242,7 @@ export default class GameMap {
     let names = []
     if (types) {
       for (let i = 0; i < types.length; i++) {
-        let name = AGate.Utils.camelCase(String(types[i]))
+        let name = Utils.camelCase(String(types[i]))
         names.push(name)
       }
     }

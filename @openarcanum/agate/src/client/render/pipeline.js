@@ -1,10 +1,10 @@
 import Phaser from '../../libs/Phaser'
 
-const header_fragment = require(`./header.fragment.glsl`)
-const default_fragment = require(`./default.fragment.glsl`)
+const header_fragment = require(`./pipelines/header.fragment.glsl`)
+const default_fragment = require(`./pipelines/default.fragment.glsl`)
 
-const header_vertex = require(`./header.vertex.glsl`)
-const default_vertex = require(`./default.vertex.glsl`)
+const header_vertex = require(`./pipelines/header.vertex.glsl`)
+const default_vertex = require(`./pipelines/default.vertex.glsl`)
 
 export class Pipeline extends Phaser.Renderer.WebGL.Pipelines
   .TextureTintPipeline {

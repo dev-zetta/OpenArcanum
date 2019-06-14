@@ -51,6 +51,7 @@ export default class EventEmitter extends eventemitter3 {
    * @param context
    */
   on(topic: string, fn: Function, context: ?Object): EventEmitter {
+    console.log(this)
     return this.hookListener(super.on, topic, fn, context)
   }
 
@@ -74,10 +75,11 @@ export default class EventEmitter extends eventemitter3 {
     if (this.listenerCount(topic) > 0) {
       return super.emit(topic, ...args)
     } else {
-      console.log(`Queuing call of ${topic}`)
       if (!this._queue[topic]) {
+        console.log(`Queuing call of ${topic}`)
         this._queue[topic] = [args.slice(1)]
       } else {
+        if (this._queue[topic] < 3)
         this._queue[topic].push(args.slice(1))
       }
     }
@@ -103,33 +105,5 @@ export default class EventEmitter extends eventemitter3 {
     return this.once(...args)
   }
 
-  /**
-   *
-   * @param name
-   * @param args
-   * @returns {EventEmitter}
-   */
-  listenUI(name: string, args: any) {
-    return this.on(`ui.${name}`, args)
-  }
 
-  /**
-   *
-   * @param name
-   * @param args
-   * @returns {EventEmitter}
-   */
-  listenOnceUI(name: string, args: any) {
-    return this.once(`ui.${name}`, args)
-  }
-
-  /**
-   *
-   * @param name
-   * @param args
-   * @returns {boolean}
-   */
-  emitUI(name: string, ...args: any) {
-    return this.emit(`ui.${name}`, ...args)
-  }
 }

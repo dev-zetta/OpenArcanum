@@ -24,7 +24,7 @@ export default class Database {
   async fixArtIds() {
     let fixed = {}
     for (let i in interface_org) {
-      fixed[i] = AGate.Utils.upperCamelCase(interface_org[i])
+      fixed[i] = Utils.upperCamelCase(interface_org[i])
     }
 
     //this.engine.assetLoader.saveJsonFile('test.json', fixed)
@@ -34,8 +34,8 @@ export default class Database {
     let fileList = await assetLoader.findFiles(`mes`, `json`)
 
     for (let filePath of fileList) {
-      let modelName = AGate.Utils.getFileBase(filePath)
-      if (!AGate.Utils.isFirstUpperCase(modelName)) {
+      let modelName = Utils.getFileBase(filePath)
+      if (!Utils.isFirstUpperCase(modelName)) {
         continue
       }
 
@@ -116,9 +116,9 @@ export default class Database {
     let models = {}
 
     for (let filePath of fileList) {
-      let modelName = AGate.Utils.getFileBase(filePath)
+      let modelName = Utils.getFileBase(filePath)
 
-      if (AGate.Utils.isFirstUpperCase(modelName)) {
+      if (Utils.isFirstUpperCase(modelName)) {
         let model = this.getModel(modelName)
         if (model) {
           models[modelName] = {

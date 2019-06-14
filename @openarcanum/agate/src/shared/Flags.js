@@ -17,7 +17,7 @@ export default class Flags {
    * @param val
    */
   add(val: string) {
-    if (AGate.Utils.isArray(val)) {
+    if (Utils.isArray(val)) {
       for (let i = 0; i < val.length; i++) {
         this.add(val[i])
       }
@@ -34,7 +34,7 @@ export default class Flags {
    * @param val
    */
   remove(val: string) {
-    if (AGate.Utils.isArray(val)) {
+    if (Utils.isArray(val)) {
       for (let i = 0; i < val.length; i++) {
         this.remove(val[i])
       }
@@ -51,7 +51,7 @@ export default class Flags {
    * @returns {*}
    */
   getMissing(val: string | Array<string>): Array<string> {
-    if (AGate.Utils.isArray(val)) {
+    if (Utils.isArray(val)) {
       let missing = []
       for (let i = 0; i < val.length; i++) {
         if (!this.has(val[i])) {
@@ -75,7 +75,7 @@ export default class Flags {
    * @returns {*}
    */
   hasAny(val: string): boolean {
-    if (AGate.Utils.isArray(val)) {
+    if (Utils.isArray(val)) {
       for (let i = 0; i < val.length; i++) {
         if (this.has(val[i])) {
           return true

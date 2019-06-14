@@ -4,7 +4,7 @@ import GuiWidget from '../gui-widget'
 
 class GuiText extends GuiWidget {
   setValue(value) {
-    if (AGate.Utils.isArray(value)) {
+    if (Utils.isArray(value)) {
       value = value.join(`\n`)
     }
 

@@ -1,14 +1,14 @@
 /* global AGate, window */
 
-const process = require('process')
+const process = require(`process`)
 const fs = require(`fs`)
 const Console = require(`console`)
 const find = require(`find`)
 
 let myConsole = false
-  //typeof process !== `undefined`
-    ? new Console.Console(process.stdout, process.stderr)
-    : console
+  ? //typeof process !== `undefined`
+    new Console.Console(process.stdout, process.stderr)
+  : console
 
 // https://lodash.com/docs/4.17.4
 
@@ -112,7 +112,7 @@ export default class Utils extends lodash {
 
     list.forEach(path => {
       let script = require(path)
-      let name = AGate.Utils.getFileBase(path)
+      let name = Utils.getFileBase(path)
 
       callback(name, script)
     })
@@ -132,9 +132,13 @@ export default class Utils extends lodash {
     return JSON.stringify(object, (key, value) => {
       if (typeof value === `function`) {
         //if (key === 'topWin:created')
-          //console.error(`aaaaa ${key}`, value)
+        //console.error(`aaaaa ${key}`, value)
 
-        value = lodash.replace(value.toString(), new RegExp('(void 0)','g'), 'this')
+        value = lodash.replace(
+          value.toString(),
+          new RegExp(`(void 0)`, `g`),
+          `this`
+        )
         return `@${value}`
       }
       return value
@@ -147,7 +151,6 @@ export default class Utils extends lodash {
    * @returns {any}
    */
   static jsonToObject(json) {
-
     return JSON.parse(json, (key, value) => {
       if (key === ``) {
         return value
@@ -159,6 +162,33 @@ export default class Utils extends lodash {
       }
       return value
     })
+  }
+
+  static fastBind(thisArg, methodFunc) {
+    methodFunc.apply(thisArg, arguments)
+  }
+
+  static fastSplice(array, startIndex, removeCount) {
+    let len = array.length
+    let removeLen = 0
+
+    if (startIndex >= len || removeCount === 0) {
+      return
+    }
+
+    removeCount =
+      startIndex + removeCount > len ? len - startIndex : removeCount
+    removeLen = len - removeCount
+
+    for (let i = startIndex; i < len; i += 1) {
+      array[i] = array[i + removeCount]
+    }
+
+    array.length = removeLen
+  }
+
+  static getCurrentTimestamp() {
+    return window.performance.now()
   }
 }
 

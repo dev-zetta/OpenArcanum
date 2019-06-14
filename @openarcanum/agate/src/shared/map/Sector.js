@@ -5,6 +5,7 @@ import Location from '../Location'
 import type GameMap from './GameMap'
 import type Entity from '../entity/Entity'
 import type GameEngine from '../GameEngine'
+import Utils from '../misc/Utils'
 
 export default class Sector {
   static get TileWidth(): number {
@@ -100,7 +101,7 @@ export default class Sector {
 
     let tile = this.getTile(location.tileX, location.tileY)
 
-    let name = AGate.Utils.camelCase(entity.base.type)
+    let name = Utils.camelCase(entity.base.type)
     if (tile[name]) {
       //console.log(entity)
       lll(`Replacing entity: ${name}`)

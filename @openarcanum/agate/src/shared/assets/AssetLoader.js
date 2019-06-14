@@ -10,10 +10,10 @@ const writeJsonFile = require(`write-json-file`)
 const find = require(`find`)
 
 // https://github.com/antelle/node-stream-zip
-
 const StreamZip = require(`node-stream-zip`)
 
 import GfxPathBuilder from './GfxPathBuilder'
+import Utils from '../misc/Utils'
 
 export default class AssetLoader {
   loadedAssets: Map<string, Object>
@@ -236,7 +236,7 @@ export default class AssetLoader {
    */
   async loadFile(src: string, encoding: string = ''): Promise<*> {
     // Does the file exists on disk?
-    if (AGate.Utils.isArray(src)) {
+    if (Utils.isArray(src)) {
       for (let filePath of src) {
         filePath = AGate.getAppPath(filePath)
         if (this.isFileExists(filePath)) {
@@ -318,7 +318,7 @@ export default class AssetLoader {
   async loadFileToDataUrl(src: string): Promise<string> {
     let data = await this.loadFile(src, `base64`)
     if (!data) {
-      AGate.Utils.logError(`Unable to load file ${src}`)
+      Utils.logError(`Unable to load file ${src}`)
       return ''
     }
 
@@ -337,7 +337,7 @@ export default class AssetLoader {
    * @returns {Promise<*>}
    */
   async createAndLoadImage(src: string, callback: ?function = null) {
-    if (AGate.Utils.isUndefined(createImageBitmap)) {
+    if (Utils.isUndefined(createImageBitmap)) {
       let image = new Image()
 
       //image.crossOrigin = true
@@ -374,7 +374,7 @@ export default class AssetLoader {
       //console.log(`Fast loading...`)
       let blob = await this.loadFileToBlob(src)
       if (!blob) {
-        AGate.Utils.logError(`Unable to load image: ${src}`)
+        Utils.logError(`Unable to load image: ${src}`)
         return new Image()
       }
 
@@ -423,7 +423,7 @@ export default class AssetLoader {
 
       return parseJson(data.toString(`binary`))
     } catch (err) {
-      AGate.Utils.logError(filePath, err)
+      Utils.logError(filePath, err)
       return null
     }
   }
@@ -438,7 +438,7 @@ export default class AssetLoader {
     try {
       return await writeJsonFile(filePath, object, {indent: 2})
     } catch (err) {
-      AGate.Utils.logError(err.message)
+      Utils.logError(err.message)
       return null
     }
   }
@@ -468,14 +468,14 @@ export default class AssetLoader {
         }
 
         if (!descriptor.image) {
-          AGate.Utils.logError(`Unable to load file: ${descriptor.texture}`)
+          Utils.logError(`Unable to load file: ${descriptor.texture}`)
           return false //Promise.resolve(false);
         }
 
         descriptor.meta = await this.loadJsonFile(descriptor.data)
 
-        if (AGate.Utils.isUndefined(descriptor.meta)) {
-          AGate.Utils.logError(`Unable to load file: ${descriptor.data}`)
+        if (Utils.isUndefined(descriptor.meta)) {
+          Utils.logError(`Unable to load file: ${descriptor.data}`)
           return false //Promise.resolve(false);
         }
 

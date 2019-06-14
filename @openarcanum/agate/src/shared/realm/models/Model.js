@@ -1,4 +1,4 @@
-import RealmModel from '../../../libs/RealmModel'
+import RealmModel from '../RealmModel'
 
 class Model extends RealmModel {
   /**

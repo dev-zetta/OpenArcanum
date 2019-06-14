@@ -9,7 +9,7 @@ import Entity from './Entity'
 import System from './System'
 import UID from './UID'
 import Prototype from './Prototype'
-import Utils from './Utils'
+import Utils from '../misc/Utils'
 
 import Systems from './systems'
 import type GameMap from '../map/GameMap'
@@ -298,7 +298,7 @@ class ComponentSystem {
           `${dataPath}/${type}/${fileName}`
         )
 
-        let key = AGate.Utils.getFileBase(fileName)
+        let key = Utils.getFileBase(fileName)
 
         let prototype = new Prototype(this.engine)
         prototype.loadComponents(meta)

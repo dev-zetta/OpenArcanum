@@ -38,7 +38,7 @@ export default class Sprite {
    *
    */
   get className() {
-    return AGate.Utils.kebabCase(this.key)
+    return Utils.kebabCase(this.key)
   }
 
   /**

@@ -1,6 +1,8 @@
 /* global AGate */
 
+import Utils from '../shared/misc/Utils'
 import Sprite from './GuiSprite'
+
 const dat = require(`dat.gui`)
 
 let DatConfig = {
@@ -67,7 +69,7 @@ class Manager {
     let targetPath = AGate.getAppPath(`gui`)
     let targetCss = `${targetPath}/gui-images.css`
 
-    if (AGate.Utils.isFileExist(targetCss)) {
+    if (Utils.isFileExist(targetCss)) {
       return
     }
 
@@ -99,7 +101,7 @@ class Manager {
 
     await assetLoader.loadAssets(null, descriptor => {
       // generate css
-      let className = AGate.Utils.kebabCase(descriptor.key)
+      let className = Utils.kebabCase(descriptor.key)
       css += `.${className} {background-image: url('${descriptor.image}');}\n`
 
       // generate json
@@ -298,8 +300,8 @@ class Manager {
       return
     }
 
-    if (AGate.Utils.isNil(parent)) {
-      if (!AGate.Utils.isNil(this.datGui)) {
+    if (Utils.isNil(parent)) {
+      if (!Utils.isNil(this.datGui)) {
         this.datGui.destroy()
       }
 
@@ -317,18 +319,18 @@ class Manager {
       }
 
       let value = object[key]
-      if (AGate.Utils.isNil(value)) {
+      if (Utils.isNil(value)) {
         continue
       }
 
-      if (AGate.Utils.isObjectLike(value)) {
+      if (Utils.isObjectLike(value)) {
         if (maxDepth > 0) {
           let folder = parent.addFolder(key)
           this.addDatGui(value, folder, maxDepth - 1)
         }
-      } else if (AGate.Utils.isArray(value)) {
+      } else if (Utils.isArray(value)) {
       } else {
-        if (!AGate.Utils.isFunction(value)) {
+        if (!Utils.isFunction(value)) {
           parent.add(object, key)
         }
       }

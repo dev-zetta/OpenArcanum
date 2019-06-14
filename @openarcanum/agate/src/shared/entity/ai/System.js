@@ -2,8 +2,7 @@
 import Evaluator from './Evaluator'
 import Evaluators from './Evaluators'
 import type GameMap from '../../map/GameMap';
-
-
+import Utils from '../../misc/Utils'
 
 export default class System {
   map: GameMap
@@ -27,7 +26,7 @@ export default class System {
    *
    */
   loadActions() {
-    AGate.Utils.loadScripts(`shared/entity/ai/actions`, (name, script) => {
+    Utils.loadScripts(`shared/entity/ai/actions`, (name, script) => {
       let action = script.action
 
       let object = {
@@ -37,7 +36,7 @@ export default class System {
       for (let key in action) {
         let property = action[key]
 
-        if (AGate.Utils.isFunction(property)) {
+        if (Utils.isFunction(property)) {
           object.scores[key] = property
         }
       }
@@ -86,14 +85,14 @@ export default class System {
 
     let data = Evaluators[type]
     if (!data) {
-      AGate.Utils.logError(`No data for evaluator: ${type}`)
+      Utils.logError(`No data for evaluator: ${type}`)
       return evaluator
     }
 
     for (let key in data.actions) {
       let action = this.actions.get(key)
       if (!action) {
-        AGate.Utils.logError(`Unknown action: ${key}`)
+        Utils.logError(`Unknown action: ${key}`)
         continue
       }
 

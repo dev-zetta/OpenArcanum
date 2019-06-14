@@ -1,15 +1,15 @@
 // @flow
 
 import Sprite from '../../client/Sprite'
-import Lance from '../../libs/Lance'
-import * as Utils from './Utils'
+import GameObject from '../serialize/GameObject'
+import Utils from '../misc/Utils'
 
 import type System from './System'
 import type GameEngine from '../GameEngine'
 import type ComponentSystem from './ComponentSystem'
 //const { GfxTypes } = Enums
 
-export default class Entity extends Lance.GameObject {
+export default class Entity extends GameObject {
 
   id: string
   engine: GameEngine
@@ -143,7 +143,7 @@ export default class Entity extends Lance.GameObject {
    * @returns {string | *}
    */
   static componentInstanceToName(component: Object): string {
-    return AGate.Utils.camelCase(component.constructor.name)
+    return Utils.camelCase(component.constructor.name)
   }
 
   /**

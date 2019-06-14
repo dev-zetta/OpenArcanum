@@ -249,7 +249,7 @@ class GuiWidget extends Component {
         this.callComponent(id, method, ...args)
       })
 
-      AGate.Utils.logError(`Component ${id} not found`, widget)
+      Utils.logError(`Component ${id} not found`, widget)
       return
     }
 
@@ -271,9 +271,9 @@ class GuiWidget extends Component {
       AGate.Utils.logError(`Calling native component method ${method}`)
     } else {*/
     let methods = widget.getMethods()
-    if (methods && AGate.Utils.isFunction(methods[method])) {
+    if (methods && Utils.isFunction(methods[method])) {
       methods[method].apply(widget, args)
-      AGate.Utils.logError(`Calling user component method ${method}`)
+      Utils.logError(`Calling user component method ${method}`)
     }
     //}
   }
@@ -289,7 +289,7 @@ class GuiWidget extends Component {
       name = `${this.getId()}${name}`
     }
 
-    this.getEngine().events.emitUI(name, ...args)
+    this.getClient().emitUI(name, ...args)
   }
 
   /**
@@ -303,7 +303,7 @@ class GuiWidget extends Component {
       name = `${this.getId()}${name}`
     }
 
-    this.getEngine().events.listenUI(name, listener)
+    this.getClient().listenUI(name, listener)
   }
 
   /**
@@ -312,7 +312,7 @@ class GuiWidget extends Component {
    * @param listener
    */
   listenEventOnce(name, listener) {
-    this.getEngine().events.listenOnceUI(name, listener)
+    this.getClient().listenOnceUI(name, listener)
   }
 
   /**
@@ -321,7 +321,7 @@ class GuiWidget extends Component {
    * @param args
    */
   emitComponentEvent(id, name, ...args) {
-    this.getEngine().events.emitUI(`${id}:${name}`, ...args)
+    this.getClient().emitUI(`${id}:${name}`, ...args)
   }
 
   /**
@@ -330,7 +330,7 @@ class GuiWidget extends Component {
    * @param listener
    */
   listenComponentEvent(id, name, listener) {
-    this.getEngine().events.listenUI(`${id}:${name}`, listener)
+    this.getClient().listenUI(`${id}:${name}`, listener)
   }
 
   /**
@@ -339,7 +339,7 @@ class GuiWidget extends Component {
    * @param listener
    */
   listenComponentEventOnce(id, name, listener) {
-    this.getEngine().events.listenOnceUI(`${id}:${name}`, listener)
+    this.getClient().listenOnceUI(`${id}:${name}`, listener)
   }
 
   /**
@@ -349,11 +349,11 @@ class GuiWidget extends Component {
    * @returns {boolean}
    */
   emitOwnEvent(name, ...args) {
-    AGate.Utils.log(`emitOwnEvent`, this.getId(), name)
+    Utils.log(`emitOwnEvent`, this.getId(), name)
     let events = this.getEvents()
     if (events) {
       let method = events[name]
-      if (AGate.Utils.isFunction(method)) {
+      if (Utils.isFunction(method)) {
         method.apply(this, args)
       }
     }
@@ -586,11 +586,11 @@ class GuiWidget extends Component {
     if (element) {
       this.set(`widget.size`, { width, height })
 
-      if (AGate.Utils.isNumber(width)) {
+      if (Utils.isNumber(width)) {
         width = `${width}px`
       }
 
-      if (AGate.Utils.isNumber(height)) {
+      if (Utils.isNumber(height)) {
         height = `${height}px`
       }
 
@@ -614,7 +614,7 @@ class GuiWidget extends Component {
       return
     }
 
-    if (AGate.Utils.isString(style)) {
+    if (Utils.isString(style)) {
       element.attr(`style`, element.attr(`style`) + `; ` + style)
     } else {
       element.css(style)
@@ -654,13 +654,13 @@ class GuiWidget extends Component {
     let element = this.getElement()
 
     let sprite = this.getSpriteByKey(key)
-    if (AGate.Utils.isUndefined(sprite)) {
-      AGate.Utils.logError(`Unable to find sprite: `, sprite)
+    if (Utils.isUndefined(sprite)) {
+      Utils.logError(`Unable to find sprite: `, sprite)
       return false
     }
 
     let previous = this.getSprite()
-    if (AGate.Utils.isObjectLike(previous)) {
+    if (Utils.isObjectLike(previous)) {
       previous.detachFromElement(element)
     }
 
@@ -702,13 +702,13 @@ class GuiWidget extends Component {
     });*/
 
     let timing = {
-      duration: AGate.Utils.isNumber(options.duration)
+      duration: Utils.isNumber(options.duration)
         ? options.duration
         : 1000,
       iterations:
         options.repeat < 0
           ? Infinity
-          : AGate.Utils.isNumber(options.repeat)
+          : Utils.isNumber(options.repeat)
           ? options.repeat
           : 1
       //
@@ -822,7 +822,7 @@ class GuiWidget extends Component {
    *
    */
   getRandomId() {
-    return AGate.Utils.getRandomUUID()
+    return Utils.getRandomUUID()
   }
 
   /**
@@ -848,13 +848,13 @@ class GuiWidget extends Component {
     this.set(`data-id`, this.get(`widget.id`))
 
     let position = this.get(`widget.position`)
-    if (AGate.Utils.isArray(position)) {
+    if (Utils.isArray(position)) {
       position = { left: position[0], top: position[1] }
       this.set(`widget.position`, position)
     }
 
     let size = this.get(`widget.size`)
-    if (AGate.Utils.isArray(size)) {
+    if (Utils.isArray(size)) {
       size = { width: size[0], height: size[1] }
       this.set(`widget.size`, size)
     }
@@ -879,7 +879,7 @@ class GuiWidget extends Component {
 
     let style = {}
 
-    if (AGate.Utils.isString(position)) {
+    if (Utils.isString(position)) {
       // Set alignment
       let align = position.split(`-`)
 
@@ -915,10 +915,10 @@ class GuiWidget extends Component {
           break
       }
     } else {
-      style[`top`] = AGate.Utils.isNumber(position.top)
+      style[`top`] = Utils.isNumber(position.top)
         ? `${position.top}px`
         : position.top
-      style[`left`] = AGate.Utils.isNumber(position.left)
+      style[`left`] = Utils.isNumber(position.left)
         ? `${position.left}px`
         : position.left
     }
@@ -954,7 +954,7 @@ class GuiWidget extends Component {
   applyVisibility() {
     // set visibility
     let visible = this.get(`widget.visible`)
-    if (!AGate.Utils.isUndefined(visible)) {
+    if (!Utils.isUndefined(visible)) {
       //style['visibility'] = visible ? 'visible' : 'hidden';
       this.setVisibility(visible)
     }
@@ -1011,8 +1011,8 @@ class GuiWidget extends Component {
   applyMethods() {
     // Hook methods
     let methods = this.getMethods()
-    if (AGate.Utils.isString(methods)) {
-      methods = AGate.Utils.jsonToObject(methods)
+    if (Utils.isString(methods)) {
+      methods = Utils.jsonToObject(methods)
       this.set(`widget.methods`, methods)
     }
 
@@ -1028,8 +1028,8 @@ class GuiWidget extends Component {
   applyEvents() {
     // Hook events
     let events = this.getEvents()
-    if (AGate.Utils.isString(events)) {
-      events = AGate.Utils.jsonToObject(events)
+    if (Utils.isString(events)) {
+      events = Utils.jsonToObject(events)
       this.set(`widget.events`, events)
     }
   }
@@ -1040,8 +1040,8 @@ class GuiWidget extends Component {
   applyListeners() {
     // Hook listeners
     let listeners = this.getListeners()
-    if (AGate.Utils.isString(listeners)) {
-      listeners = AGate.Utils.jsonToObject(listeners)
+    if (Utils.isString(listeners)) {
+      listeners = Utils.jsonToObject(listeners)
 
       this.set(`widget.listeners`, listeners)
     }
@@ -1050,7 +1050,7 @@ class GuiWidget extends Component {
       let listener = listeners[name]
 
       this.listenEvent(name, (...args) => {
-        AGate.Utils.logError(`calling listener ${name}`)
+        Utils.logError(`calling listener ${name}`)
         listener.apply(this, args)
       })
     }
@@ -1058,7 +1058,7 @@ class GuiWidget extends Component {
     {
       for (let name of this.MethodListeners) {
         this.listenComponentEvent(this.getId(), name, (...args) => {
-          AGate.Utils.logError(`calling method listener ${name}`)
+          Utils.logError(`calling method listener ${name}`)
           this[name](...args)
         })
       }

@@ -3,6 +3,7 @@
 import System from '../System'
 import * as Enums from '../../enums/Entity'
 import type Entity from '../Entity'
+import Utils from '../../misc/Utils'
 
 export default class Render extends System {
   /**

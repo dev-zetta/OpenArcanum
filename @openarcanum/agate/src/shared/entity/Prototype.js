@@ -5,6 +5,7 @@ import Components from './components'
 
 import Entity from './Entity'
 import type GameEngine from '../GameEngine'
+import Utils from '../misc/Utils'
 
 const ClassTransformer = require(`class-transformer`)
 
@@ -32,7 +33,7 @@ export default class Prototype extends Entity {
       let component = Components[key]
 
       if (!component) {
-        AGate.Utils.logError(`Unknown component: ${key}`)
+        Utils.logError(`Unknown component: ${key}`)
         continue
       }
 
@@ -143,13 +144,13 @@ export default class Prototype extends Entity {
     for (let key in prototype) {
       let value = prototype[key]
 
-      if (AGate.Utils.isPlainObject(value)) {
+      if (Utils.isPlainObject(value)) {
         if (!entity[key]) {
           entity[key] = {}
         }
 
         this.copyToEntity(entity[key], value)
-      } else if (AGate.Utils.isArray(value)) {
+      } else if (Utils.isArray(value)) {
         // Merge array
         if (!entity[key]) {
           entity[key] = prototype[key].slice(0)
@@ -158,7 +159,7 @@ export default class Prototype extends Entity {
           let current = entity[key]
           for (let val of value) {
             // Is not number and is already in array?
-            if (!AGate.Utils.isNumber(val)) {
+            if (!Utils.isNumber(val)) {
               if (current.indexOf(val) !== -1) {
                 current.push(val)
               }
@@ -167,7 +168,7 @@ export default class Prototype extends Entity {
         }
       } else {
         // Merge enything else
-        if (AGate.Utils.isUndefined(entity[key])) {
+        if (Utils.isUndefined(entity[key])) {
           entity[key] = prototype[key]
         }
       }

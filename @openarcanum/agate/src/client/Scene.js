@@ -6,12 +6,12 @@ import Point3 from '../libs/phaser-isometric/Point3'
 
 import Sector from '../shared/map/Sector'
 import Location from '../shared/Location'
-import Utils from './Utils'
+import Utils from '../shared/misc/Utils'
 import Light from './Light'
 
 import Gfx from '../shared/enums/Gfx'
 
-import {Pipeline} from './pipelines/pipeline'
+import {Pipeline} from './render/pipeline'
 import type ClientEngine from './ClientEngine'
 import type Sprite from './Sprite'
 import type GameMap from '../shared/map/GameMap'
@@ -81,7 +81,7 @@ export default class Scene extends Phaser.Scene {
       }
     }*/
 
-    if (!AGate.Utils.isUndefined(this.cameraControls)) {
+    if (!Utils.isUndefined(this.cameraControls)) {
       this.cameraControls.update(delta)
     }
 
@@ -121,7 +121,7 @@ export default class Scene extends Phaser.Scene {
    *
    */
   preload() {
-    AGate.Utils.logError(`Preloading client...`)
+    Utils.logError(`Preloading client...`)
 
     //this.scene.loadAsset('tile', 'image', {texture: 'assets/tile.png'});
 
@@ -132,7 +132,7 @@ export default class Scene extends Phaser.Scene {
    *
    */
   create() {
-    AGate.Utils.logError(`Creating client...`)
+    Utils.logError(`Creating client...`)
 
     // This is used to set a game canvas-based offset for the 0, 0, 0 isometric coordinate - by default
     // this point would be at screen coordinates 0, 0 (top left) which is usually undesirable.
@@ -203,7 +203,7 @@ export default class Scene extends Phaser.Scene {
       if (sprite.data) {
         let data = sprite.data
 
-        const isObject = AGate.Utils.isUndefined(data.type)
+        const isObject = Utils.isUndefined(data.type)
         if (isObject) {
           this.client.sendInput(`Player:EntitySelect`, {entity: data})
         } else {
@@ -355,7 +355,7 @@ export default class Scene extends Phaser.Scene {
    * @param target
    */
   addMap(map: GameMap/*, target: Object = this*/) {
-    AGate.Utils.logError(`Placing to scene: ${map.path}`)
+    Utils.logError(`Placing to scene: ${map.path}`)
 
     map.rootGroup = this.add.group()
     map.rootGroup.autoCull = true
@@ -471,17 +471,17 @@ export default class Scene extends Phaser.Scene {
     }
 
     let visualClass = visualComponent.classes.current
-    if (AGate.Utils.isUndefined(visualClass)) {
+    if (Utils.isUndefined(visualClass)) {
       visualClass = visualComponent.classes.normal
     }
 
-    if (AGate.Utils.isUndefined(visualClass)) {
+    if (Utils.isUndefined(visualClass)) {
       return
     }
 
     let sprite = visualClass.sprite
 
-    if (AGate.Utils.isUndefined(sprite)) {
+    if (Utils.isUndefined(sprite)) {
       return
     }
 
@@ -636,7 +636,7 @@ export default class Scene extends Phaser.Scene {
       pos.y += light.offset[1]
     }
 
-    let color = Utils.stringToColor(light.color)
+    let color = Scene.stringToColor(light.color)
 
     let resultLight = new Light()
     let light2 = this.lights.addLight(pos.x, pos.y, 200, 0xffffff, 200.0)
@@ -694,7 +694,7 @@ export default class Scene extends Phaser.Scene {
     let promises = []
     for (let file of files) {
       let path = file.replace(`.fragment.glsl`, ``)
-      let name = AGate.Utils.getFileName(path)
+      let name = Utils.getFileName(path)
 
       promises.push(
         this.loadAsset(name, `shader`, {
@@ -723,7 +723,7 @@ export default class Scene extends Phaser.Scene {
       return true
     }
 
-    let descriptor = AGate.Utils.merge(options, { key, type })
+    let descriptor = Utils.merge(options, { key, type })
 
     let loaded = await this.engine.assetLoader.loadAsset(descriptor)
     if (!loaded) {
@@ -831,4 +831,35 @@ export default class Scene extends Phaser.Scene {
     group.add(sprite, true)
     return sprite
   }*/
+
+  static stringToColor(value) {
+    if (value.startsWith(`rgba`) || value.startsWith(`rgb`)) {
+      let values = value.substring(
+        value.indexOf(`(`) + 1,
+        value.indexOf(`)`) - 1
+      )
+      values = values.split(`,`)
+
+      let r = Utils.parseInt(values[0])
+      let g = Utils.parseInt(values[1])
+      let b = Utils.parseInt(values[2])
+      let a = values.length > 3 ? Utils.parseInt(values[3]) : 255
+
+      //console.log(r, g, b, a);
+
+      return Phaser.Display.Color.GetColor32(r, g, b, a)
+
+      /*var result = (/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*(\d+(?:\.\d+)?))?\s*\)$/).exec(rgb.toLowerCase());
+
+      if (result)
+      {
+        var r = parseInt(result[1], 10);
+        var g = parseInt(result[2], 10);
+        var b = parseInt(result[3], 10);
+        var a = (result[4] !== undefined) ? parseFloat(result[4]) : 1;
+
+        color.setTo(r, g, b, a * 255);
+      }*/
+    }
+  }
 }

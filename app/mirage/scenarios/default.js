@@ -9,7 +9,7 @@ function loadComponents() {
 
   return result
 
-  AGate.Utils.loadScripts(`client/gui`, (name, script) => {
+  Utils.loadScripts(`client/gui`, (name, script) => {
     let widget = script
     if (widget.parent) {
       resolve[name] = widget
@@ -46,15 +46,15 @@ export default function(server) {
       widget.size = {'width': widget.size[0], 'height': widget.size[1]};*/
 
     if (widget.events) {
-      widget.events = AGate.Utils.objectToJson(widget.events)
+      widget.events = Utils.objectToJson(widget.events)
     }
 
     if (widget.listeners) {
-      widget.listeners = AGate.Utils.objectToJson(widget.listeners)
+      widget.listeners = Utils.objectToJson(widget.listeners)
     }
 
     if (widget.methods) {
-      widget.methods = AGate.Utils.objectToJson(widget.methods)
+      widget.methods = Utils.objectToJson(widget.methods)
     }
 
     let components = widget.components

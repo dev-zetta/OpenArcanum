@@ -1,6 +1,7 @@
 /* global AGate */
 
 import Gfx from '../enums/Gfx'
+import Utils from '../misc/Utils'
 
 export default class GfxPathBuilder {
   /**
@@ -26,7 +27,7 @@ export default class GfxPathBuilder {
   build(data) {
     let base = `${data.type.key}/`
 
-    if (AGate.Utils.isString(data.type)) {
+    if (Utils.isString(data.type)) {
       data.type = Gfx.Types.get(data.type)
     }
 
