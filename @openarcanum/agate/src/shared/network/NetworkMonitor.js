@@ -1,4 +1,4 @@
-import EventEmitter from 'event-emitter'
+import EventEmitter from 'eventemitter3'
 import http from 'http'
 
 /**
@@ -14,11 +14,7 @@ export default class NetworkMonitor {
     }
 
     // mixin for EventEmitter
-    let eventEmitter = new EventEmitter()
-    this.on = eventEmitter.on
-    this.once = eventEmitter.once
-    this.removeListener = eventEmitter.removeListener
-    this.emit = eventEmitter.emit
+    this.events = new EventEmitter()
   }
 
   // client
@@ -54,7 +50,7 @@ export default class NetworkMonitor {
     this.movingRTTAverage =
       this.movingRTTAverageFrame.reduce((a, b) => a + b) /
       this.movingRTTAverageFrame.length
-    this.emit(`RTTUpdate`, {
+    this.events.emit(`RTTUpdate`, {
       RTT: RTT,
       RTTAverage: this.movingRTTAverage
     })

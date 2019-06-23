@@ -1,36 +1,75 @@
-import Renderer from '../Renderer'
+// @flow
+
+import PIXI from '../../libs/PIXI'
+import Renderer from '../BaseRenderer'
 import PixiRenderableComponent from './PixiRenderableComponent'
+import type ClientEngine from '../../ClientEngine'
 
 /**
  * Pixi Renderer
  */
 export default class PixiRenderer extends Renderer {
-  /**
-     * Returns a dictionary of image assets and their paths
-     * E.G. {
-                ship: 'assets/ship.png',
-                missile: 'assets/missile.png',
-            }
-     * @returns {{}}
-     * @constructor
-     */
-  get ASSETPATHS() {
-    return {}
-  }
+  renderer: PIXI.Renderer
 
-  constructor(gameEngine, clientEngine) {
-    super(gameEngine, clientEngine)
+  constructor(clientEngine: ClientEngine) {
+    super(clientEngine)
     this.sprites = {}
     this.isReady = false
+
+    this.stopped = false
   }
 
-  init() {
-    // prevent calling init twice
-    if (this.initPromise) return this.initPromise
+  get stage() {
+    return this.viewport
+  }
 
-    this.viewportWidth = window.innerWidth
-    this.viewportHeight = window.innerHeight
-    this.stage = new PIXI.Container()
+  get pixi() {
+    return this.clientEngine.scene.pixi
+  }
+
+  get renderer() {
+    return this.pixi.renderer
+  }
+
+  /**
+   *
+   * @returns {Promise}
+   */
+  async init() {
+    await super.init()
+
+    let interaction = this.renderer.plugins.interaction
+
+
+    this.viewport = new PIXI.Viewport({
+      screenWidth: window.innerWidth,
+      screenHeight: window.innerHeight,
+      worldWidth: 1000,
+      worldHeight: 1000,
+
+      interaction
+    })
+
+    this.pixi.stage.addChild(this.viewport)
+
+
+    this.viewport.on("click", (event) => {
+      if (event.target) {
+        this.onDisplayObjectClick(event.target)
+      }
+
+    })
+
+
+    this.viewport
+      .drag()
+      .pinch()
+      .wheel()
+      .decelerate()
+
+    this.cull = new PIXI.Cull.Simple()
+    this.cull.addList(this.viewport.children)
+    this.cull.cull(this.viewport.getVisibleBounds())
 
     // default layers
     this.layers = {
@@ -39,52 +78,30 @@ export default class PixiRenderer extends Renderer {
 
     this.stage.addChild(this.layers.base)
 
-    if (
-      document.readyState === `complete` ||
-      document.readyState === `loaded` ||
-      document.readyState === `interactive`
-    ) {
-      this.onDOMLoaded()
-    } else {
-      document.addEventListener(`DOMContentLoaded`, () => {
-        this.onDOMLoaded()
-      })
+    //container.setParent(parent)
+    this.isReady = true
+    return true
+  }
+
+  /**
+   *
+   * @param t
+   * @param dt
+   */
+  draw(t: number, dt: number) {
+    super.draw(t, dt)
+
+    if (!this.isReady) {
+      lll(`not ready`)
+      return // assets might not have been loaded yet
     }
 
-    this.initPromise = new Promise((resolve, reject) => {
-      let onLoadComplete = () => {
-        this.isReady = true
-        resolve()
-      }
+    /*if (this.viewport.dirty) {
+      this.cull.cull(this.viewport.getVisibleBounds())
+      this.viewport.dirty = false
+    }*/
 
-      let resourceList = Object.keys(this.ASSETPATHS).map((x) => ({
-        name: x,
-        url: this.ASSETPATHS[x]
-      }))
 
-      // make sure there are actual resources in the queue
-      if (resourceList.length > 0)
-        PIXI.loader.add(resourceList).load(onLoadComplete)
-      else onLoadComplete()
-    })
-
-    return this.initPromise
-  }
-
-  onDOMLoaded() {
-    this.renderer = PIXI.autoDetectRenderer(
-      this.viewportWidth,
-      this.viewportHeight
-    )
-    document.body
-      .querySelector(`.pixiContainer`)
-      .appendChild(this.renderer.view)
-  }
-
-  draw() {
-    super.draw()
-
-    if (!this.isReady) return // assets might not have been loaded yet
 
     for (let objId of Object.keys(this.sprites)) {
       let objData = this.gameEngine.world.objects[objId]
@@ -98,9 +115,13 @@ export default class PixiRenderer extends Renderer {
       }
     }
 
-    this.renderer.render(this.stage)
+    this.renderer.render(this.pixi.stage)
   }
 
+  /**
+   *
+   * @param obj
+   */
   addObject(obj) {
     if (obj.hasComponent(PixiRenderableComponent)) {
       let renderable = obj.getComponent(PixiRenderableComponent)
@@ -111,6 +132,10 @@ export default class PixiRenderer extends Renderer {
     }
   }
 
+  /**
+   *
+   * @param obj
+   */
   removeObject(obj) {
     if (obj.hasComponent(PixiRenderableComponent)) {
       let sprite = this.sprites[obj.id]
@@ -120,4 +145,25 @@ export default class PixiRenderer extends Renderer {
       }
     }
   }
+
+  async start() {
+    await super.start()
+    let renderLoop = (timestamp) => {
+      if (this.clientEngine.stopped) {
+        this.stop()
+        return
+      }
+      this.lastTimestamp = this.lastTimestamp || timestamp
+      this.draw(timestamp, timestamp - this.lastTimestamp)
+      this.lastTimestamp = timestamp
+      window.requestAnimationFrame(renderLoop)
+    }
+
+    window.requestAnimationFrame(renderLoop)
+  }
+
+  onDisplayObjectClick(object) {
+
+  }
+
 }

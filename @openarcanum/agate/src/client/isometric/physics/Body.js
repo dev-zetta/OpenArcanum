@@ -1,4 +1,4 @@
-import Phaser from '../Phaser'
+import PIXI from '../../libs/PIXI'
 import Isometric from '../Isometric'
 import Point3 from '../Point3'
 import Cube from '../Cube'
@@ -12,14 +12,14 @@ import Math from '../Math'
  * the IsoSprite itself. For example you can set the velocity, acceleration, bounce values etc all on the Body.
  *
  * @constructor
- * @param {IsoSprite} sprite - The IsoSprite object this physics body belongs to.
+ * @param {Sprite} sprite - The IsoSprite object this physics body belongs to.
  */
 export default class Body {
   constructor(world, sprite) {
     this.world = world
 
     /**
-     * @property {IsoSprite} sprite - Reference to the parent IsoSprite.
+     * @property {Sprite} sprite - Reference to the parent IsoSprite.
      */
     this.sprite = sprite
 

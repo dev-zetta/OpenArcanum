@@ -1,6 +1,5 @@
 // @flow
 
-import Sprite from '../../client/Sprite'
 import GameObject from '../serialize/GameObject'
 import Utils from '../misc/Utils'
 
@@ -248,22 +247,7 @@ export default class Entity extends GameObject {
   async loadData() {
     //this.updateComponents(data)
 
-    if (this.engine.client) {
-      let visualComponent = this.visual
-      if (visualComponent) {
-        let visualClasses = visualComponent.classes
 
-        for (let className: string in visualClasses) {
-          let visualClass = visualClasses[className]
-
-          let sprite = new Sprite(this.engine.client)
-          sprite.setData(this)
-
-          await sprite.load(visualClass)
-          visualClass.sprite = sprite
-        }
-      }
-    }
   }
 
 }

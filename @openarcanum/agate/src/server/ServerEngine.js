@@ -15,6 +15,9 @@ export default class ServerEngine extends ServerNetwork {
    */
   constructor(engine: GameEngine, options: Object) {
     super(engine, options)
+
+    this.engine = engine
+    this.engine.server = this
   }
 
   /**
@@ -94,6 +97,7 @@ export default class ServerEngine extends ServerNetwork {
    * @param socket
    */
   onPlayerConnected(socket: Object) {
+    lll('player connected', socket)
     super.onPlayerConnected(socket)
   }
 
@@ -103,6 +107,7 @@ export default class ServerEngine extends ServerNetwork {
    * @param playerId
    */
   onPlayerDisconnected(socketId: number, playerId: number) {
+    lll('player disconnected', socket)
     super.onPlayerDisconnected(socketId, playerId)
 
     //delete this.gameEngine.world.objects[playerId]
@@ -129,6 +134,7 @@ export default class ServerEngine extends ServerNetwork {
    * @param socket
    */
   onReceivedInput(data, socket) {
+    lll('onReceivedInput', data, socket)
     super.onReceivedInput(data, socket)
   }
 

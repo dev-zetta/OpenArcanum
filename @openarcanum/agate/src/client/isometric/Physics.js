@@ -1,8 +1,7 @@
 import World from './physics/World'
-import Body from './physics/Body'
 import Factory from './physics/Factory'
 
-export default class IsoPhysics {
+export default class Physics {
   constructor(physicsManager, config) {
     this.config = config
     this.physicsManager = physicsManager

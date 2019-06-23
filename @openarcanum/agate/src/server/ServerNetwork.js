@@ -30,7 +30,6 @@ class ServerNetwork {
   io: IO
   serializer: Serializer
 
-
   /**
    * create a ServerEngine instance
    *
@@ -47,8 +46,6 @@ class ServerNetwork {
    * @return {ServerEngine} serverEngine - self
    */
   constructor(gameEngine, options) {
-
-
     let io = new IO()
     io.attach(options.listenPort, () =>
       lll(`Listening on ${options.listenPort}`)
@@ -58,7 +55,6 @@ class ServerNetwork {
       lll("user connected");
       socket.emit("welcome", "welcome man");
     });*/
-
 
     this.options = Object.assign(
       {
@@ -105,7 +101,10 @@ class ServerNetwork {
 
     io.on(`connection`, this.onPlayerConnected.bind(this))
     this.gameEngine.events.on(`objectAdded`, this.onObjectAdded.bind(this))
-    this.gameEngine.events.on(`objectDestroyed`, this.onObjectDestroyed.bind(this))
+    this.gameEngine.events.on(
+      `objectDestroyed`,
+      this.onObjectDestroyed.bind(this)
+    )
 
     return this
   }
@@ -127,7 +126,10 @@ class ServerNetwork {
   step() {
     // first update the trace state
     this.gameEngine.trace.setStep(this.gameEngine.world.stepCount + 1)
-    this.gameEngine.events.emit(`server__preStep`, this.gameEngine.world.stepCount + 1)
+    this.gameEngine.events.emit(
+      `server__preStep`,
+      this.gameEngine.world.stepCount + 1
+    )
 
     this.serverTime = new Date().getTime()
 
@@ -142,8 +144,11 @@ class ServerNetwork {
       // and that we have reached/passed this step
       if (queueSteps.length > 0 && minStep <= this.gameEngine.world.stepCount) {
         inputQueue[minStep].forEach(input => {
-          this.gameEngine.events.emit(`server__processInput`, {input, playerId})
-          this.gameEngine.events.emit(`processInput`, {input, playerId})
+          this.gameEngine.events.emit(`server__processInput`, {
+            input,
+            playerId
+          })
+          this.gameEngine.events.emit(`processInput`, { input, playerId })
           this.gameEngine.processInput(input, playerId, true)
         })
         delete inputQueue[minStep]
@@ -164,7 +169,10 @@ class ServerNetwork {
     }
 
     // step is done on the server side
-    this.gameEngine.events.emit(`server__postStep`, this.gameEngine.world.stepCount)
+    this.gameEngine.events.emit(
+      `server__postStep`,
+      this.gameEngine.world.stepCount
+    )
 
     if (this.gameEngine.trace.length) {
       let traceData = this.gameEngine.trace.rotate()
@@ -211,7 +219,7 @@ class ServerNetwork {
       )
         diffUpdate = false
 
-      const payload = this.serializeUpdate(roomName, {diffUpdate})
+      const payload = this.serializeUpdate(roomName, { diffUpdate })
       this.gameEngine.trace.info(
         () =>
           `========== sending world update ${this.gameEngine.world.stepCount} to room ${roomName} is delta update: ${diffUpdate} ==========`
@@ -238,11 +246,12 @@ class ServerNetwork {
       fullUpdate: Number(!diffUpdate)
     })
 
-    const roomObjects = Object.keys(world.objects).filter(
-      (o) => world.objects[o]._roomName === roomName
-    )
-    for (let objId of roomObjects) {
+    for (let objId in world.objects) {
       let obj = world.objects[objId]
+      if (obj._roomName !== roomName) {
+        continue
+      }
+
       let prevObject = this.objMemory[objId]
 
       // if the object (in serialized form) hasn't changed, move on
@@ -276,7 +285,7 @@ class ServerNetwork {
    * @param {String} roomName - the new room name
    */
   createRoom(roomName) {
-    this.rooms[roomName] = {syncCounter: 0, requestImmediateSync: false}
+    this.rooms[roomName] = { syncCounter: 0, requestImmediateSync: false }
   }
 
   /**

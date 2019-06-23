@@ -1,23 +1,27 @@
 //@flow
 
-import Sprite from '../../client/Sprite'
 import Location from '../Location'
+import Utils from '../misc/Utils'
+
 import type GameMap from './GameMap'
 import type Entity from '../entity/Entity'
 import type GameEngine from '../GameEngine'
-import Utils from '../misc/Utils'
+
+import type AssetLoader from '../assets/AssetLoader';
+import type EventEmitter from '../misc/EventEmitter';
 
 export default class Sector {
   static get TileWidth(): number {
-    return 80
+    return 78
   }
   static get TileWidthHalf(): number {
-    return 40
+    return 39
   }
 
   static get TileHeight(): number {
     return 40
   }
+
   static get TileHeightHalf(): number {
     return 20
   }
@@ -40,6 +44,9 @@ export default class Sector {
   x: number
   y: number
 
+  onTileLoad: ?Function // switch to events?
+
+
   /**
    *
    * @param map
@@ -47,6 +54,16 @@ export default class Sector {
   constructor(map: GameMap) {
     this.map = map
     this.engine = map.engine
+
+    this.onTileLoad = null
+  }
+
+  get assetLoader(): AssetLoader {
+    return this.engine.assetLoader
+  }
+
+  get events(): EventEmitter {
+    return this.engine.events
   }
 
   /**
@@ -92,7 +109,7 @@ export default class Sector {
    */
   addEntity(entity: Entity) {
     if (this.entities.has(entity.id)) {
-      lll(`Replacing entity: ${entity.id}`)
+      lll(`Duplicate entity!!! ${entity.id}`)
 
       return false
     }
@@ -122,7 +139,7 @@ export default class Sector {
   async load(path: string, x: number, y: number) {
     lll(`Loading sector: ${path}`)
 
-    let data = await this.engine.assetLoader.loadJsonFile(`${path}/Sector.json`)
+    let data = await this.assetLoader.loadJsonFile(`${path}/Sector.json`)
     lll(`...Loaded`)
 
     if (!data.tiles) {
@@ -137,6 +154,8 @@ export default class Sector {
     this.lights = data.lights
     this.roofs = data.roofs
 
+    this.events.emit('Sector:Loading', this)
+
     for (let ty = 0; ty < Sector.Height; ty++) {
       for (let tx = 0; tx < Sector.Width; tx++) {
         let tile = this.getTile(tx, ty)
@@ -146,19 +165,18 @@ export default class Sector {
 
         tile.location = Location.makeRaw(x, y, tx, ty)
 
-        if (this.engine.client && tile.type) {
-          tile.sprite = new Sprite(this.engine.client)
-
-          await tile.sprite.load(tile)
-          //tile.type = GfxTypes.get(tile.type);
+        if (this.onTileLoad) {
+          await this.onTileLoad(tile)
         }
+
+        //this.events.emit('Sector:TileLoading', tile)
       }
     }
 
     this.entities = new Map()
     await this.map.loadEntities(path, this)
 
-    this.engine.events.emit('Sector:Loaded', this)
+    this.events.emit('Sector:Loaded', this)
   }
 
   /**

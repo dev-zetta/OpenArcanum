@@ -114,7 +114,7 @@ export default class Octree {
    * Handler for the populate method.
    *
    * @method Octree#populateHandler
-   * @param {IsoSprite|object} sprite - The Sprite to check.
+   * @param {Sprite|object} sprite - The Sprite to check.
    */
   populateHandler(sprite) {
     if (sprite.body && sprite.exists) {
@@ -319,7 +319,7 @@ export default class Octree {
    * Return all objects that could collide with the given IsoSprite or Cube.
    *
    * @method Octree#retrieve
-   * @param {IsoSprite|Cube} source - The source object to check the Octree against. Either a IsoSprite or Cube.
+   * @param {Sprite|Cube} source - The source object to check the Octree against. Either a IsoSprite or Cube.
    * @return {array} - Array with all detected objects.
    */
   retrieve(source) {

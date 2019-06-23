@@ -1,11 +1,16 @@
-import Phaser from './Phaser'
+// @flow
+
+import PIXI from '../libs/PIXI'
 import Isometric from './Isometric'
 import Point3 from './Point3'
 import Cube from './Cube'
 import Math from './Math'
+import Utils from './Utils'
+import type Projector from './Projector'
+import Point2 from './Point2'
 
 /**
- * @class IsoSprite
+ * @class Sprite
  *
  * @classdesc
  * Create a new `IsoSprite` object. IsoSprites are extended versions of standard Sprites that are suitable for axonometric positioning.
@@ -23,10 +28,106 @@ import Math from './Math'
  * @param {string|number} frame - If this IsoSprite is using part of a sprite sheet or texture atlas you can specify the exact frame to use by giving a string or numeric index.
  */
 
-export default class IsoSprite extends Phaser.GameObjects.Sprite {
+export default class IsoSprite extends PIXI.Sprite {
+  /**
+   * @property {number} type - The const type of this object.
+   * @readonly
+   */
+
+  type: string
+
+  /**
+   * @property {Point3} _isoPosition - Internal 3D position.
+   * @private
+   */
+  _isoPosition: Point3
+  displayOrigin: Point2
+
+  /**
+   * @property {number} snap - Snap this IsoSprite's position to the specified value; handy for keeping pixel art snapped to whole pixels.
+   * @default
+   */
+  snap: number
+
+  /**
+   * @property {number} _depth - Internal cached depth value.
+   * @readonly
+   * @private
+   */
+  _depth: number
+
+  /**
+   * @property {boolean} _depthChanged - Internal invalidation control for depth management.
+   * @readonly
+   * @private
+   */
+  _depthChanged: boolean
+
+  /**
+   * @property {boolean} _isoPositionChanged - Internal invalidation control for positioning.
+   * @readonly
+   * @private
+   */
+  _isoPositionChanged: boolean
+
+  /**
+   * @property {boolean} _isoBoundsChanged - Internal invalidation control for isometric bounds.
+   * @readonly
+   * @private
+   */
+  _isoBoundsChanged: boolean
+
+  /**
+   * @property {Cube} _isoBounds - Internal derived 3D bounds.
+   * @private
+   */
+  _isoBounds: Cube
+
+  get z() {
+    return this.zIndex
+  }
+
+  set z(value) {
+    lll('setting z', value)
+    this.zIndex = value
+  }
+
+  constructor(spritesheet: Spritesheet, key: string, isometric: Isometric) {
+    /*let textures = Utils.isArray(spritesheet.textures)
+      ? spritesheet.textures
+      : Utils.values(spritesheet.textures)*/
+
+    super(spritesheet.textures[key], false)
+    this.isometric = isometric
+
+    this.type = Isometric.ISOSPRITE
+  }
+
+  get projector(): Projector {
+    return this.isometric.projector
+  }
+
+  get texture() {
+    return super.texture
+  }
+
+  set texture(texture) {
+    if (Utils.isString(texture)) {
+      texture = PIXI.Texture.getFromCache(texture)
+    }
+
+    super.texture = texture
+  }
+
+  setTexture(key) {
+    this.texture = key
+  }
+
+
+
   /**
    *
-   * @param scene
+   * @param container
    * @param x
    * @param y
    * @param z
@@ -34,35 +135,34 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
    * @param frame
    * @param offset
    */
-  constructor(scene, x, y, z, key, frame, offset) {
-    super(scene, undefined, undefined, key, frame)
+  addToContainer(container: PIXI.Container, x, y, z, offset) {
+    if (typeof offset === `undefined`) {
+      offset = new Point2()
+    }
 
-    //this.offset = offset;
+    this.offset = offset
     //this.anchor = {x: 0.0, y: 0.0};
-
-    this.originX = 0.0
-    this.originY = 0.0
-
     //z = 10000 - ((y * 64) + x)
 
-    /**
-     * @property {number} type - The const type of this object.
-     * @readonly
-     */
-    this.type = Isometric.ISOSPRITE
+    /*if (
+      this.texture.textureCacheIds[0] !==
+      `Tile/BlackYall/Base/0/A/0/North/Sprite.gif`
+    ) {
+      console.log(this.texture)
+    }*/
 
-    if (false) {
+    /*if (false) {
       let pos = { x: this.frame.centerX, y: this.frame.centerY }
       if (offset != null) {
         pos.x -= offset[0]
         pos.y -= offset[1]
       }
 
-      this.displayOriginX = pos.x
-      this.displayOriginY = pos.y
+      this.displayOrigin.x = pos.x
+      this.displayOrigin.y = pos.y
     } else {
       if (offset != null) {
-        offset = this.scene.iso.unprojectAbsolute({
+        offset = this.projector.unprojectAbsolute({
           x: offset[0],
           y: offset[1]
         })
@@ -71,57 +171,21 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
         y += offset.y
       }
 
-      this.displayOriginX = this.frame.centerX
-      this.displayOriginY = this.frame.centerY
-    }
+      //this.displayOrigin.x = this.frame.centerX
+      //this.displayOrigin.y = this.frame.centerY
+    }*/
 
-    /**
-     * @property {Point3} _isoPosition - Internal 3D position.
-     * @private
-     */
     this._isoPosition = new Point3(x, y, z)
-
-    /**
-     * @property {number} snap - Snap this IsoSprite's position to the specified value; handy for keeping pixel art snapped to whole pixels.
-     * @default
-     */
     this.snap = 0
-
-    /**
-     * @property {number} _depth - Internal cached depth value.
-     * @readonly
-     * @private
-     */
     //this._depth = 0;
-
-    /**
-     * @property {boolean} _depthChanged - Internal invalidation control for depth management.
-     * @readonly
-     * @private
-     */
     this._depthChanged = true
-
-    /**
-     * @property {boolean} _isoPositionChanged - Internal invalidation control for positioning.
-     * @readonly
-     * @private
-     */
     this._isoPositionChanged = true
-
-    /**
-     * @property {boolean} _isoBoundsChanged - Internal invalidation control for isometric bounds.
-     * @readonly
-     * @private
-     */
     this._isoBoundsChanged = true
 
     this._project()
-
-    /**
-     * @property {Cube} _isoBounds - Internal derived 3D bounds.
-     * @private
-     */
     this._isoBounds = this.resetIsoBounds()
+
+    container.addChild(this)
   }
 
   /**
@@ -146,28 +210,28 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
       return
     }
 
-    let pos = this.scene.iso.project(this._isoPosition)
+    let pos = this.projector.project(this._isoPosition, this.offset)
 
-    /*let offset = this.offset;
-    if (offset != null) {
-      pos.x += offset.x;
-      pos.y += offset.y;
-    }*/
-
-    //this.displayOriginX = frame.centerX;
-    //this.displayOriginY = frame.centerY;
 
     if (this.snap > 0) {
-      this.setPosition(
-        Phaser.Math.Snap.To(pos.x, this.snap),
-        Phaser.Math.Snap.To(pos.y, this.snap)
+      this._setPosition(
+        Utils.snapTo(pos.x, this.snap),
+        Utils.snapTo(pos.y, this.snap)
       )
     } else {
-      this.setPosition(pos.x, pos.y)
+      this._setPosition(pos.x, pos.y)
     }
 
     this._isoPositionChanged = false
     this._depthChanged = this._isoBoundsChanged = true
+  }
+
+  _setPosition(x, y, z = 0) {
+    this.x = Math.round(x)
+    this.y = Math.round(y)
+    //this.z = z
+
+    this.updateDepth()
   }
 
   resetIsoBounds() {
@@ -175,17 +239,19 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
       this._isoBounds = new Cube()
     }
 
-    const asx = Math.abs(this.scaleX)
-    const asy = Math.abs(this.scaleY)
+    const asx = Math.abs(this.scale.x)
+    const asy = Math.abs(this.scale.y)
 
     let bounds = this._isoBounds
 
-    let x =
-      this.scaleX < 0
-        ? this.frame.width - this.displayOriginX
-        : this.displayOriginX
+    /*let x =
+      this.scale.x < 0
+        ? this.frame.width - this.displayOrigin.x
+        : this.displayOrigin.x
 
-    let anchor = { x: x / this.width, y: this.displayOriginY / this.height }
+    let anchor = { x: x / this.width, y: this.displayOrigin.y / this.height }*/
+
+    let anchor = this.anchor
 
     if (false) {
       bounds.widthX = Math.round(Math.abs(this.width) * 0.5) * asx
@@ -200,8 +266,8 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
         Math.abs(this.height) * (1 - anchor.y) +
         Math.abs(this.width * 0.5)
     } else {
-      let tileWidth = Math.abs(this.width) * this.scene.iso._transform[0]
-      let tileHeight = Math.abs(this.width) * this.scene.iso._transform[1] //* Math.tan(this.scene.iso.projectionAngle);
+      let tileWidth = Math.abs(this.width) * this.projector._transform[0]
+      let tileHeight = Math.abs(this.width) * this.projector._transform[1] //* Math.tan(this.scene.iso.projectionAngle);
 
       bounds.widthX =
         Math.round(
@@ -229,7 +295,7 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
   /**
    * The axonometric position of the IsoSprite on the x axis. Increasing the x coordinate will move the object down and to the right on the screen.
    *
-   * @name IsoSprite#isoX
+   * @name Sprite#isoX
    * @property {number} isoX - The axonometric position of the IsoSprite on the x axis.
    */
   get isoX() {
@@ -247,7 +313,7 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
   /**
    * The axonometric position of the IsoSprite on the y axis. Increasing the y coordinate will move the object down and to the left on the screen.
    *
-   * @name IsoSprite#isoY
+   * @name Sprite#isoY
    * @property {number} isoY - The axonometric position of the IsoSprite on the y axis.
    */
   get isoY() {
@@ -265,14 +331,14 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
   /**
    * The axonometric position of the IsoSprite on the z axis. Increasing the z coordinate will move the object directly upwards on the screen.
    *
-   * @name IsoSprite#isoZ
+   * @name Sprite#isoZ
    * @property {number} isoZ - The axonometric position of the IsoSprite on the z axis.
    */
-  get isoZ() {
+  get isoZ(): number {
     return this._isoPosition.z
   }
 
-  set isoZ(value) {
+  set isoZ(value: number) {
     this._isoPosition.z = value
     this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true
     if (this.body) {
@@ -283,7 +349,7 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
   /**
    * A Point3 object representing the axonometric position of the IsoSprite.
    *
-   * @name IsoSprite#isoPosition
+   * @name Sprite#isoPosition
    * @property {Point3} isoPosition - The axonometric position of the IsoSprite.
    * @readonly
    */
@@ -295,7 +361,7 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
    *
    * @param position
    */
-  set isoPosition(position) {
+  set isoPosition(position: Point3) {
     this._isoPosition = position
     this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true
     if (this.body) {
@@ -303,7 +369,7 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
     }
   }
 
-  isoMove(x, y) {
+  isoMove(x: number, y: number) {
     this._isoPosition.add(x, y, 0)
     this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true
     if (this.body) {
@@ -314,7 +380,7 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
   /**
    * A Cube object representing the derived boundsof the IsoSprite.
    *
-   * @name IsoSprite#isoBounds
+   * @name Sprite#isoBounds
    * @property {Point3} isoBounds - The derived 3D bounds of the IsoSprite.
    * @readonly
    */
@@ -329,21 +395,42 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
   /**
    * The non-unit distance of the IsoSprite from the 'front' of the scene. Used to correctly depth sort a group of IsoSprites.
    *
-   * @name IsoSprite#depth
+   * @name Sprite#depth
    * @property {number} depth - A calculated value used for depth sorting.
    * @readonly
    */
-  get depth() {
+  get isoDepth() {
     if (this._depthChanged === true) {
-      super.depth =
-        this._isoPosition.x + this._isoPosition.y + this._isoPosition.z * 1.25
-      this._depthChanged = false
+      this.updateDepth()
     }
-    return super.depth
+
+    return this.z
   }
 
-  set depth(depth) {
-    super.depth = depth
+  set isoDepth(depth) {
+    return this.z
+  }
+
+  updateDepth() {
+    let depth = this._isoPosition.x + this._isoPosition.y + this._isoPosition.z * 1.25
+    depth -= (this.anchor.x * this.width )
+    depth -= (this.anchor.y * this.height)
+
+
+    if (this.offset) {
+      depth -= this.offset.x
+      depth += this.offset.y
+
+    }
+
+    //let depth = 0 //this.y - this.x
+
+
+    this.zIndex = depth
+
+
+
+    this._depthChanged = false
   }
 
   debug(color) {
@@ -365,7 +452,7 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
 
     let points = corners.slice(0, corners.length)
     points = points.map(p => {
-      const newPos = this.scene.iso.project(p)
+      const newPos = this.projector.project(p)
       //newPos.x += posX;
       //newPos.y += posY;
       return newPos
@@ -393,4 +480,9 @@ export default class IsoSprite extends Phaser.GameObjects.Sprite {
 
     graphics.strokePath()
   }
+
+
+
+
+
 }

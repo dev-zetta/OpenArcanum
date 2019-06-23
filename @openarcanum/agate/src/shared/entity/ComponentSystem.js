@@ -71,11 +71,10 @@ class ComponentSystem {
     this.lastUpdate = Utils.getCurrentTimestamp()
 
     this.map = map
-    this.engine = map.engine
 
     for (let key in Systems) {
       let system = Systems[key]
-      console.log(`Adding entity system: ${key}`)
+      lll(`Adding entity system: ${key}`)
       this.addSystem(new system(this.engine, this))
     }
 
@@ -83,6 +82,14 @@ class ComponentSystem {
     this.components = new Map()
 
     //this.loadComponents()
+  }
+
+  get engine() {
+    return this.map.engine
+  }
+
+  get events() {
+    return this.map.engine.events
   }
 
   /**

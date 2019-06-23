@@ -1,4 +1,4 @@
-/* global AGate */
+// @flow
 
 import Component from '@ember/component'
 import { classNames } from '@ember-decorators/component'
@@ -29,7 +29,7 @@ class GameRender extends Component {
     super(...arguments)
 
    this.get(`resize`).on(`didResize`, event => {
-      this.engine.client.emitUI(
+     AGate.engine.client.emitUI(
         `window.resize`
       )
     })
@@ -76,12 +76,11 @@ class GameRender extends Component {
     this.createClient(canvas)
   }
 
-  async createClient(canvas: HTMLCanvasElement) {
-    this.engine = AGate.engine
-    await this.engine.createClient(canvas)
+  async createClient(canvas) {
+    this.engine = AGate.createEngine()
+    await AGate.createClient(canvas)
 
-   let widgets = await this.loadWindows()
-
+    let widgets = await this.loadWindows()
     let manager = this.getManager()
     manager.setRootWidget(this)
     manager.setMouseSprite(`cursor`)

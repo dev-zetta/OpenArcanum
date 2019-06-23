@@ -1,4 +1,4 @@
-import Phaser from '../../libs/Phaser'
+import PIXI from '../libs/PIXI'
 
 const header_fragment = require(`./pipelines/header.fragment.glsl`)
 const default_fragment = require(`./pipelines/default.fragment.glsl`)
@@ -6,8 +6,8 @@ const default_fragment = require(`./pipelines/default.fragment.glsl`)
 const header_vertex = require(`./pipelines/header.vertex.glsl`)
 const default_vertex = require(`./pipelines/default.vertex.glsl`)
 
-export class Pipeline extends Phaser.Renderer.WebGL.Pipelines
-  .TextureTintPipeline {
+export class Pipeline /*extends Phaser.Renderer.WebGL.Pipelines
+  .TextureTintPipeline*/ {
   /**
    *
    * @param game
@@ -23,11 +23,11 @@ export class Pipeline extends Phaser.Renderer.WebGL.Pipelines
 
     //console.log(fragShader, vertShader)
 
-    super({
+    /*super({
       game,
       renderer: game.renderer,
       fragShader,
       vertShader
-    })
+    })*/
   }
 }

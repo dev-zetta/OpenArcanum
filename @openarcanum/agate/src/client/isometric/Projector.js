@@ -1,8 +1,9 @@
-import Phaser from './Phaser'
+// @flow
+
 import Point3 from './Point3'
-import Isometric from './Isometric'
 import Math from './Math'
-import Sector from '../../shared/map/Sector'
+import Point2 from './Point2'
+import type Camera from './Camera'
 
 /**
  * @class Projector
@@ -17,79 +18,114 @@ import Sector from '../../shared/map/Sector'
  */
 
 export default class Projector {
-  constructor(scene, projectionAngle) {
-    console.log(Phaser)
-    /**
-     * @property {Phaser.Game} game - The current game object.
-     */
-    this.scene = scene
+  //  Projection angles
+  static get CLASSIC(): number {
+    return Math.atan(0.5)
+  }
+  static get ISOMETRIC(): number {
+    return Math.PI / 6
+  }
+  static get MILITARY(): number {
+    return Math.PI / 4
+  }
 
-    /**
-     * @property {array} _transform - The pre-calculated axonometric transformation values.
-     * @private
-     */
+  /**
+   * @property {Phaser.Game} game - The current game object.
+   */
+  camera: Camera
+
+  /**
+   * @property {array} _transform - The pre-calculated axonometric transformation values.
+   * @private
+   */
+  _transform: Array<number>
+
+  /**
+   * @property {number} _projectionAngle - The cached angle of projection in radians.
+   * @private
+   */
+  _projectionAngle: number
+
+  /**
+   * @property {number} projectionAngle - The angle of projection in radians.
+   * @default
+   */
+  projectionAngle: number
+
+  /**
+   * @property {Point2} anchor - The x and y offset multipliers as a ratio of the game world size.
+   * @default
+   */
+  anchor: Point2
+
+  constructor(camera: Camera, projectionAngle: number) {
+    this.camera = camera
     this._transform = null
-
-    /**
-     * @property {number} _projectionAngle - The cached angle of projection in radians.
-     * @private
-     */
     this._projectionAngle = 0
-
-    /**
-     * @property {number} projectionAngle - The angle of projection in radians.
-     * @default
-     */
-    this.projectionAngle = Math.PI / 7 //26.565;  // projectionAngle || Isometric.CLASSIC;
-
-    /**
-     * @property {Phaser.Geom.Point} anchor - The x and y offset multipliers as a ratio of the game world size.
-     * @default
-     */
-    this.anchor = new Phaser.Geom.Point(0.0, 0.0)
+    this.projectionAngle = Projector.CLASSIC //Math.PI / 7 //26.565;  //
+    this.anchor = new Point2(0.0, 0.0)
   }
 
   /**
    * @name Projector#projectionAngle
    * @property {number} projectionAngle - The angle of axonometric projection.
    */
-  get projectionAngle() {
+  get projectionAngle(): number {
     return this._projectionAngle
   }
 
-  set projectionAngle(value) {
-    if (value === this._projectionAngle) {
+  set projectionAngle(angle: number) {
+    if (angle === this._projectionAngle) {
       return
     }
 
-    this._projectionAngle = value
-
-    //this._transform = [Math.cos(this._projectionAngle), Math.sin(this._projectionAngle)];
+    this._projectionAngle = angle
+    this._transform = [
+      Math.cos(this._projectionAngle),
+      Math.sin(this._projectionAngle)
+    ]
 
     //console.log(this._projectionAngle,  this._transform)
 
     //this._transform = [Math.cos(this._projectionAngle * Math.PI / 180), Math.sin(this._projectionAngle * Math.PI / 180)];
 
-    this._transform = [0.975, 0.5]
+    //this._transform = [0.975, 0.5]
+    this._transform = [1, 0.5]
   }
 
   /**
    * Use axonometric projection to transform a 3D Point3 coordinate to a 2D Point coordinate. If given the coordinates will be set into the object, otherwise a brand new Point object will be created and returned.
    * @method Projector#project
-   * @param {Point3} point3 - The Point3 to project from.
-   * @param {Phaser.Geom.Point} out - The Point to project to.
-   * @return {Phaser.Geom.Point} The transformed Point.
+   * @param {Point3} point - The Point3 to project from.
+   * @param {Point2} offset
+   * @param {Point2} out - The Point to project to.
+   * @return {Point2} The transformed Point.
    */
-  project(point3, out) {
+  project(point: Point3, offset: ?Point2, out: ?Point2): Point2 {
     if (typeof out === `undefined`) {
-      out = new Phaser.Geom.Point()
+      out = new Point2()
     }
 
-    out.x = (point3.x - point3.y) * this._transform[0]
-    out.y = (point3.x + point3.y) * this._transform[1] - point3.z
+    if (false) {
+      if (!offset) {
+        offset = {x: 0, y: 0}
 
-    out.x += this.scene.cameras.main.width * this.anchor.x
-    out.y += this.scene.cameras.main.height * this.anchor.y
+      }
+    } else {
+      //offset = {x: 0, y: 0}
+    }
+
+
+    out.x = ((point.x - point.y) ) * this._transform[0]
+    out.y = (((point.x + point.y) ) * this._transform[1]) - point.z
+
+    out.x += this.camera.width * this.anchor.x
+    out.y += this.camera.height * this.anchor.y
+
+  if (offset) {
+    out.x += offset.x
+    out.y += offset.y
+  }
 
     return out
   }
@@ -97,20 +133,20 @@ export default class Projector {
   /**
    * Use axonometric projection to transform a 3D Point3 coordinate to a 2D Point coordinate, ignoring the z-axis. If given the coordinates will be set into the object, otherwise a brand new Point object will be created and returned.
    * @method Projector#projectXY
-   * @param {Point3} point3 - The Point3 to project from.
-   * @param {Phaser.Geom.Point} out - The Point to project to.
-   * @return {Phaser.Geom.Point} The transformed Point.
+   * @param {Point3} point - The Point3 to project from.
+   * @param {Point2} out - The Point to project to.
+   * @return {Point2} The transformed Point.
    */
-  projectXY(point3, out) {
+  projectXY(point: Point3, out: ?Point2): Point2 {
     if (typeof out === `undefined`) {
-      out = new Phaser.Geom.Point()
+      out = new Point2()
     }
 
-    out.x = (point3.x - point3.y) * this._transform[0]
-    out.y = (point3.x + point3.y) * this._transform[1]
+    out.x = (point.x - point.y) * this._transform[0]
+    out.y = (point.x + point.y) * this._transform[1]
 
-    out.x += this.scene.cameras.main.width * this.anchor.x
-    out.y += this.scene.cameras.main.height * this.anchor.y
+    out.x += this.camera.width * this.anchor.x
+    out.y += this.camera.height * this.anchor.y
 
     return out
   }
@@ -123,47 +159,42 @@ export default class Projector {
    * @param {number} [z] - Specified z-plane to project to.
    * @return {Point3} The transformed Point3.
    */
-  unproject(point, out, z) {
+  unproject(point: Point2, out: ?Point3, z: ?number): Point3 {
     if (typeof out === `undefined`) {
       out = new Point3()
     }
 
     z = z || 0
 
-    const x =
-      point.x -
-      this.scene.cameras.main.x -
-      this.scene.cameras.main.width * this.anchor.x
-    const y =
-      point.y -
-      this.scene.cameras.main.y -
-      this.scene.cameras.main.height * this.anchor.y +
-      z
+    const x = point.x + this.camera.x - this.camera.width * this.anchor.x
+    const y = point.y + this.camera.y - this.camera.height * this.anchor.y + z
 
     out.x = x / (2 * this._transform[0]) + y / (2 * this._transform[1])
     out.y = -(x / (2 * this._transform[0])) + y / (2 * this._transform[1])
     out.z = z
 
+
+    lll(point, out.x / 40, out.y / 40, this.camera.x, this.camera.y)
     return out
   }
 
   /**
    * Use reverse axonometric projection to transform a 2D Point coordinate to a 3D Point3 coordinate. If given the coordinates will be set into the object, otherwise a brand new Point3 object will be created and returned.
    * @method Projector#unproject
-   * @param {Point} point - The Point to project from.
+   * @param {Point2} point - The Point to project from.
    * @param {Point3} out - The Point3 to project to.
    * @param {number} [z] - Specified z-plane to project to.
    * @return {Point3} The transformed Point3.
    */
-  unprojectAbsolute(point, out, z) {
+  unprojectAbsolute(point: Point2, out: ?Point3, z: ?number): Point3 {
     if (typeof out === `undefined`) {
       out = new Point3()
     }
 
     z = z || 0
 
-    const x = point.x // - (this.scene.cameras.main.width * this.anchor.x);
-    const y = point.y // - (this.scene.cameras.main.height * this.anchor.y) + z;
+    const x = point.x // - (this.cameras.main.width * this.anchor.x);
+    const y = point.y // - (this.cameras.main.height * this.anchor.y) + z;
 
     out.x = x / (2 * this._transform[0]) + y / (2 * this._transform[1])
     out.y = -(x / (2 * this._transform[0])) + y / (2 * this._transform[1])
@@ -198,9 +229,7 @@ export default class Projector {
       let group = groups[i]
       if (!group) continue
 
-      if (group instanceof Phaser.GameObjects.Group) {
-        objectLists.push(group.getChildren())
-      } else if (group.length) {
+      if (Array.isArray(group.length)) {
         objectLists.push(group)
       } else {
         console.log(group)

@@ -35,14 +35,14 @@ module.exports = {
         singleQuote: true,
         trailingComma: "none",
         semi: false,
-        bracketSpacing: true,
+        //bracketSpacing: true,
         printWidth: 80,
         tabWidth: 2,
         useTabs: false
       }
     ],
     "padding-line-between-statements": "warn",
-    "object-curly-spacing": "warn",
+    "object-curly-spacing": ["warn", "always"],
     "no-var": "warn",
     "arrow-body-style": "warn",
     "arrow-parens": "warn",
@@ -57,18 +57,6 @@ module.exports = {
     "no-console": "off",
     "no-mixed-spaces-and-tabs": "off",
     "computed-property-spacing": "warn"
-    /*"require-path-exists/notEmpty": 2,
-    "require-path-exists/tooManyArguments": 2,
-    "require-path-exists/exists": [ 2, {
-      "extensions": [
-        "",
-        ".jsx",
-        ".jsx",
-        ".json5",
-        ".es",
-        ".es6"
-      ]
-    }]*/
   },
   overrides: [
     // node files

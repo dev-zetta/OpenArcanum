@@ -209,6 +209,10 @@ export default class GameEngine extends GameNetwork {
     //this.emit(`fireMissile`)
   }
 
+  onEntityUpdate(entity) {
+    lll('onEntityUpdate', entity._update)
+  }
+
   /**
    * A synchronization update arrived from the server
    * @param sync

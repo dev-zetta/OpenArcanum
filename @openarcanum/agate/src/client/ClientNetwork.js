@@ -41,10 +41,10 @@ class ClientNetwork {
    * @param {String} inputOptions.serverURL - Socket server url
    * @param {Renderer} Renderer - the Renderer class constructor
    */
-  constructor(gameEngine, inputOptions, Renderer) {
+  constructor(gameEngine, inputOptions) {
     this.options = Object.assign(
       {
-        autoConnect: true,
+        autoConnect: false,
         healthCheckInterval: 1000,
         healthCheckRTTSample: 10,
         stepPeriod: 1000 / GAME_UPS,
@@ -71,9 +71,6 @@ class ClientNetwork {
 
     this.inboundMessages = []
     this.outboundMessages = []
-
-    // create the renderer
-    this.renderer = new Renderer(gameEngine, this)
 
     // step scheduler
     this.scheduler = null
@@ -166,63 +163,39 @@ class ClientNetwork {
    * @return {Promise} Resolves once the Renderer has been initialized, and the game is
    * ready to connect
    */
-  start() {
+  async start() {
     this.stopped = false
     this.resolved = false
-    // initialize the renderer
-    // the render loop waits for next animation frame
-    if (!this.renderer) alert(`ERROR: game has not defined a renderer`)
-    let renderLoop = (timestamp) => {
-      if (this.stopped) {
-        this.renderer.stop()
-        return
-      }
-      this.lastTimestamp = this.lastTimestamp || timestamp
-      this.renderer.draw(timestamp, timestamp - this.lastTimestamp)
-      this.lastTimestamp = timestamp
-      window.requestAnimationFrame(renderLoop)
+
+    if (this.options.scheduler === `fixed`) {
+      // schedule and start the game loop
+      this.scheduler = new Scheduler({
+        period: this.options.stepPeriod,
+        tick: this.step.bind(this),
+        delay: STEP_DELAY_MSEC
+      })
+      this.scheduler.start()
     }
 
-    return this.renderer
-      .init()
-      .then(() => {
-        //this.gameEngine.start()
-
-        if (this.options.scheduler === `fixed`) {
-          // schedule and start the game loop
-          this.scheduler = new Scheduler({
-            period: this.options.stepPeriod,
-            tick: this.step.bind(this),
-            delay: STEP_DELAY_MSEC
-          })
-          this.scheduler.start()
-        }
-
-        if (typeof window !== `undefined`)
-          window.requestAnimationFrame(renderLoop)
-        if (this.options.autoConnect && this.options.standaloneMode !== true) {
-          return this.connect().catch((error) => {
-            this.stopped = true
-            throw error
-          })
-        }
+    /*if (this.options.autoConnect && this.options.standaloneMode !== true) {
+      await this.connect().catch((error) => {
+        this.stopped = true
+        throw error
       })
-      .then(
-        () =>
-          new Promise((resolve, reject) => {
-            this.resolveGame = resolve
-            if (this.socket) {
-              this.socket.on(`disconnect`, () => {
-                if (!this.resolved && !this.stopped) {
-                  if (this.options.verbose)
-                    console.log(`disconnected by server...`)
-                  this.stopped = true
-                  reject()
-                }
-              })
-            }
-          })
-      )
+    }*/
+
+    return new Promise((resolve, reject) => {
+      this.resolveGame = resolve
+      if (this.socket) {
+        this.socket.on(`disconnect`, () => {
+          if (!this.resolved && !this.stopped) {
+            if (this.options.verbose) console.log(`disconnected by server...`)
+            this.stopped = true
+            reject()
+          }
+        })
+      }
+    })
   }
 
   /**
@@ -307,7 +280,7 @@ class ClientNetwork {
     }
     this.applyDelayedInputs()
     this.gameEngine.step(false, t, dt)
-    this.gameEngine.events.emit(`client__postStep`, {dt})
+    this.gameEngine.events.emit(`client__postStep`, { dt })
 
     if (
       this.options.standaloneMode !== true &&
@@ -396,8 +369,11 @@ class ClientNetwork {
 
   // handle a message that has been received from the server
   handleInboundMessage(syncData) {
+
+
     let syncEvents = this.networkTransmitter.deserializePayload(syncData).events
     let syncHeader = syncEvents.find((e) => e.eventName === `syncHeader`)
+
 
     // emit that a snapshot has been received
     if (

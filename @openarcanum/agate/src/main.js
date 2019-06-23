@@ -5,6 +5,10 @@
 if (!global.process) {
   global.process = process
 }
+
+
+process.env.REALM_DISABLE_ANALYTICS = 1
+
 const path = require(`path`)
 
 require(`@babel/register`)({

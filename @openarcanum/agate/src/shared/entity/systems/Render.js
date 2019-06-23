@@ -79,6 +79,10 @@ export default class Render extends System {
     }
 
     let {sprite} = classes.current
+    if (!sprite) {
+      return
+    }
+
     if (classes.next) {
       //this.totalElapsed = 0;
       classes.current = Object.assign(classes.current, classes.next)

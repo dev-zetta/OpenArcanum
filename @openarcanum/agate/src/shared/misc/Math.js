@@ -1,9 +1,9 @@
-import stdlib from '../../libs/stdlib'
+// const stdlib = require('@stdlib/stdlib')
 
 // Import Math namespace
 // https://stdlib.io/develop/docs/api/@stdlib/math/base/special/
-let Math = stdlib.math.base.special
-Math.PI = stdlib.math.constants[`PI`]
+//let Math = stdlib.math.base.special
+//Math.PI = stdlib.math.constants[`PI`]
 
 //Math.random = stdlib.math.base.random.randu;
 

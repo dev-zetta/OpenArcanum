@@ -1,5 +1,3 @@
-let singleton = null
-
 const TIME_RESET_THRESHOLD = 100
 
 /**
@@ -8,39 +6,34 @@ const TIME_RESET_THRESHOLD = 100
  * method.  The draw method will be invoked on every iteration of the browser's
  * render loop.
  */
-class Renderer {
-  static getInstance() {
-    return singleton
-  }
-
+class BaseRenderer {
   /**
    * Constructor of the Renderer singleton.
    * @param {GameEngine} gameEngine - Reference to the GameEngine instance.
    * @param {ClientEngine} clientEngine - Reference to the ClientEngine instance.
    */
-  constructor(gameEngine, clientEngine) {
-    this.gameEngine = gameEngine
+  constructor(clientEngine) {
     this.clientEngine = clientEngine
+    this.gameEngine = clientEngine.engine
+
     this.gameEngine.events.on(`client__stepReset`, () => {
       this.doReset = true
     })
-    gameEngine.events.on(`objectAdded`, this.addObject.bind(this))
-    gameEngine.events.on(`objectDestroyed`, this.removeObject.bind(this))
 
-    // the singleton renderer has been created
-    singleton = this
+    this.gameEngine.events.on(`objectAdded`, this.addObject.bind(this))
+    this.gameEngine.events.on(`objectDestroyed`, this.removeObject.bind(this))
   }
 
   /**
    * Initialize the renderer.
    * @return {Promise} Resolves when renderer is ready.
    */
-  init() {
+  async init() {
     if (typeof window === `undefined` || !document) {
       console.log(`renderer invoked on server side.`)
     }
     this.gameEngine.events.emit(`client__rendererReady`)
-    return Promise.resolve() // eslint-disable-line new-cap
+    return true
   }
 
   reportSlowFrameRate() {
@@ -56,8 +49,8 @@ class Renderer {
    * @param {Number} t - current time (only required in render-schedule mode)
    * @param {Number} dt - time elapsed since last draw
    */
-  draw(t, dt) {
-    this.gameEngine.events.emit(`client__draw`)
+  draw(t: number, dt: number) {
+    //this.gameEngine.events.emit(`client__draw`)
 
     if (this.clientEngine.options.scheduler === `render-schedule`)
       this.runClientStep(t)
@@ -123,10 +116,15 @@ class Renderer {
    */
   removeObject(obj) {}
 
+  async start() {
+
+  }
+
+
   /**
    * Called when clientEngine has stopped, time to clean up
    */
   stop() {}
 }
 
-export default Renderer
+export default BaseRenderer

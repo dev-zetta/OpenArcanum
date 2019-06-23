@@ -8,11 +8,8 @@ const mime = require(`mime-types`)
 const parseJson = require(`parse-json`)
 const writeJsonFile = require(`write-json-file`)
 const find = require(`find`)
+const StreamZip = require(`node-stream-zip`) // https://github.com/antelle/node-stream-zip
 
-// https://github.com/antelle/node-stream-zip
-const StreamZip = require(`node-stream-zip`)
-
-import GfxPathBuilder from './GfxPathBuilder'
 import Utils from '../misc/Utils'
 
 export default class AssetLoader {
@@ -22,10 +19,6 @@ export default class AssetLoader {
   archives: Array<Object>
   archiveEntries: Map<string, Object>
 
-  /**
-   *
-   * @param engine
-   */
   constructor() {
     //this.engine = engine
     this.loadedAssets = new Map()
@@ -46,6 +39,15 @@ export default class AssetLoader {
 
   /**
    *
+   * @param key
+   * @returns {boolean}
+   */
+  getCachedAsset(key: string): Object {
+    return this.loadedAssets.get(key)
+  }
+
+  /**
+   *
    * @param descriptor
    */
   preload(descriptor: Object) {
@@ -55,16 +57,6 @@ export default class AssetLoader {
 
     this.preloadAssets.push(descriptor)
     this.loadedAssets.set(descriptor.key, null)
-  }
-
-  /**
-   *
-   * @param options
-   * @returns {string}
-   */
-  buildPath(options: Object): string {
-    let builder = new GfxPathBuilder(options)
-    return builder.toPath()
   }
 
   /**
@@ -291,7 +283,9 @@ export default class AssetLoader {
    */
   async loadFileToBlob(src: string): Promise<Blob> {
     let data = await this.loadFile(src)
-    if (!data) {return new Blob}
+    if (!data) {
+      return new Blob
+    }
 
     let blob = this.stringToBlob(data.toString(`binary`))
     return blob
@@ -336,7 +330,7 @@ export default class AssetLoader {
    * @param callback
    * @returns {Promise<*>}
    */
-  async createAndLoadImage(src: string, callback: ?function = null) {
+  async createAndLoadImage(src: string, callback: ?Function = null) {
     if (Utils.isUndefined(createImageBitmap)) {
       let image = new Image()
 
@@ -449,9 +443,11 @@ export default class AssetLoader {
    * @returns {Promise<boolean>}
    */
   async loadAsset(descriptor: Object) {
-    if (this.loadedAssets.get(descriptor.key) != null) {
+    let cached = this.getCachedAsset(descriptor.key)
+    if (cached != null) {
       console.log(`Already loaded: ${descriptor.key}`)
-      return false
+      Object.assign(descriptor, cached)
+      return true
     }
 
     let result
@@ -493,7 +489,7 @@ export default class AssetLoader {
 
     //console.log(descriptor.key);
     this.loadedAssets.set(descriptor.key, descriptor)
-    return true //Promise.resolve(true);
+    return true
   }
 
   /**

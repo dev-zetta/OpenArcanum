@@ -148,15 +148,15 @@ class AGateEngine {
 
     if (this.config.server) {
       await this.createServer()
-      this.engine.server = this.server
     }
 
-    this.client = new ClientEngine(this.engine, this.gameOptions, canvas)
-    this.engine.client = this.client
+    this.client = new ClientEngine(this.engine, this.gameOptions)
 
-    await this.client.create()
-    await this.client.start()
+    await this.client.create(canvas)
+
     await this.client.join()
+    await this.client.start()
+
   }
 
   joinGame() {

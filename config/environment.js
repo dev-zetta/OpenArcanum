@@ -71,5 +71,6 @@ module.exports = function(environment) {
   }*/
 
   ENV.AGate = config
+
   return ENV
 }

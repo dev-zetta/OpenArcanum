@@ -1,6 +1,1 @@
-class Utils {
-
-
-}
-
-export default Utils
+export {default} from '../shared/misc/Utils'

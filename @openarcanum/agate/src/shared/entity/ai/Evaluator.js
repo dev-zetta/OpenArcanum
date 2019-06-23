@@ -1,8 +1,8 @@
-/* global AGate */
+
 
 // https://www.npmjs.com/package/utility-ai
 
-const UtilityAi = require(`utility-ai`)
+import UtilityAi from './UtilityAI'
 
 export default class Evaluator {
   constructor(system) {

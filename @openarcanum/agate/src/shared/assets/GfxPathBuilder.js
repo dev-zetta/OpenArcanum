@@ -1,41 +1,26 @@
-/* global AGate */
+// @flow
 
 import Gfx from '../enums/Gfx'
 import Utils from '../misc/Utils'
 
 export default class GfxPathBuilder {
-  /**
-   *
-   * @param data
-   */
-  constructor(data) {
-    this.build(data)
-  }
-
-  /**
-   *
-   * @returns {string}
-   */
-  toPath() {
-    return `${this.path}`
-  }
 
   /**
    *
    * @param data
    */
-  build(data) {
-    let base = `${data.type.key}/`
+  static build(data) {
+
 
     if (Utils.isString(data.type)) {
       data.type = Gfx.Types.get(data.type)
     }
 
+    let base = `${data.type.key}/`
+
     switch (data.type) {
       case Gfx.Types.Tile:
-        base += `${data.start.category}/${data.end.category}/${
-          data.start.version
-        }/${data.end.version}`
+        base += `${data.start.category}/${data.end.category}/${data.start.version}/${data.end.version}`
         break
       case Gfx.Types.Wall:
         base += `${data.category}/${data.part}/${data.side}/${data.version}`
@@ -46,11 +31,12 @@ export default class GfxPathBuilder {
       case Gfx.Types.Scenery:
         base += `${data.category}/${data.name}`
         break
-      case Gfx.Types.Item:
+      case Gfx.Types.Item: {
         let number = data.number ? data.number : 0
         let subcat = data.subcat ? data.subcat : `Base`
         base += `${data.category}/${subcat}/${number}/${data.display}`
         break
+      }
       case Gfx.Types.Container:
         base += `${data.category}/${data.name}` // ok
         break
@@ -59,16 +45,13 @@ export default class GfxPathBuilder {
       case Gfx.Types.Facade:
         base += `${data.name}` // ok
         break
-      case Gfx.Types.Critter:
-        let gender = data.race == `Human` ? data.gender : `Male`
-        base += `${data.race}/${gender}/${data.armor}/${data.shield}/${
-          data.weapon
-        }/${data.animation}`
+      case Gfx.Types.Critter: {
+        let gender = data.race === `Human` ? data.gender : `Male`
+        base += `${data.race}/${gender}/${data.armor}/${data.shield}/${data.weapon}/${data.animation}`
         break
+      }
       case Gfx.Types.Monster:
-        base += `${data.name}/${data.armor}/${data.shield}/${data.weapon}/${
-          data.animation
-        }`
+        base += `${data.name}/${data.armor}/${data.shield}/${data.weapon}/${data.animation}`
         break
       case Gfx.Types.UniqueNpc:
         base += `${data.name}/${data.shield}/${data.weapon}/${data.animation}`
@@ -78,6 +61,6 @@ export default class GfxPathBuilder {
         break
     }
 
-    this.path = base
+    return base
   }
 }

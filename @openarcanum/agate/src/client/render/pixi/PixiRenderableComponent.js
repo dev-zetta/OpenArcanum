@@ -1,4 +1,4 @@
-import GameComponent from '../../serialize/GameComponent'
+import GameComponent from '../../../shared/serialize/GameComponent'
 
 export default class PixiRenderableComponent extends GameComponent {
   constructor(options) {

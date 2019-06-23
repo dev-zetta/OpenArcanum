@@ -5,12 +5,15 @@ import Location from '../Location'
 import Sector from './Sector'
 import AiSystem from '../entity/ai/System'
 import PathFind from '../PathFind'
-import type GameEngine from '../GameEngine'
+
 import Entity from '../entity/Entity'
-import SectorCache from './SectorCache'
-import type {LocationRaw} from '../entity/Types'
-import {SectorGrid} from './SectorGrid'
+
+import { SectorGrid } from './SectorGrid'
 import Utils from '../misc/Utils'
+
+import type GameEngine from '../GameEngine'
+import type AssetLoader from '../assets/AssetLoader'
+import type EventEmitter from '../misc/EventEmitter'
 
 export default class GameMap {
   engine: GameEngine
@@ -30,13 +33,20 @@ export default class GameMap {
 
   constructor(engine: GameEngine) {
     this.engine = engine
-    this.assetLoader = engine.assetLoader
     this.entitySystem = new ComponentSystem(this)
     this.aiSystem = new AiSystem(this)
     this.pathFind = new PathFind(this)
     this.isLoaded = false
 
     this.sectors = new SectorGrid(this)
+  }
+
+  get assetLoader(): AssetLoader {
+    return this.engine.assetLoader
+  }
+
+  get events(): EventEmitter {
+    return this.engine.events
   }
 
   /**
@@ -68,7 +78,7 @@ export default class GameMap {
     this.isLoading = true
     this.isLoaded = false
 
-    this.engine.events.emit(`Map:Loading`, this)
+    this.events.emit(`Map:Loading`, this)
 
     await this.entitySystem.loadPrototypes()
 
@@ -97,7 +107,7 @@ export default class GameMap {
     this.isLoading = false
     this.isLoaded = true
 
-    this.engine.events.emit(`Map:Loaded`, this)
+    this.events.emit(`Map:Loaded`, this)
   }
 
   /**
@@ -178,6 +188,11 @@ export default class GameMap {
 
     let id = Utils.getFileBase(path)
     let entity = await this.entitySystem.newEntity(id, data)
+
+    //this.events.emit('Map.NewEntity', entity)
+    if (this.onNewEntity) {
+      await this.onNewEntity(entity)
+    }
 
     return entity
   }
@@ -352,7 +367,6 @@ export default class GameMap {
 
     let id = undefined // AGate.Utils.getFileBase(path)
     let entity = await this.entitySystem.newEntity(id, player)
-
     return entity
   }
 
