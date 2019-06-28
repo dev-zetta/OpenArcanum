@@ -2,9 +2,11 @@
 
 import Sector from './map/Sector'
 import Math from './misc/Math'
-import {Direction} from './enums/Entity'
-import type {LocationRaw} from './entity/Types'
+import { Direction } from './enums/Entity'
+import type { LocationRaw } from './entity/Types'
 import Utils from './misc/Utils'
+import Vec2 from './misc/Vec2'
+
 let Directions = [
   Direction.SouthEast,
   Direction.South,
@@ -16,37 +18,14 @@ let Directions = [
   Direction.East
 ]
 
-export default class Location extends Math.Vec2 {
+export default class Location extends Vec2 {
   /**
    *
    * @param x
    * @param y
    */
   constructor(x: number | Array<number>, y: ?number) {
-    if (Utils.isArray(x)) {
-      super(x[0], x[1])
-    } else {
-      super(x, y)
-    }
-  }
-
-  /**
-   *
-   * @param x
-   * @param y
-   * @returns {*}
-   */
-  static transformToRaw(
-    x: number | LocationRaw | Location,
-    y: ?number
-  ): LocationRaw {
-    if (Utils.isArray(x)) {
-      return x
-    } else if (!Utils.isUndefined(y)) {
-      return [x, y]
-    } else {
-      return [x.x, x.y] // Location
-    }
+    super(x, y)
   }
 
   /**
@@ -94,6 +73,25 @@ export default class Location extends Math.Vec2 {
 
   /**
    *
+   * @param x
+   * @param y
+   * @returns {*}
+   */
+  static transformToRaw(
+    x: number | LocationRaw | Location,
+    y: ?number
+  ): LocationRaw {
+    if (Utils.isArray(x)) {
+      return x
+    } else if (!Utils.isUndefined(y)) {
+      return [x, y]
+    } else {
+      return [x.x, x.y] // Location
+    }
+  }
+
+  /**
+   *
    * @param sectorX
    * @param sectorY
    * @param tileX
@@ -109,12 +107,37 @@ export default class Location extends Math.Vec2 {
     return [sectorX * Sector.Width + tileX, sectorY * Sector.Height + tileY]
   }
 
+  setRelative(sectorX: number, sectorY: number, tileX: number, tileY: number) {
+    this.x = sectorX * Sector.Width + tileX
+    this.y = sectorY * Sector.Height + tileY
+  }
+
+  /**
+   *
+   * @param sectorX
+   * @param sectorY
+   * @param tileX
+   * @param tileY
+   * @returns {*[]}
+   */
+  static make(
+    sectorX: number,
+    sectorY: number,
+    tileX: number,
+    tileY: number
+  ): LocationRaw {
+    return new Location(
+      sectorX * Sector.Width + tileX,
+      sectorY * Sector.Height + tileY
+    )
+  }
+
   /**
    *
    * @param location
-   * @returns {Math.Vec2|*}
+   * @returns {Vec2|*}
    */
-  getVelocity(location: Location | Array<number>): Math.Vec2 {
+  getVelocity(location: Location | Array<number>): Vec2 {
     if (Utils.isArray(location)) {
       location = new Location(location)
     }

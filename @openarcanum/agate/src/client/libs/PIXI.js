@@ -14,8 +14,7 @@ PIXI.BaseTexture.getFromCache = (key) => PIXI.utils.BaseTextureCache[key]
 
 PIXI.Texture.getFromCache = (key) => PIXI.utils.TextureCache[key]
 
-
-PIXI.Viewport = Viewport
+PIXI.Viewport = Viewport.Viewport
 PIXI.Cull = Cull
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST

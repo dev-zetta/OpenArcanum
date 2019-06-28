@@ -14,7 +14,7 @@ class BaseRenderer {
    */
   constructor(clientEngine) {
     this.clientEngine = clientEngine
-    this.gameEngine = clientEngine.engine
+    this.gameEngine = clientEngine.gameEngine
 
     this.gameEngine.events.on(`client__stepReset`, () => {
       this.doReset = true
@@ -43,7 +43,7 @@ class BaseRenderer {
   /**
    * The main draw function.  This method is called at high frequency,
    * at the rate of the render loop.  Typically this is 60Hz, in WebVR 90Hz.
-   * If the client engine has been configured to render-schedule, then this
+   * If the client gameEngine has been configured to render-schedule, then this
    * method must call the clientEngine's step method.
    *
    * @param {Number} t - current time (only required in render-schedule mode)

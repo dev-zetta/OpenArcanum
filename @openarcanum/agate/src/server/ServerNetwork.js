@@ -262,7 +262,7 @@ class ServerNetwork {
         else this.objMemory[objId] = s.dataBuffer
 
         // prune strings which haven't changed
-        obj = obj.prunedStringsClone(this.serializer, prevObject)
+        //obj = obj.prunedStringsClone(this.serializer, prevObject)
       }
 
       this.networkTransmitter.addNetworkedEvent(`objectUpdate`, {

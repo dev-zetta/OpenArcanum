@@ -1,17 +1,16 @@
+
+
 export default class GameComponent {
-  constructor() {
-    /**
-     * the gameObject this component is attached to. This gets set in the addComponent method
-     * @member {GameObject}
-     */
-    this.parentObject = null
+
+  constructor(){
+
   }
 
-  static get name() {
-    return this.constructor.name
+  static get name(){
+    return this.constructor.name;
   }
 
-  static get netScheme() {
-    return null
+  static get netScheme(){
+    return null;
   }
 }

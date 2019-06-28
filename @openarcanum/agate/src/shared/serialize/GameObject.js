@@ -21,13 +21,20 @@ class GameObject extends Serializable {
    * @param {Object} options - options for instantiation of the GameObject
    * @param {Number} id - if set, the new instantiated object will be set to this id instead of being generated a new one. Use with caution!
    */
-  constructor(gameEngine, options) {
+  constructor(gameEngine) {
     super()
+
     /**
      * The gameEngine this object will be used in
      * @member {GameEngine}
      */
     this.gameEngine = gameEngine
+  }
+
+  init(params, data) {
+    super.init(params, data)
+
+    let { options } = params
 
     /**
      * ID of this object's instance.
@@ -43,10 +50,10 @@ class GameObject extends Serializable {
      * @member {Number}
      */
     this.id = null
-    if (options && `id` in options) this.id = options.id
-    else if (this.gameEngine) this.id = this.gameEngine.world.getNewId()
-
-    this.components = {}
+    if (options && `id` in options) {
+      this.id = options.id
+    }
+    //else if (this.gameEngine) this.id = this.gameEngine.world.getNewId()
   }
 
   /**
@@ -81,7 +88,7 @@ class GameObject extends Serializable {
   }
 
   saveState(other) {
-    this.savedCopy = new this.constructor(this.gameEngine, {id: null})
+    this.savedCopy = new this.constructor(this.gameEngine, { id: null })
     this.savedCopy.syncTo(other ? other : this)
   }
   /**
@@ -158,39 +165,6 @@ class GameObject extends Serializable {
 
   // clean up resources
   destroy() {}
-
-  addComponent(componentInstance) {
-    componentInstance.parentObject = this
-    this.components[componentInstance.constructor.name] = componentInstance
-
-    // a gameEngine might not exist if this class is instantiated by the serializer
-    if (this.gameEngine) {
-      this.gameEngine.events.emit(`componentAdded`, this, componentInstance)
-    }
-  }
-
-  removeComponent(componentName) {
-    // todo cleanup of the component ?
-    delete this.components[componentName]
-
-    // a gameEngine might not exist if this class is instantiated by the serializer
-    if (this.gameEngine) {
-      this.gameEngine.events.emit(`componentRemoved`, this, componentName)
-    }
-  }
-
-  /**
-   * Check whether this game object has a certain component
-   * @param {Object} componentClass the comp
-   * @return {Boolean} true if the gameObject contains this component
-   */
-  hasComponent(componentClass) {
-    return componentClass.name in this.components
-  }
-
-  getComponent(componentClass) {
-    return this.components[componentClass.name]
-  }
 }
 
 export default GameObject

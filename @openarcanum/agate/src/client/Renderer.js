@@ -15,7 +15,7 @@ export default class Renderer extends PixiRenderer {
   constructor(clientEngine: ClientEngine) {
     super(clientEngine)
 
-    this.engine = clientEngine.engine
+    this.gameEngine = clientEngine.gameEngine
     this.shaders = {}
   }
 
@@ -39,7 +39,7 @@ export default class Renderer extends PixiRenderer {
 
     let sprite = object.data
 
-    this.engine.events.emit('Object:Click', sprite)
+    this.gameEngine.events.emit('Object:Click', sprite)
   }
 
   addPipeline(name: string, pipeline: Pipeline) {}
@@ -76,7 +76,7 @@ export default class Renderer extends PixiRenderer {
 
   async loadShaders() {
     let dataUrl = AGate.getAppPath(`shader`)
-    let files = await this.engine.assetLoader.findFiles(
+    let files = await this.gameEngine.assetLoader.findFiles(
       dataUrl,
       `.fragment.glsl`
     )

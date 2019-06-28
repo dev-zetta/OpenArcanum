@@ -3,132 +3,134 @@
 import GameObject from '../serialize/GameObject'
 import Utils from '../misc/Utils'
 
-import type System from './System'
 import type GameEngine from '../GameEngine'
-import type ComponentSystem from './ComponentSystem'
-//const { GfxTypes } = Enums
+import type Manager from './Manager'
+import type Prototype from './Prototype';
 
 export default class Entity extends GameObject {
-
+  /**
+   * Unique identifier of the entity.
+   *
+   * @property {Number} id
+   */
   id: string
-  engine: GameEngine
-  ecs: ?ComponentSystem
+
+  /**
+   *
+   */
+  gameEngine: GameEngine
+
+  /**
+   * A reference to parent ECS class.
+   * @property {ECS} manager
+   */
+  manager: ?Manager
+
+  /**
+   *
+   */
   moved: boolean
-  systems: Array<System>
+
+  /**
+   * Systems applied to the entity.
+   *
+   * @property {Array[System]} systems
+   */
+  systems: Array<Manager>
+
+  /**
+   * Indiquate a change in components (a component was removed or added)
+   * which require to re-compute entity eligibility to all systems.
+   *
+   * @property {Boolean} systemsDirty
+   */
   systemsDirty: boolean
 
+  /**
+   * Components of the entity stored as key-value pairs.
+   *
+   * @property {Object} components
+   */
+  components: Array<*> // Class
 
+  /**
+   * All tags that this entity currently has.
+   * @type {Array.<String>}
+   * @private
+   */
+  tags: Array<string>
 
   /**
    * @class Entity
    * @constructor
    *
-   * @param  {Number|UID.UIDGenerator} [idOrUidGenerator=null] The entity id if
-   * a Number is passed. If an UID.UIDGenerator is passed, the entity will use
-   * it to generate a new id. If nothing is passed, the entity will use
-   * the default UID.UIDGenerator.
-   *
-   * @param {Array[Component]} [components=[]] An array of initial components.
+   * @param gameEngine
+   * @param options
    */
-  constructor(engine: GameEngine, options: Object = {}) {
-    super()
+  constructor(gameEngine: GameEngine, options: Object = {}) {
+    super(gameEngine, options)
 
-    /**
-     * Unique identifier of the entity.
-     *
-     * @property {Number} id
-     */
-    this.id = options.id || null
+    //this.id = options.id || null
 
-    /**
-     * Systems applied to the entity.
-     *
-     * @property {Array[System]} systems
-     */
     this.systems = []
-
-    /**
-     * Indiquate a change in components (a component was removed or added)
-     * which require to re-compute entity eligibility to all systems.
-     *
-     * @property {Boolean} systemsDirty
-     */
-    this.systemsDirty = false
-
-    /**
-     * Components of the entity stored as key-value pairs.
-     *
-     * @property {Object} components
-     */
-    /*this.components = {};
-
-    // components initialisation
-    for (let i = 0, component; component = components[i]; i += 1) {
-      // if a getDefaults method is provided, use it. First because let the
-      // runtime allocate the component is way more faster than using a copy
-      // function. Secondly because the user may want to provide some kind
-      // of logic in components initialisation ALTHOUGH these kind of
-      // initialisation should be done in enter() handler
-      if (component.getDefaults) {
-        this.components[component.name] = component.getDefaults();
-      } else {
-        this.components[component.name] = Object.assign({},
-          components[i].defaults);
-      }
-    }*/
-
-    /**
-     * A reference to parent ECS class.
-     * @property {ECS} ecs
-     */
-    this.ecs = null
-
-    this.engine = engine
+    this.components = []
+    this.tags = []
   }
 
   /**
-   * Set the parent ecs reference.
    *
-   * @private
-   * @param {ECS} ecs An ECS class instance.
+   * @returns {Manager}
    */
-  addToECS(ecs: ComponentSystem) {
-    this.ecs = ecs
-    if (!this.id) {
-      this.id = ecs.getNewId(this)
-    }
-
-    this.setSystemsDirty()
+  get manager() {
+    return this.gameEngine.map.entitySystem
   }
+
+  /**
+   * Re-init for pooling purposes.
+   * @private
+   */
+  init(params, data) {
+    this.id = null
+    this.components.length = 0
+    this.tags.length = 0
+    this.systems.length = 0
+
+    this.systemsDirty = false
+  }
+
+  setComponent(componentName, component) {
+    this[componentName] = component
+  }
+
   /**
    * Set the systems dirty flag so the ECS knows this entity
    * needs to recompute eligibility at the beginning of next
    * tick.
    */
   setSystemsDirty() {
-    if (!this.systemsDirty && this.ecs) {
+    if (!this.systemsDirty && this.manager) {
       this.systemsDirty = true
 
       // notify to parent ECS that this entity needs to be tested next tick
-      this.ecs.addDirtyEntity(this)
+      this.manager.addDirtyEntity(this)
     }
   }
   /**
    * Add a system to the entity.
    *
    * @private
-   * @param {System} system The system to add.
+   * @param {Manager} system The system to add.
    */
-  addSystem(system: System) {
+  addSystem(system: Manager) {
     this.systems.push(system)
   }
   /**
    * Remove a system from the entity.
    *
    * @private
-   * @param  {System} system The system reference to remove.
+   * @param  {Manager} system The system reference to remove.
    */
-  removeSystem(system: System) {
+  removeSystem(system: Manager) {
     let index = this.systems.indexOf(system)
 
     if (index !== -1) {
@@ -141,22 +143,40 @@ export default class Entity extends GameObject {
    * @param component
    * @returns {string | *}
    */
-  static componentInstanceToName(component: Object): string {
-    return Utils.camelCase(component.constructor.name)
+  static componentToName(component: Object): string {
+    let name = Utils.isString(component) ? component: component.name ? component.name : component.constructor.name
+    return Utils.camelCase(name)
+  }
+
+
+
+  /**
+   *
+   * @param component
+   * @param componentName
+   * @param componentData
+   * @param prototype
+   * @returns {Proxy<Object>}
+   */
+  onAddComponent(componentName, componentData, component, prototype) {
+    //lll(componentName, componentData, component, prototype)
+
+    return prototype.wrapComponent(
+      componentName,
+      componentData,
+      component,
+    )
   }
 
   /**
-   * Add a component to the entity. WARNING this method does not copy
-   * components data but assign directly the reference for maximum
-   * performances. Be sure not to pass the same component reference to
-   * many entities.
+   * Add a component to the entity.
    *
    * @param component
    */
-  addComponent(component: Object) {
-    this[Entity.componentInstanceToName(component)] = component
-    this.setSystemsDirty()
+  addComponent(componentClass: Object, componentData: Object, prototype: Object) {
+    this.manager.addComponentToEntity(this, componentClass, componentData, prototype)
   }
+
   /**
    * Remove a component from the entity. To preserve performances, we
    * simple set the component property to `undefined`. Therefore the
@@ -164,14 +184,17 @@ export default class Entity extends GameObject {
    *
    * @param  {String} name Name of the component to remove.
    */
-  removeComponent(name: string) {
-    if (!this[name]) {
-      return
-    }
-
-    delete this[name]
-    this.setSystemsDirty()
+  removeComponent(componentClass: Object|string) {
+    this.manager.removeComponentFromEntity(this, componentClass)
   }
+
+  /**
+   * Drop all components.
+   */
+  removeAllComponents() {
+    return this.manager.removeAllComponentsFromEntity(this)
+  }
+
   /**
    * Update a component field by field, NOT recursively. If the component
    * does not exists, this method create it silently.
@@ -219,6 +242,28 @@ export default class Entity extends GameObject {
   }
 
   /**
+   * Drop all components.
+   */
+  removeAllComponents() {
+    return this.manager.removeAllComponentsFromEntity(this)
+  }
+
+  /**
+   * @param {Array.<Function>} Components
+   * @return {boolean} True if entity has all Components.
+   */
+  hasAllComponents(componentClasses) {
+    for (let i = 0; i < componentClasses.length; i++) {
+      const C = componentClasses[i]
+      if (this.components.indexOf(C) === -1) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  /**
    *
    * @param componentClass
    * @returns {*}
@@ -230,14 +275,47 @@ export default class Entity extends GameObject {
   }
 
   /**
+   * @param {String} tag
+   * @return {boolean} True if entity has tag.
+   */
+  hasTag(tag) {
+    return this.tags.indexOf(tag) !== -1
+  }
+
+  /**
+   * @param {String} tag
+   * @return {Entity} This entity.
+   */
+  addTag(tag) {
+    this.manager.entityAddTag(this, tag)
+    return this
+  }
+
+  /**
+   * @param {String} tag
+   * @return {Entity} This entity.
+   */
+  removeTag(tag) {
+    this.manager.entityRemoveTag(this, tag)
+    return this
+  }
+
+  /**
+   * Fire off an event on the messanger with this entity as the first parameter.
+   * @param {String} eventName
+   * @param {Object=} option
+   */
+  trigger(eventName, option) {
+    this.manager.trigger(eventName, this, option)
+  }
+
+  /**
    * Dispose the entity.
    *
    * @private
    */
   dispose() {
-    for (let system of this.systems) {
-      system.removeEntity(this)
-    }
+    return this.manager.removeEntity(this)
   }
 
   /**
@@ -246,8 +324,7 @@ export default class Entity extends GameObject {
    */
   async loadData() {
     //this.updateComponents(data)
-
-
   }
+
 
 }

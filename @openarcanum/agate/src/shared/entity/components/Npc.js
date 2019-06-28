@@ -1,14 +1,16 @@
+// @flow
+
 import Component from './Component'
 import Flags from '../../Flags'
-import type {LocationRaw} from '../Types'
+import Location from '../../Location'
 
 export default class Npc extends Component {
   aiData: Object
   expWorth: number
   expPool: number
   waypointCurrent: number
-  standpointDay: LocationRaw
-  standpointNight: LocationRaw
+  standpointDay: Location
+  standpointNight: Location
   origin: string
   faction: string
   priceMul: string
@@ -16,7 +18,7 @@ export default class Npc extends Component {
   socialClass: string
   wait: any
   generatorData: string
-  waypoints: Array<LocationRaw>
+  waypoints: Array<Location>
 
   flags: Flags
 
@@ -25,12 +27,17 @@ export default class Npc extends Component {
    */
   constructor() {
     super(...arguments)
+    this.flags = new Flags()
     this.waypoints = []
-    this.currentWaypoint = null
 
-
-    this.flags = null
+    this.standpointDay = new Location()
+    this.standpointNight = new Location()
   }
 
+  init(params) {
+    super.init(params)
 
+    this.currentWaypoint = null
+    this.waypoints.length = 0
+  }
 }

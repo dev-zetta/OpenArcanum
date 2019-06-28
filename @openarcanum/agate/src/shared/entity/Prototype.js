@@ -1,11 +1,11 @@
 //@flow
 
-import Flags from '../Flags'
 import Components from './components'
 
 import Entity from './Entity'
 import type GameEngine from '../GameEngine'
 import Utils from '../misc/Utils'
+import Component from './components/Component'
 
 //const ClassTransformer = require(`class-transformer`)
 
@@ -17,16 +17,24 @@ export default class Prototype extends Entity {
     super(engine, options)
   }
 
+  onAddComponent(componentName, componentData, component, prototype) {
+    // target = this prototype, save original data
+    Prototype.setPropertiesFromData(componentName, componentData, component)
+
+    return component
+  }
+
   /**
    * Create proxified components for entity/prototype
    * @param data - raw components
+   * @param prototype - Prototype
    * @param target - where to add generated components
    * @returns {*}
    */
-  static createComponentsFromData(
+  static addComponentsToEntity(
+    entity: Entity,
     data: Object,
-    prototype: Object,
-    target: ?Entity | ?Function
+    prototype: Prototype
   ): Object {
     let components = {}
 
@@ -38,44 +46,41 @@ export default class Prototype extends Entity {
         continue
       }
 
-      let componentData = data[key]
+      let component = entity.addComponent(componentClass, data[key], prototype)
 
-      let component = new componentClass()
-      if (componentData.flags) {
-        component.flags = new Flags(componentData.flags)
-      }
-
-      let componentName = Prototype.componentInstanceToName(component)
-      if (prototype) {
-        Object.assign(component, componentData)
-        component = Prototype.wrapObjectToProxy(
-          componentName,
-          component,
-          prototype[componentName]
-        )
-      } else {
-        // target = this prototype, save original data
-        Prototype.processPrototypeComponent(
-          componentName,
-          component,
-          componentData
-        )
-
-        /// lll('dsdds', component)
-      }
-
-      if (target) {
-        if (typeof target === `function`) {
-          target(componentName, component)
-        } else {
-          component.entity = target
-          target.addComponent(component)
-        }
-      } else {
-        components[componentName] = component
-      }
+      components[key] = component
     }
 
+    return components
+  }
+
+  /**
+   * Create proxified components for entity/prototype
+   * @param data - raw components
+   * @param target - where to add generated components
+   * @returns {*}
+   */
+  static createPrototypeComponentsFromData(
+    prototype: Prototype,
+    data: Object
+  ): Object {
+    let components = {}
+
+    for (let key in data) {
+      let componentClass = Components[key]
+
+      if (!componentClass) {
+        Utils.logError(`Unknown component: ${key}`)
+        continue
+      }
+
+      //lll(componentClass)
+      let component = prototype.addComponent(componentClass, data[key], null) // Prototype components are not proxyfied
+
+      components[key] = component
+    }
+
+    //lll(components)
     return components
   }
 
@@ -85,7 +90,196 @@ export default class Prototype extends Entity {
    * @returns {*}
    */
   loadComponents(data: Object) {
-    Prototype.createComponentsFromData(data, null, this)
+    Prototype.createPrototypeComponentsFromData(this, data)
+  }
+
+  /**
+   *
+   * @param name
+   * @param prototype
+   * @param data
+   */
+  /*static processPrototypeComponent(name, data, prototype) {
+    for (let key in data) {
+      let value = data[key]
+      if (Utils.isPlainObject(value)) {
+        prototype[key] = {}
+        Prototype.processPrototypeComponent(key, value, prototype[key])
+      } else {
+        prototype[key] = value
+      }
+    }
+
+    prototype[`_originalData`] = data
+    prototype[`_propName`] = name
+  }*/
+
+  /**
+   * Generate component update and send it to the engine
+   * @param obj
+   * @param prop
+   * @param value
+   * @param parent
+   * @returns {Promise<void>}
+   */
+  static async dispatchPropertyChange(obj: Object, prop: string, value: any) {
+    let parent = obj[`_parent`]
+
+    let update = null
+    let path = []
+    if (Array.isArray(obj)) {
+      lll('array')
+      let prototype = obj[`_prototype`]
+      let propName = prototype[`_propName`]
+
+      path.push({
+        prototype
+      })
+
+      let key = `${propName}[${prop}]`
+      while (parent) {
+        prototype = parent[`_prototype`]
+        propName = prototype[`_propName`]
+
+        key = `${propName}.${key}`
+
+        path.push({
+          prototype
+        })
+
+        if (!parent[`_parent`]) {
+          break
+        }
+
+        parent = parent[`_parent`]
+      }
+
+      update = {
+        key,
+        value
+      }
+    } else {
+
+
+      if (Prototype.isPrototypeProperty(prop, obj._prototype)) {
+        let key = prop
+        while (parent) {
+          let prototype = parent[`_prototype`]
+
+          path.push({
+            prototype
+          })
+
+          key = `${prototype[`_propName`]}.${key}`
+          if (!parent[`_parent`]) {
+            break
+          }
+
+          parent = parent[`_parent`]
+        }
+
+        update = {
+          key,
+          value
+        }
+      } else {
+        //lll('not')
+      }
+    }
+
+
+    //lll(obj, prop, path, update)
+
+    if (update) {
+      let entity = parent.entity
+
+      if (!entity._update) {
+        entity._update = {
+          _totalUpdates: 0
+        }
+      }
+
+      entity._update._totalUpdates++
+
+      let currentPath = entity._update // root of entity, first is component name
+      for (let i = path.length - 1; i >= 0; i--) {
+        let { prototype } = path[i]
+
+        let propName = prototype[`_propName`]
+
+        if (!currentPath[propName]) {
+          currentPath[propName] = {}
+        }
+
+        currentPath = currentPath[propName]
+      }
+
+      currentPath[prop] = value
+
+      entity.triggerUpdate()
+    }
+  }
+
+  static isSetableObject(object) {
+    return Utils.isObjectLike(object) && Utils.isFunction(object.set)
+  }
+
+  static setPropertyFromData(
+    name: string,
+    value: Object,
+    target: Entity | Prototype
+  ) {
+    if (Prototype.isSetableObject(target[name])) {
+      target[name].set(value) // Its a class. Call set method
+    } else {
+      target[name] = value
+    }
+  }
+
+  /**
+   * Copy properties deeply and save original data in the component, if it's prototype component
+   * @param name
+   * @param data
+   * @param target
+   * @param prototype
+   */
+  static setPropertiesFromData(name, data, target: Entity | Prototype) {
+    //lll(name, data, target)
+    if (Utils.isPlainObject(data)) {
+      for (let key in data) {
+        let value = data[key]
+
+        if (Prototype.isSetableObject(target[key])) {
+          target[key].set(value) // Its a class. Call set method
+        } else {
+          if (Utils.isObjectLike(value)) {
+            target[key] = {}
+            Prototype.setPropertiesFromData(key, value, target[key])
+          } else {
+            target[key] = value
+          }
+        }
+      }
+    }
+
+    target[`_originalData`] = data
+    target[`_propName`] = name
+  }
+
+  /**
+   *
+   * @param componentName
+   * @param componentData
+   * @param component
+   * @returns {Proxy<Object>}
+   */
+  wrapComponent(componentName, componentData, component) {
+    return Prototype.wrapComponentToProxy(
+      componentName,
+      componentData,
+      component,
+      this[componentName]
+    )
   }
 
   /**
@@ -119,163 +313,81 @@ export default class Prototype extends Entity {
    * @returns {boolean}
    */
   static isPrototypeProperty(key, prototype) {
-    return prototype != null && key in prototype._originalData
+    if (!prototype[`_originalData`]) {
+      lll(key, prototype)
+    }
+
+    return prototype != null && key in prototype[`_originalData`]
   }
 
   /**
-   * Make component for prototype, i.e. copy properties deeply and save original data in the component
-   * @param name
-   * @param prototype
+   * Wrap component to proxy. Load the data at same time. Assign prototype to each subobject
+   * @param propertyName
    * @param data
-   */
-  static processPrototypeComponent(name, prototype, data) {
-    for (let key in data) {
-      let value = data[key]
-      if (Utils.isPlainObject(value)) {
-        prototype[key] = {}
-        Prototype.processPrototypeComponent(key, prototype[key], value)
-      } else {
-        prototype[key] = value
-      }
-    }
-
-    prototype[`_originalData`] = data
-  }
-
-  /**
-   * Generate component update and send it to the engine
-   * @param obj
-   * @param prop
-   * @param value
-   * @param parent
-   * @returns {Promise<void>}
-   */
-  static async dispatchPropertyChange(
-    obj: Object,
-    prop: string,
-    value: any,
-    parent: Object
-  ) {
-    let update = null
-    let path = []
-    if (Array.isArray(obj)) {
-      let prototype = obj[`_prototype`]
-      let propName = prototype[`_propName`]
-
-      path.push({
-        prototype
-      })
-
-      let key = `${propName}[${prop}]`
-      while (parent) {
-        prototype = parent[`_prototype`]
-        propName = prototype[`_propName`]
-
-        key = `${propName}.${key}`
-
-        path.push({
-          prototype
-        })
-
-        if (!parent[`_parent`]) {
-          break
-        }
-
-        parent = parent[`_parent`]
-      }
-
-      update = {
-        key,
-        value
-      }
-    } else {
-      if (Prototype.isPrototypeProperty(prop, obj._prototype)) {
-        let key = prop
-        while (parent) {
-          let prototype = parent[`_prototype`]
-
-          path.push({
-            prototype
-          })
-
-          key = `${prototype[`_propName`]}.${key}`
-          if (!parent[`_parent`]) {
-            break
-          }
-
-          parent = parent[`_parent`]
-        }
-
-        update = {
-          key,
-          value
-        }
-      }
-    }
-
-    if (update) {
-      let entity = parent.entity
-
-      if (!entity._update) {
-        entity._update = {
-          _totalUpdates: 0
-        }
-      }
-
-      entity._update._totalUpdates++
-
-      let currentPath = entity._update // root of entity, first is component name
-      for (let i = path.length - 1; i >= 0; i--) {
-        let { prototype } = path[i]
-
-        let propName = prototype[`_propName`]
-
-        if (!currentPath[propName]) {
-          currentPath[propName] = {}
-        }
-
-        currentPath = currentPath[propName]
-      }
-
-      currentPath[prop] = value
-
-      entity.engine.onEntityUpdate(entity)
-    }
-  }
-
-  /**
-   *
-   * @param source
+   * @param object
    * @param prototype
    * @param parent
    * @returns {*}
    */
-  static wrapObjectToProxy(
+  static wrapComponentToProxy(
     propertyName: string,
-    source: Object,
+    data: Object,
+    object: Component | Object,
     prototype: Object,
-    parent: Object = source
+    parent: Object = object
   ): Proxy<Object> {
-    for (let key in source) {
-      let value = source[key]
-      if (Prototype.canBeProxified(key, value, prototype)) {
-        source[key] = Prototype.wrapObjectToProxy(
-          key,
-          value,
-          prototype[key],
-          source
-        )
+
+    if (Prototype.isSetableObject(prototype)) {
+      object.set(data)
+    } else {
+      const prototypeData = prototype[`_originalData`] // original data of prototype... compare new component data with prototype component data
+      for (let key in prototypeData) {
+        if (Utils.isUndefined(data[key])) {
+          // the property is not present in loaded in data...
+          /*if (Prototype.isSetableObject(prototypeData[key])) {
+
+          } else {*/
+            delete object[key] // remove from object... it's reused component, we don't want to have previous
+          //}
+
+          continue
+        }
+
+        let value = data[key]
+
+        if (Prototype.canBeProxified(key, value, prototype)) {
+          // replace object with wrapped object
+          if (Utils.isUndefined(object[key])) {
+            let prototypeProperty = prototype[key]
+            //lll(prototypeProperty)
+
+            object[key] = new prototypeProperty.constructor()
+          }
+
+          object[key] = Prototype.wrapComponentToProxy(
+            key,
+            value,
+            object[key],
+            prototype[key],
+            object
+          )
+        } else {
+          //lll(key, value, object)
+          Prototype.setPropertyFromData(key, value, object)
+        }
       }
     }
 
-    if (!prototype[`_propName`]) {
+
+
+    /*if (!prototype[`_propName`]) {
       prototype[`_propName`] = propertyName // TODO: Hacked, fix
-    }
+    }*/
 
-    source[`_prototype`] = prototype
+    object[`_prototype`] = prototype
 
-    if (source !== parent) {
-      source[`_parent`] = parent
+    if (object !== parent) {
+      object[`_parent`] = parent
     }
 
     let handler = {
@@ -296,15 +408,14 @@ export default class Prototype extends Entity {
           Prototype.isValueObject(value) &&
           Prototype.isPrototypeProperty(prop, obj._prototype)
         ) {
-          //lll('setting', prop, value)
-          obj[prop] = Prototype.wrapObjectToProxy(
+          obj[prop] = Prototype.wrapComponentToProxy(
             prop,
             value,
             obj._prototype[prop],
             obj
           )
         } else {
-          Prototype.dispatchPropertyChange(obj, prop, value, parent)
+          Prototype.dispatchPropertyChange(obj, prop, value)
           //lll({prop, prototype: obj._prototype})
 
           obj[prop] = value
@@ -314,20 +425,20 @@ export default class Prototype extends Entity {
       }
     }
 
-    let result = new Proxy(source, handler)
+    let result = new Proxy(object, handler)
     return result
   }
 
   /**
    *
-   * @param engine
+   * @param entity
    * @param data
    * @returns {*}
    */
-  createEntity(engine: GameEngine, data: Object): Object {
-    let entity = new Entity(engine)
+  extendEntity(entity: Entity, data: Object): Entity {
+    //let entity = new Entity(this.engine)
 
-    Prototype.createComponentsFromData(data, this, entity)
+    Prototype.addComponentsToEntity(entity, data, this)
     return entity
   }
 
@@ -336,7 +447,7 @@ export default class Prototype extends Entity {
    * @param entity
    * @param source
    */
-  copyToEntity(entity: Entity, source: ?Prototype = null) {
+  /*copyToEntity(entity: Entity, source: ?Prototype = null) {
     let prototype = source || this
 
     for (let key in prototype) {
@@ -371,5 +482,5 @@ export default class Prototype extends Entity {
         }
       }
     }
-  }
+  }*/
 }

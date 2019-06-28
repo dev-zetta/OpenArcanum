@@ -7,10 +7,6 @@
 
 //Math.random = stdlib.math.base.random.randu;
 
-// Import Vec2
-// https://www.npmjs.com/package/vec2
-import Vec2 from 'vec2'
-Math.Vec2 = Vec2
 
 import xorshift from 'xorshift'
 

@@ -27,7 +27,7 @@ const ShaderTest2: string = `gamma`
 export default class Scene {
   customLoader: boolean
   events: EventEmitter
-  engine: GameEngine
+  gameEngine: GameEngine
   client: ClientEngine
   assetLoader: AssetLoader
   renderer: Renderer
@@ -39,14 +39,14 @@ export default class Scene {
   constructor(client: ClientEngine) {
     //super({ key: `default`})
     this.client = client
-    this.engine = client.engine
+    this.gameEngine = client.gameEngine
 
     //this.renderToTexture = true
     this.customLoader = true
 
     this.events.on(`Map:Loading`, this.onMapLoading, this)
     this.events.on(`Map:Loaded`, this.onMapLoaded, this)
-    // this.engine.events.on(`client.started`, super.start, this)
+    // this.gameEngine.events.on(`client.started`, super.start, this)
 
     this.events.on(`Sector:Loading`, this.onSectorLoading, this)
 
@@ -73,11 +73,11 @@ export default class Scene {
   }
 
   get assetLoader(): AssetLoader {
-    return this.engine.assetLoader
+    return this.gameEngine.assetLoader
   }
 
   get events(): EventEmitter {
-    return this.engine.events
+    return this.gameEngine.events
   }
 
   /**
@@ -360,7 +360,7 @@ export default class Scene {
         await sprite.load(visualClass)
         visualClass.sprite = sprite
 
-        lll(`loaded visual`, entity.base.type)
+        //lll(`loaded visual`, entity.base.type)
       }
     }
   }
@@ -370,7 +370,7 @@ export default class Scene {
    * @param location
    */
   setCameraLocation(location: Location) {
-    let center = new Location(location).worldToScreen()
+    let center = location.worldToScreen()
     //center.x += cam.width / 2;
     //center.y += cam.height / 2;
 
@@ -411,7 +411,7 @@ export default class Scene {
       let pos = tiles[i]
       let location = new Location(pos[1], pos[0])
 
-      let sector = this.engine.map.getSector(location.sectorX, location.sectorY)
+      let sector = this.gameEngine.map.getSector(location.sectorX, location.sectorY)
 
       if (!sector || !sector.tiles) {
         continue
@@ -560,7 +560,7 @@ export default class Scene {
    */
   addEntity(entity: Entity, target: Object) {
     let baseComponent = entity.base
-    let location = new Location(baseComponent.location)
+    let location = baseComponent.location
 
     let visualComponent = entity.visual
     if (!visualComponent || !visualComponent.classes) {
@@ -728,13 +728,13 @@ export default class Scene {
     }
 
     let pos = this.isometric.projector.unprojectAbsolute({
-      x: location[0],
-      y: location[1]
+      x: location.x,
+      y: location.y
     })
 
     if (light.offset) {
-      pos.x += light.offset[0]
-      pos.y += light.offset[1]
+      pos.x += light.offset.x
+      pos.y += light.offset.y
     }
 
     let color = Scene.stringToColor(light.color)

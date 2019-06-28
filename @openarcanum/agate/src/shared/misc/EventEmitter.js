@@ -51,7 +51,6 @@ export default class EventEmitter extends eventemitter3 {
    * @param context
    */
   on(topic: string, fn: Function, context: ?Object): EventEmitter {
-    console.log(this)
     return this.hookListener(super.on, topic, fn, context)
   }
 

@@ -16,11 +16,11 @@ export default class ClientEngine extends ClientNetwork {
 
   /**
    *
-   * @param engine
+   * @param gameEngine
    * @param options
    * @param canvas
    */
-  constructor(engine: GameEngine, options: Object) {
+  constructor(gameEngine: GameEngine, options: Object) {
     options = Object.assign(
       {
         autoConnect: false
@@ -28,12 +28,11 @@ export default class ClientEngine extends ClientNetwork {
       options
     )
 
-    super(engine, options)
-    this.engine = engine
-    this.engine.client = this
+    super(gameEngine, options)
+    this.gameEngine.client = this
 
 
-    this.guiManager = new Manager(engine)
+    this.guiManager = new Manager(gameEngine)
     this.player = null
 
     this.events.on(`Map:Loading`, this.onMapLoading, this)
@@ -49,11 +48,11 @@ export default class ClientEngine extends ClientNetwork {
   }
 
   get assetLoader(): AssetLoader {
-    return this.engine.assetLoader
+    return this.gameEngine.assetLoader
   }
 
   get events(): EventEmitter {
-    return this.engine.events
+    return this.gameEngine.events
   }
 
 
@@ -74,7 +73,7 @@ export default class ClientEngine extends ClientNetwork {
    * @returns {Promise<void>}
    */
   async create(canvas: HTMLCanvasElement) {
-    lll('Client: Creating engine')
+    lll('Client: Creating gameEngine')
 
 
     this.scene = new Scene(this, canvas)
@@ -97,7 +96,7 @@ export default class ClientEngine extends ClientNetwork {
    *
    */
   async start() {
-    lll('Client: Starting engine')
+    lll('Client: Starting gameEngine')
 
     await this.scene.start()
 
@@ -139,7 +138,7 @@ export default class ClientEngine extends ClientNetwork {
 
   async join() {
     lll('Client: Joining server')
-    const config = this.engine.getConfig(`client`)
+    const config = this.gameEngine.getConfig(`client`)
     this.options.serverURL = config.serverURL
     await this.connect()
   }
@@ -196,9 +195,9 @@ export default class ClientEngine extends ClientNetwork {
   /**
    * This function should be called by the client whenever a user input occurs.
    * This function will emit the input event, forward the input to the client's
-   * game engine (with a delay if so configured) and will transmit the input to the server as well.
+   * game gameEngine (with a delay if so configured) and will transmit the input to the server as well.
    *
-   * This function can be called by the extended client engine class, typically at
+   * This function can be called by the extended client gameEngine class, typically at
    the beginning of client-side step processing {@see GameEngine#client__preStep}.
    * @param input
    * @param inputOptions

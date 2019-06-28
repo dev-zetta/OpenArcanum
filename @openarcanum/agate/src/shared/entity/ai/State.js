@@ -100,4 +100,18 @@ export default class State {
 
     return false
   }
+
+  /**
+   *
+   */
+  clear() {
+    for (let property in this) {
+      if (this.hasOwnProperty(property)) {
+        delete this[property]
+      }
+
+    }
+
+    this.counter = 0
+  }
 }

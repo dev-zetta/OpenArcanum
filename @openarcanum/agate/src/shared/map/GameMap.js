@@ -1,6 +1,6 @@
 //@flow
 
-import ComponentSystem from '../entity/ComponentSystem'
+import Manager from '../entity/Manager'
 import Location from '../Location'
 import Sector from './Sector'
 import AiSystem from '../entity/ai/System'
@@ -16,8 +16,8 @@ import type AssetLoader from '../assets/AssetLoader'
 import type EventEmitter from '../misc/EventEmitter'
 
 export default class GameMap {
-  engine: GameEngine
-  entitySystem: ComponentSystem
+  gameEngine: GameEngine
+  entitySystem: Manager
   aiSystem: AiSystem
   pathFind: PathFind
   isLoaded: boolean
@@ -31,9 +31,9 @@ export default class GameMap {
   width: number
   height: number
 
-  constructor(engine: GameEngine) {
-    this.engine = engine
-    this.entitySystem = new ComponentSystem(this)
+  constructor(gameEngine: GameEngine) {
+    this.gameEngine = gameEngine
+    this.entitySystem = new Manager(gameEngine)
     this.aiSystem = new AiSystem(this)
     this.pathFind = new PathFind(this)
     this.isLoaded = false
@@ -42,11 +42,11 @@ export default class GameMap {
   }
 
   get assetLoader(): AssetLoader {
-    return this.engine.assetLoader
+    return this.gameEngine.assetLoader
   }
 
   get events(): EventEmitter {
-    return this.engine.events
+    return this.gameEngine.events
   }
 
   /**

@@ -1,12 +1,11 @@
 // @flow
-import type ComponentSystem from './ComponentSystem'
+import type Manager from './Manager'
 import type GameEngine from '../GameEngine'
 import type Entity from './Entity'
 
-// forced to disable this check for abstract methods
-// jshint unused:false
+
 /**
- * @class  System
+ * @class  Manager
  *
  * @description  A system update all eligible entities at a given frequency.
  * This class is not meant to be used directly and should be sub-classed to
@@ -17,24 +16,24 @@ export default class System {
   frequency: number
   entities: Map<string, Entity>
   engine: GameEngine
-  ecs: ComponentSystem
+  manager: Manager
   totalElapsed: number
 
 
   /**
-   * @class  System
+   * @class  Manager
    * @constructor
    * @param engine
-   * @param ecs
+   * @param manager
    * @param [frequency=1] {Number} Frequency of execution.
    */
   constructor(
     engine: GameEngine,
-    ecs: ComponentSystem,
+    manager: Manager,
     frequency: number = 1
   ) {
     this.engine = engine
-    this.ecs = ecs
+    this.manager = manager
     this.totalElapsed = 0
 
     /**

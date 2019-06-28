@@ -34,4 +34,8 @@ export default class Visual extends Component {
 
     return this.classes.current
   }
+
+  init(params) {
+    super.init(params)
+  }
 }

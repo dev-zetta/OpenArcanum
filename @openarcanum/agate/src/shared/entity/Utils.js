@@ -1,7 +1,7 @@
 // @flow
 
-const Utils = {
+class EntityUtils {
 
 }
 
-export default Utils
+export default EntityUtils

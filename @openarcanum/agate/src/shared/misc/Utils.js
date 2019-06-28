@@ -1,6 +1,6 @@
 /* global AGate, window */
 
-import Math from '../../client/isometric/Math';
+import Math from '../../client/isometric/Math'
 
 const process = require(`process`)
 const fs = require(`fs`)
@@ -193,19 +193,23 @@ export default class Utils extends lodash {
     return window.performance.now()
   }
 
-  static snapTo (value, gap, start, divide)
-  {
-    if (start === undefined) { start = 0; }
-
-    if (gap === 0)
-    {
-      return value;
+  static snapTo(value, gap, start, divide) {
+    if (start === undefined) {
+      start = 0
     }
 
-    value -= start;
-    value = gap * Math.round(value / gap);
+    if (gap === 0) {
+      return value
+    }
 
-    return (divide) ? (start + value) / gap : start + value;
+    value -= start
+    value = gap * Math.round(value / gap)
+
+    return divide ? (start + value) / gap : start + value
+  }
+
+  static getClassName(Clazz) {
+    return Clazz.constructor.name
   }
 }
 

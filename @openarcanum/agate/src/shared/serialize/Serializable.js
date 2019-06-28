@@ -2,6 +2,12 @@ import Utils from '../misc/NetworkUtils'
 import BaseTypes from './BaseTypes'
 
 class Serializable {
+
+
+  init(params, data) {
+
+  }
+
   /**
    *  Class can be serialized using either:
    * - a class based netScheme
@@ -135,7 +141,7 @@ class Serializable {
   }
 
   // build a clone of this object with pruned strings (if necessary)
-  prunedStringsClone(serializer, prevObject) {
+  /*prunedStringsClone(serializer, prevObject) {
     if (!prevObject) return this
     prevObject = serializer.deserialize(prevObject).obj
 
@@ -154,7 +160,7 @@ class Serializable {
       prunedCopy[p] = changedStrings.indexOf(p) < 0 ? this[p] : null
 
     return prunedCopy
-  }
+  }*/
 
   syncTo(other) {
     let netScheme = this.constructor.netScheme

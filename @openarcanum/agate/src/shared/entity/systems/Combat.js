@@ -1,5 +1,4 @@
 // @flow
-/* global AGate */
 
 import System from '../System'
 import type Location from '../../Location'

@@ -1,7 +1,7 @@
 //@flow
 import Component from './Component'
-import type {LocationRaw} from '../Types'
-import MovementPath from '../MovementPath';
+import type { LocationRaw } from '../Types'
+import MovementPath from '../MovementPath'
 import AiState from '../ai/State'
 
 export type Stats = {
@@ -68,10 +68,14 @@ export default class Critter extends Component {
 
     this.movementPath = new MovementPath()
     this.aiState = new AiState()
-
   }
 
+  init(params) {
+    super.init(params)
 
+    this.movementPath.clear()
+    this.aiState.clear()
+  }
 
   getViewRange(): number {
     return 30

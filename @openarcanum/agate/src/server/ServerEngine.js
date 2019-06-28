@@ -10,14 +10,12 @@ export default class ServerEngine extends ServerNetwork {
 
   /**
    *
-   * @param engine
+   * @param gameEngine
    * @param options
    */
-  constructor(engine: GameEngine, options: Object) {
-    super(engine, options)
-
-    this.engine = engine
-    this.engine.server = this
+  constructor(gameEngine: GameEngine, options: Object) {
+    super(gameEngine, options)
+    this.gameEngine.server = this
   }
 
   /**

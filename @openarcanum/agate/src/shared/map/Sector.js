@@ -34,7 +34,7 @@ export default class Sector {
   }
 
   map: GameMap
-  engine: GameEngine
+  gameEngine: GameEngine
   tiles: Array<Array<Object>>
   roofs: Array<Object>
   lights: Array<Object>
@@ -53,17 +53,17 @@ export default class Sector {
    */
   constructor(map: GameMap) {
     this.map = map
-    this.engine = map.engine
+    this.gameEngine = map.gameEngine
 
     this.onTileLoad = null
   }
 
   get assetLoader(): AssetLoader {
-    return this.engine.assetLoader
+    return this.gameEngine.assetLoader
   }
 
   get events(): EventEmitter {
-    return this.engine.events
+    return this.gameEngine.events
   }
 
   /**
@@ -114,7 +114,7 @@ export default class Sector {
       return false
     }
 
-    let location = new Location(entity.base.location)
+    let location = entity.base.location
 
     let tile = this.getTile(location.tileX, location.tileY)
 
@@ -163,7 +163,7 @@ export default class Sector {
           continue
         }
 
-        tile.location = Location.makeRaw(x, y, tx, ty)
+        tile.location = Location.make(x, y, tx, ty)
 
         if (this.onTileLoad) {
           await this.onTileLoad(tile)
@@ -188,7 +188,7 @@ export default class Sector {
     }
 
     // Loop through all tiles and test to see if the 3D position from above intersects with the automatically generated IsoSprite tile bounds.
-    /*var cursorPos = this.engine.client.scene.cursorPos;
+    /*var cursorPos = this.gameEngine.client.scene.cursorPos;
 
     if (!AGate.Utils.isUndefined(this.tileGroup)) {
 

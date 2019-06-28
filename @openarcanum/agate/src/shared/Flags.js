@@ -1,5 +1,8 @@
 // @flow
 
+import Utils from './misc/Utils'
+
+
 export default class Flags {
   _set: Set<string>
 
@@ -7,9 +10,9 @@ export default class Flags {
    *
    * @param list
    */
-  constructor(list: Array<string>) {
+  constructor(/*list: Array<string>*/) {
     //super(...arguments);
-    this._set = new Set(list)
+    this._set = new Set()
   }
 
   /**
@@ -95,5 +98,15 @@ export default class Flags {
    */
   has(val: string): boolean {
     return this._set.has(String(val))
+  }
+
+  set(flags: Array<string>) {
+    this.clear()
+    this.add(flags)
+  }
+
+
+  clear() {
+    this._set.clear()
   }
 }
