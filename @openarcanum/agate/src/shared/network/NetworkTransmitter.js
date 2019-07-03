@@ -14,29 +14,29 @@ export default class NetworkTransmitter {
 
     this.registerNetworkedEventFactory(`objectUpdate`, {
       netScheme: {
-        stepCount: { type: BaseTypes.TYPES.INT32 },
-        objectInstance: { type: BaseTypes.TYPES.CLASSINSTANCE }
+        stepCount: { type: 'int' },
+        objectInstance: { type: 'class' }
       }
     })
 
     this.registerNetworkedEventFactory(`objectCreate`, {
       netScheme: {
-        stepCount: { type: BaseTypes.TYPES.INT32 },
-        objectInstance: { type: BaseTypes.TYPES.CLASSINSTANCE }
+        stepCount: { type: 'int' },
+        objectInstance: { type: 'class' }
       }
     })
 
     this.registerNetworkedEventFactory(`objectDestroy`, {
       netScheme: {
-        stepCount: { type: BaseTypes.TYPES.INT32 },
-        objectInstance: { type: BaseTypes.TYPES.CLASSINSTANCE }
+        stepCount: { type: 'int' },
+        objectInstance: { type: 'class' }
       }
     })
 
     this.registerNetworkedEventFactory(`syncHeader`, {
       netScheme: {
-        stepCount: { type: BaseTypes.TYPES.INT32 },
-        fullUpdate: { type: BaseTypes.TYPES.UINT8 }
+        stepCount: { type: 'int' },
+        fullUpdate: { type: 'uint8' }
       }
     })
 

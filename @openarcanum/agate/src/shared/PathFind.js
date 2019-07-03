@@ -32,7 +32,7 @@ export default class PathFind {
    * @param start
    * @param end
    */
-  findPath(start: LocationRaw, end: LocationRaw) {
+  findPath(start: Location, end: Location) {
     let map = this.map
 
     console.log(`${start} - ${end}`)
@@ -50,8 +50,8 @@ export default class PathFind {
       end = t
     }
 
-    let startX = start[0] - range
-    let startY = start[1] - range
+    let startX = start.x - range
+    let startY = start.y - range
 
     if (startX < 0) {
       startX = 0
@@ -61,8 +61,8 @@ export default class PathFind {
       startY = 0
     }
 
-    let endX = end[0] + range
-    let endY = end[1] + range
+    let endX = end.x + range
+    let endY = end.y + range
 
     if (endX >= tilesX) {
       endX = tilesX - 1
@@ -90,10 +90,10 @@ export default class PathFind {
     //console.log(start[0] - startX, start[1] - startY, end[0] - startX, end[1] - startY);
 
     let path = this.finder.findPath(
-      start[0] - startX,
-      start[1] - startY,
-      end[0] - startX,
-      end[1] - startY, // start[0] % width, start[1] % height, end[0] % width, end[1] % height
+      start.x - startX,
+      start.y - startY,
+      end.x - startX,
+      end.y - startY, // start[0] % width, start[1] % height, end[0] % width, end[1] % height
       this.grid
     )
 
@@ -101,12 +101,12 @@ export default class PathFind {
       path.reverse()
     }
 
+    let result = []
     for (let point of path) {
-      point[0] += startX
-      point[1] += startY
+      result.push(new Location(point[0] + startX, point[1] += startY))
     }
 
-    console.log(`Found`, path)
-    return path
+    console.log(`Found`, result)
+    return result
   }
 }

@@ -54,7 +54,7 @@ class AGateEngine {
       scheduler: `render-schedule`,
       //eventEmitter: this.eventEmitter,
       syncOptions: {
-        sync: `extrapolate`,
+        sync: `frameSync`, // extrapolate
         localObjBending: 0.2,
         remoteObjBending: 0.5
       }

@@ -47,10 +47,18 @@ export default class ClientEngine extends ClientNetwork {
     //this.socket.emit('requestRestart');
   }
 
+  /**
+   *
+   * @returns {AssetLoader}
+   */
   get assetLoader(): AssetLoader {
     return this.gameEngine.assetLoader
   }
 
+  /**
+   *
+   * @returns {EventEmitter}
+   */
   get events(): EventEmitter {
     return this.gameEngine.events
   }
@@ -169,6 +177,12 @@ export default class ClientEngine extends ClientNetwork {
 
   }
 
+  /**
+   *
+   * @param map
+   * @param location
+   * @returns {Promise<void>}
+   */
   async addPlayer(map, location) {
     let player = await map.addPlayer(location)
     this.player = player
@@ -258,12 +272,14 @@ export default class ClientEngine extends ClientNetwork {
    * @param key
    * @param type
    * @param options
+   * @param target
    * @returns {Promise<Object>}
    */
   async loadAsset(
     key: string,
     type: string,
-    options: Object
+    options: Object,
+    target: ?Object
   ): Promise<Object> {
 
 
@@ -274,7 +290,7 @@ export default class ClientEngine extends ClientNetwork {
 
     descriptor = Utils.merge(options, { key, type })
 
-    let loaded = await this.assetLoader.loadAsset(descriptor)
+    let loaded = await this.assetLoader.loadAsset(descriptor, target)
     if (!loaded) {
       return null
     }

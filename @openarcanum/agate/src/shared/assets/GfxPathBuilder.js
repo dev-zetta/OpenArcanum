@@ -11,14 +11,14 @@ export default class GfxPathBuilder {
    */
   static build(data) {
 
-
-    if (Utils.isString(data.type)) {
-      data.type = Gfx.Types.get(data.type)
+    let type = data.type
+    if (Utils.isString(type)) {
+      type = Gfx.Types.get(type)
     }
 
-    let base = `${data.type.key}/`
+    let base = `${type.key}/`
 
-    switch (data.type) {
+    switch (type) {
       case Gfx.Types.Tile:
         base += `${data.start.category}/${data.end.category}/${data.start.version}/${data.end.version}`
         break

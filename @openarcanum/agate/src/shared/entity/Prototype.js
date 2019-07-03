@@ -17,9 +17,22 @@ export default class Prototype extends Entity {
     super(engine, options)
   }
 
+  /**
+   *
+   * @param componentName
+   * @param componentData
+   * @param component
+   * @param prototype
+   * @returns {*}
+   */
   onAddComponent(componentName, componentData, component, prototype) {
     // target = this prototype, save original data
     Prototype.setPropertiesFromData(componentName, componentData, component)
+
+    /*if (componentName == 'visual') {
+      if (componentData['render']['flags'].length > 0)
+      lll('dfsfsd', componentData, component)
+    }*/
 
     return component
   }
@@ -47,8 +60,25 @@ export default class Prototype extends Entity {
       }
 
       let component = entity.addComponent(componentClass, data[key], prototype)
-
       components[key] = component
+    }
+
+    // Check if we have a entity with missing components... if yes, add empty components that are referring to prototype's components
+    if (entity.components.length !== prototype.components.length) {
+      for (let componentClass of prototype.components) {
+        if (entity.components.includes(componentClass)) {
+          continue
+        }
+
+        let key = componentClass.name
+        let component = entity.addComponent(componentClass, {}, prototype)
+        components[key] = component
+
+        if (key == 'Visual')
+        lll('dsfdf', component.classes.current, key, prototype)
+      }
+
+
     }
 
     return components
@@ -72,6 +102,23 @@ export default class Prototype extends Entity {
       if (!componentClass) {
         Utils.logError(`Unknown component: ${key}`)
         continue
+      }
+
+      if (key === 'Npc') {  // TODO: Hack
+        if (!data[key]['waypoints']) {
+          data[key]['waypoints'] = []
+          //lll('missing waypoints', data)
+        }
+      }
+
+      if (key === 'Visual') {  // TODO: Hack
+        if (!data[key]['render'])
+          data[key]['render'] = {}
+
+
+        if (!data[key]['render']['flags']) {
+          data[key]['render']['flags'] = []
+        }
       }
 
       //lll(componentClass)
@@ -220,10 +267,21 @@ export default class Prototype extends Entity {
     }
   }
 
+  /**
+   *
+   * @param object
+   * @returns {*}
+   */
   static isSetableObject(object) {
     return Utils.isObjectLike(object) && Utils.isFunction(object.set)
   }
 
+  /**
+   *
+   * @param name
+   * @param value
+   * @param target
+   */
   static setPropertyFromData(
     name: string,
     value: Object,
@@ -249,11 +307,17 @@ export default class Prototype extends Entity {
       for (let key in data) {
         let value = data[key]
 
+        //if (key == 'flags')
+        //  lll('asdasda', target[key], value)
+
         if (Prototype.isSetableObject(target[key])) {
           target[key].set(value) // Its a class. Call set method
         } else {
           if (Utils.isObjectLike(value)) {
-            target[key] = {}
+            if (!target[key]) {
+              target[key] = {} // create object in target only if it doesnt exists
+            }
+
             Prototype.setPropertiesFromData(key, value, target[key])
           } else {
             target[key] = value
@@ -313,11 +377,11 @@ export default class Prototype extends Entity {
    * @returns {boolean}
    */
   static isPrototypeProperty(key, prototype) {
-    if (!prototype[`_originalData`]) {
-      lll(key, prototype)
-    }
+    //if (Utils.isUndefined(prototype[`_originalData`])) {
+    //  lll(key, prototype)
+    //}
 
-    return prototype != null && key in prototype[`_originalData`]
+    return prototype != null && prototype[`_originalData`] &&  key in prototype[`_originalData`]
   }
 
   /**
@@ -337,23 +401,40 @@ export default class Prototype extends Entity {
     parent: Object = object
   ): Proxy<Object> {
 
+
+
     if (Prototype.isSetableObject(prototype)) {
       object.set(data)
     } else {
       const prototypeData = prototype[`_originalData`] // original data of prototype... compare new component data with prototype component data
+
       for (let key in prototypeData) {
-        if (Utils.isUndefined(data[key])) {
-          // the property is not present in loaded in data...
-          /*if (Prototype.isSetableObject(prototypeData[key])) {
 
-          } else {*/
-            delete object[key] // remove from object... it's reused component, we don't want to have previous
-          //}
-
-          continue
-        }
 
         let value = data[key]
+        if (Utils.isUndefined(value)) {
+          // the property is not present in loaded in data...
+          if (Prototype.isSetableObject(object[key])) {
+            delete object[key] //object[key].clear() // clean settable and continue
+            continue
+          } else {
+            if (Utils.isPlainObject(prototypeData[key])) {
+              value = {} // objects will be wrapped
+            } else {
+              delete object[key] // remove from object... it's reused component, we don't want to have previous
+              continue
+            }
+
+
+
+          }
+
+
+        }
+
+
+
+
 
         if (Prototype.canBeProxified(key, value, prototype)) {
           // replace object with wrapped object
@@ -383,6 +464,10 @@ export default class Prototype extends Entity {
     /*if (!prototype[`_propName`]) {
       prototype[`_propName`] = propertyName // TODO: Hacked, fix
     }*/
+
+    if (object == 'Item') {
+      lll('dsfsdfs', propertyName, data, prototype)
+    }
 
     object[`_prototype`] = prototype
 

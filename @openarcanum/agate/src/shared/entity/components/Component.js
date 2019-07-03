@@ -1,19 +1,20 @@
 // @flow
 
 import type Entity from '../Entity'
-import type Prototype from '../Prototype'
 import GameComponent from '../../serialize/GameComponent'
-import Utils from '../../misc/Utils'
+import Flags from '../../Flags';
 
 export default class Component extends GameComponent {
   entity: Entity
-
+  flags: Flags
   /**
    *
    * @param entity
    */
   constructor() {
     super()
+
+    this.flags = new Flags()
   }
 
   /**
@@ -25,12 +26,4 @@ export default class Component extends GameComponent {
     //super.init(params)
     this.entity = params.entity
   }
-
-  /*static copyProps(target, data, except = null) {
-    for (let key in data) {
-      if (!except || except.indexOf(key) === -1) {
-        target[key] = data[key]
-      }
-    }
-  }*/
 }

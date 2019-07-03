@@ -158,20 +158,27 @@ export default class GameMap {
 
     let entityTypes = await this.assetLoader.findDirs(`${path}/`)
 
+    let dirFiles = []
     for (let [key, value] of entityTypes) {
-      let entityFiles = await this.assetLoader.findFiles(
-        `${path}/${key}`,
-        `.json`
-      )
+      dirFiles.push(this.assetLoader.findFiles(`${path}/${key}`, `.json`))
+    }
 
+    dirFiles = await Promise.all(dirFiles)
+
+    let entityList = []
+    for (let entityFiles of dirFiles) {
       for (let [key, value] of entityFiles) {
-        let entity = await this.loadEntity(value.name)
+        entityList.push(this.loadEntity(value.name))
+      }
+    }
 
-        if (typeof target === `function`) {
-          target(entity)
-        } else {
-          target.addEntity(entity)
-        }
+    entityList = await Promise.all(entityList)
+
+    for (let entity of entityList) {
+      if (typeof target === `function`) {
+        target(entity)
+      } else {
+        target.addEntity(entity)
       }
     }
   }
@@ -192,6 +199,10 @@ export default class GameMap {
     //this.events.emit('Map.NewEntity', entity)
     if (this.onNewEntity) {
       await this.onNewEntity(entity)
+    }
+
+    if (entity.base.type === `Npc`) {
+      this.gameEngine.addObjectToWorld(entity)
     }
 
     return entity
@@ -257,14 +268,14 @@ export default class GameMap {
     let names = []
     if (types) {
       for (let i = 0; i < types.length; i++) {
-        let name = Utils.camelCase(String(types[i]))
+        let name = Utils.camelCase(String(types[i])) // TODO: Should use real name, hacked
         names.push(name)
       }
     }
 
     let tilesX = this.width * Sector.Width
-    let startX = center[0] - range
-    let endX = center[0] + range
+    let startX = center.x - range
+    let endX = center.x + range
 
     if (startX < 0) {
       startX = 0
@@ -275,8 +286,8 @@ export default class GameMap {
     }
 
     let tilesY = this.height * Sector.Height
-    let startY = center[1] - range
-    let endY = center[1] + range
+    let startY = center.y - range
+    let endY = center.y + range
 
     if (startY < 0) {
       startY = 0
@@ -308,36 +319,40 @@ export default class GameMap {
         if (types) {
           for (let i = 0; i < names.length; i++) {
             // Has tile the entity of given type
-            let entity = tile[names[i]]
-            if (!entity) {
+            let entityList = tile[names[i]]
+            if (!entityList) {
               continue
             }
+            for (let entity of entityList) {
 
-            // Is entity being ignored?
-            if (ignore) {
-              let ignored = false
-              for (let other of ignore) {
-                if (other.id === entity.id) {
-                  ignored = true
-                  break
+              //let entity = tile[names[i]]
+
+              // Is entity being ignored?
+              if (ignore) {
+                let ignored = false
+                for (let other of ignore) {
+                  if (other.id === entity.id) {
+                    ignored = true
+                    break
+                  }
+                }
+
+                if (ignored) {
+                  continue
                 }
               }
 
-              if (ignored) {
+              if (filter && !filter(entity)) {
                 continue
               }
-            }
 
-            if (filter && !filter(entity)) {
-              continue
+              // Put entity into list
+              entity._distanceToCenter = Location.calculateDistance(
+                entity.base.location,
+                center
+              )
+              result.push(entity)
             }
-
-            // Put entity into list
-            entity._distanceToCenter = Location.calculateDistance(
-              entity.base.location,
-              center
-            )
-            result.push(entity)
           }
         } else {
           //tile
@@ -365,8 +380,10 @@ export default class GameMap {
 
     //await this.sectors.load(location.sectorX, location.sectorY)
 
-    let id = undefined // AGate.Utils.getFileBase(path)
+    let id = `blablabla` // AGate.Utils.getFileBase(path)
     let entity = await this.entitySystem.newEntity(id, player)
+
+    this.gameEngine.addObjectToWorld(entity)
     return entity
   }
 

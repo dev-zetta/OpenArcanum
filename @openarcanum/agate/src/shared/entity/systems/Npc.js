@@ -23,6 +23,10 @@ export default class Npc extends System {
   update(entity: Entity, elapsed: number) {
     super.update(entity, elapsed)
 
+    if (entity.id !== 'E505FDB5-0E4E-11D4-8F1D-00E02920220C') {
+      return
+    }
+
     // Get entities within vicinity
     if (entity.nearbyEntities) {
       return
@@ -30,12 +34,18 @@ export default class Npc extends System {
 
     let { base, critter, npc } = entity
 
-    entity.nearbyEntities = this.map.getEntitiesInRange({
-      types: [Enums.Entity.Npc, Enums.Entity.Pc],
-      center: base.location,
-      range: critter.getViewRange(),
-      ignore: [entity]
-    })
+    if (entity.targetEntity) {
+      entity.nearbyEntities = []
+    } else {
+      entity.nearbyEntities = this.map.getEntitiesInRange({
+        types: [Enums.Entity.Npc, Enums.Entity.Pc],
+        center: base.location,
+        range: critter.getViewRange(),
+        ignore: [entity]
+      })
+    }
+
+
 
     this.processAi(entity, elapsed)
 
@@ -49,13 +59,18 @@ export default class Npc extends System {
    *
    * @param entity
    */
-  enter(entity: Entity) {}
+  enter(entity: Entity) {
+    lll('NPC enter', entity)
+
+  }
 
   /**
    *
    * @param entity
    */
-  exit(entity: Entity) {}
+  exit(entity: Entity) {
+    lll('NPC leave', entity)
+  }
 
   /**
    *
@@ -64,10 +79,14 @@ export default class Npc extends System {
    */
   processAi(entity: Entity, elapsed: number) {
     let evaluator = this.map.aiSystem.getEvaluator(entity.base.type)
+
     let result = evaluator.process({
       entity,
       Enums: Enums
     })
+
+    ////if (entity.npc)
+    //  lll(this.map.aiSystem, evaluator)
 
     if (result.score <= 0 || !result.action) {
       return
@@ -86,7 +105,7 @@ export default class Npc extends System {
    */
   processMovement(entity: Entity, elapsed: number) {
     let { base, critter, npc } = entity
-    let {aiState} = critter
+    let { aiState } = critter
 
     if (!aiState.has(Enums.AiState.Moving)) {
       entity.moved = false
@@ -111,7 +130,7 @@ export default class Npc extends System {
    */
   processCombat(entity: Entity, elapsed: number) {
     let { base, critter, npc, targetEntity } = entity
-    let {aiState} = critter
+    let { aiState } = critter
 
     if (!targetEntity) {
       return
@@ -123,6 +142,8 @@ export default class Npc extends System {
       targetEntity.base.location
     )
 
+   // lll('distance', distance)
+
     if (!critter.hasRangedWeapon()) {
       // Is close enough for meelee attack?
       if (distance > critter.getMeleeDistance()) {
@@ -130,17 +151,21 @@ export default class Npc extends System {
           Enums.AiState.Moving,
           Enums.AiState.PlanningToMove
         ])
+
+
         if (
           !moving ||
           (moving && targetEntity.moved) /*&& !npc.movementPath.movedDistance*/
         ) {
-          console.log(moving, targetEntity.moved)
+          lll('aaa', moving, targetEntity.moved)
           this.moveToLocation(entity, targetEntity.base.location, true)
         } else {
         }
       } else {
         // Already close
         if (aiState.has(Enums.AiState.PreparingToAttack)) {
+          lll('starting attack')
+
           aiState.remove([
             Enums.AiState.Moving,
             Enums.AiState.PreparingToAttack
@@ -164,7 +189,7 @@ export default class Npc extends System {
    */
   moveToWaypoint(entity: Entity) {
     let { base, critter, npc } = entity
-    let {aiState} = critter
+    let { aiState } = critter
     //if (npc.aiState.has(Enums.AiState.MovingToWaypoint))
     //  return;
 
@@ -177,14 +202,14 @@ export default class Npc extends System {
       npc.currentWaypoint = 1
     } else {
       npc.currentWaypoint += 1
-      if (npc.currentWaypoint === npc.waypoints.length) {
+      if (npc.currentWaypoint === npc.waypoints.count) {
         npc.currentWaypoint = 0
       }
     }
 
     //console.log(npc.currentWaypoint);
 
-    let waypoint = npc.waypoints[npc.currentWaypoint]
+    let waypoint = npc.waypoints.getAt(npc.currentWaypoint)
 
     //console.log(base.location, waypoint)
     this.moveToLocation(entity, waypoint)
@@ -197,10 +222,11 @@ export default class Npc extends System {
    */
   attackNearby(entity: Entity) {
     let { base, critter, npc } = entity
-    let {aiState} = critter
+    let { aiState } = critter
+
 
     for (let another of entity.nearbyEntities) {
-      //console.log(entity.id, another.id );
+      lll('attackNearby', entity.id, another.id );
       entity.targetEntity = another
 
       aiState.set(Enums.AiState.PreparingToAttack)
@@ -216,7 +242,7 @@ export default class Npc extends System {
    */
   moveToLocation(entity: Entity, location: Location, nextTo: boolean = false) {
     let { base, critter, npc } = entity
-    let {movementPath, aiState} = critter
+    let { movementPath, aiState } = critter
 
     console.log(`Moving to: ${base.location}`)
 
@@ -238,10 +264,10 @@ export default class Npc extends System {
     movementPath.addPoints(path)
     movementPath.start(nextTo)
 
-    this.changeVisual(entity, { animation: `Walk`})
+    this.changeVisual(entity, { animation: `Walk` })
 
     if (this.engine.client) {
-      this.engine.client.scene.highlightTiles(path)
+      //this.engine.client.scene.highlightTiles(path)
     }
     //console.log(path);
 
@@ -255,8 +281,7 @@ export default class Npc extends System {
    * @param options
    */
   changeVisual(entity: Entity, options: Object) {
-    let {classes} = entity.visual
+    let { classes } = entity.visual
     classes.next = options
-
   }
 }

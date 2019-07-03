@@ -2,7 +2,6 @@
 
 import Utils from './misc/Utils'
 
-
 export default class Flags {
   _set: Set<string>
 
@@ -19,7 +18,7 @@ export default class Flags {
    *
    * @param val
    */
-  add(val: string) {
+  add(val: string|Array<string>) {
     if (Utils.isArray(val)) {
       for (let i = 0; i < val.length; i++) {
         this.add(val[i])
@@ -105,8 +104,13 @@ export default class Flags {
     this.add(flags)
   }
 
-
   clear() {
     this._set.clear()
+  }
+
+  [Symbol.iterator]() {
+    let iterator = this._set[Symbol.iterator]()
+
+    return iterator
   }
 }

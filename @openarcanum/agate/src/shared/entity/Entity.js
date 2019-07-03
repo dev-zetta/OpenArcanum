@@ -5,16 +5,8 @@ import Utils from '../misc/Utils'
 
 import type GameEngine from '../GameEngine'
 import type Manager from './Manager'
-import type Prototype from './Prototype';
 
 export default class Entity extends GameObject {
-  /**
-   * Unique identifier of the entity.
-   *
-   * @property {Number} id
-   */
-  id: string
-
   /**
    *
    */
@@ -36,7 +28,7 @@ export default class Entity extends GameObject {
    *
    * @property {Array[System]} systems
    */
-  systems: Array<Manager>
+  systems: Array<System>
 
   /**
    * Indiquate a change in components (a component was removed or added)
@@ -85,12 +77,20 @@ export default class Entity extends GameObject {
     return this.gameEngine.map.entitySystem
   }
 
+  /*get id() {
+    return this.base.id
+  }
+
+  set id(id) {
+    this.base.id = id
+  }*/
+
   /**
    * Re-init for pooling purposes.
    * @private
    */
   init(params, data) {
-    this.id = null
+    //this.id = null
     this.components.length = 0
     this.tags.length = 0
     this.systems.length = 0
@@ -119,9 +119,9 @@ export default class Entity extends GameObject {
    * Add a system to the entity.
    *
    * @private
-   * @param {Manager} system The system to add.
+   * @param {System} system The system to add.
    */
-  addSystem(system: Manager) {
+  addSystem(system: System) {
     this.systems.push(system)
   }
   /**
@@ -130,7 +130,7 @@ export default class Entity extends GameObject {
    * @private
    * @param  {Manager} system The system reference to remove.
    */
-  removeSystem(system: Manager) {
+  removeSystem(system: System) {
     let index = this.systems.indexOf(system)
 
     if (index !== -1) {
@@ -144,11 +144,13 @@ export default class Entity extends GameObject {
    * @returns {string | *}
    */
   static componentToName(component: Object): string {
-    let name = Utils.isString(component) ? component: component.name ? component.name : component.constructor.name
+    let name = Utils.isString(component)
+      ? component
+      : component.name
+      ? component.name
+      : component.constructor.name
     return Utils.camelCase(name)
   }
-
-
 
   /**
    *
@@ -161,20 +163,27 @@ export default class Entity extends GameObject {
   onAddComponent(componentName, componentData, component, prototype) {
     //lll(componentName, componentData, component, prototype)
 
-    return prototype.wrapComponent(
-      componentName,
-      componentData,
-      component,
-    )
+    return prototype.wrapComponent(componentName, componentData, component)
   }
 
   /**
    * Add a component to the entity.
    *
-   * @param component
+   * @param componentClass
+   * @param componentData
+   * @param prototype
    */
-  addComponent(componentClass: Object, componentData: Object, prototype: Object) {
-    this.manager.addComponentToEntity(this, componentClass, componentData, prototype)
+  addComponent(
+    componentClass: Object,
+    componentData: Object,
+    prototype: Object
+  ) {
+    return this.manager.addComponentToEntity(
+      this,
+      componentClass,
+      componentData,
+      prototype
+    )
   }
 
   /**
@@ -184,7 +193,7 @@ export default class Entity extends GameObject {
    *
    * @param  {String} name Name of the component to remove.
    */
-  removeComponent(componentClass: Object|string) {
+  removeComponent(componentClass: Object | string) {
     this.manager.removeComponentFromEntity(this, componentClass)
   }
 
@@ -253,9 +262,8 @@ export default class Entity extends GameObject {
    * @return {boolean} True if entity has all Components.
    */
   hasAllComponents(componentClasses) {
-    for (let i = 0; i < componentClasses.length; i++) {
-      const C = componentClasses[i]
-      if (this.components.indexOf(C) === -1) {
+    for (let c of componentClasses) {
+      if (!this.components.includes(c)) {
         return false
       }
     }
@@ -279,7 +287,7 @@ export default class Entity extends GameObject {
    * @return {boolean} True if entity has tag.
    */
   hasTag(tag) {
-    return this.tags.indexOf(tag) !== -1
+    return this.tags.includes(tag)
   }
 
   /**
@@ -326,5 +334,5 @@ export default class Entity extends GameObject {
     //this.updateComponents(data)
   }
 
-
+  triggerUpdate() {}
 }

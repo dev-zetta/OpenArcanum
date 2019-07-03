@@ -25,19 +25,19 @@ class PhysicalObject2D extends GameObject {
    * @example
    *     static get netScheme() {
    *       return Object.assign({
-   *           mojo: { type: BaseTypes.TYPES.UINT8 },
+   *           mojo: { type: 'uint8' },
    *         }, super.netScheme);
    *     }
    */
   static get netScheme() {
     return Object.assign(
       {
-        playerId: { type: BaseTypes.TYPES.INT16 },
-        mass: { type: BaseTypes.TYPES.FLOAT32 },
-        position: { type: BaseTypes.TYPES.CLASSINSTANCE },
-        angle: { type: BaseTypes.TYPES.FLOAT32 },
-        velocity: { type: BaseTypes.TYPES.CLASSINSTANCE },
-        angularVelocity: { type: BaseTypes.TYPES.FLOAT32 }
+        playerId: { type: 'int16' },
+        mass: { type: 'float' },
+        position: { type: 'class' },
+        angle: { type: 'float' },
+        velocity: { type: 'class' },
+        angularVelocity: { type: 'float' }
       },
       super.netScheme
     )

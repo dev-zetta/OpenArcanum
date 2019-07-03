@@ -9,11 +9,21 @@ import BaseTypes from './BaseTypes'
  * or PhysicalObject.
  */
 class GameObject extends Serializable {
+
+
+
   static get netScheme() {
     return {
-      id: { type: BaseTypes.TYPES.INT32 }
+      id: { type: 'string' }
     }
   }
+
+  /**
+   * Unique identifier of the entity.
+   *
+   * @property {Number} id
+   */
+  id: string
 
   /**
    * Creates an instance of a game object.
@@ -21,7 +31,7 @@ class GameObject extends Serializable {
    * @param {Object} options - options for instantiation of the GameObject
    * @param {Number} id - if set, the new instantiated object will be set to this id instead of being generated a new one. Use with caution!
    */
-  constructor(gameEngine) {
+  constructor(gameEngine, options = null) {
     super()
 
     /**
@@ -29,6 +39,13 @@ class GameObject extends Serializable {
      * @member {GameEngine}
      */
     this.gameEngine = gameEngine
+
+
+      if (options && `id` in options) {
+        this.id = options.id
+
+    }
+
   }
 
   init(params, data) {

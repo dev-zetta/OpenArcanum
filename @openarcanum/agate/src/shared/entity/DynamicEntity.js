@@ -160,20 +160,20 @@ export default class DynamicEntity extends Entity {
    * @example
    *     static get netScheme() {
    *       return Object.assign({
-   *           mojo: { type: BaseTypes.TYPES.UINT8 },
+   *           mojo: { type: 'uint8' },
    *         }, super.netScheme);
    *     }
    */
   static get netScheme() {
     return Object.assign(
       {
-        playerId: { type: BaseTypes.TYPES.INT16 },
-        position: { type: BaseTypes.TYPES.CLASSINSTANCE },
-        width: { type: BaseTypes.TYPES.INT16 },
-        height: { type: BaseTypes.TYPES.INT16 },
-        isStatic: { type: BaseTypes.TYPES.UINT8 },
-        velocity: { type: BaseTypes.TYPES.CLASSINSTANCE },
-        angle: { type: BaseTypes.TYPES.FLOAT32 }
+        playerId: { type: 'int16' },
+        position: { type: 'class' },
+        width: { type: 'int16' },
+        height: { type: 'int16' },
+        isStatic: { type: 'uint8' },
+        velocity: { type: 'class' },
+        angle: { type: 'float' }
       },
       super.netScheme
     )

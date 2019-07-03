@@ -54,6 +54,9 @@ export default class MovementPath {
    * @returns {boolean}
    */
   start(nextTo: boolean) {
+
+
+
     if (this.currentIndex + 1 >= this.waypoints.length) {
       //lll(`movement finished`, this.waypoints)
       return false
@@ -70,6 +73,8 @@ export default class MovementPath {
     this.directionName = String(direction)
 
     //let vec = current.lerp(next, percent, true);
+
+    lll('movement started', this.waypoints, current, next, this.currentIndex, this.velocity, this.directionName)
   }
 
   /**
@@ -79,10 +84,15 @@ export default class MovementPath {
    * @returns {boolean}
    */
   process(entity: Entity, elapsed: number): boolean {
+
     if (this.currentIndex + 1 >= this.waypoints.length) {
+     if (entity.moved) {
+       lll(`movement finished`, this.currentIndex, this.waypoints.length)
+       this.processVisual(entity, null, null)
+     }
+
+
       entity.moved = false
-      //lll(`movement finished`, this.currentIndex, this.waypoints.length)
-      this.processVisual(entity, null, null)
       return false
     }
 
@@ -91,6 +101,8 @@ export default class MovementPath {
       this.velocity,
       speed * Sector.TileWidthHalf * (elapsed / 1000)
     )
+
+    //lll(elapsed, delta, this.velocity)
 
     this.processMovement(entity, delta[0], delta[1])
     this.processVisual(entity, delta[0], delta[1])
@@ -123,7 +135,11 @@ export default class MovementPath {
    * @returns {boolean}
    */
   processVisual(entity: Entity, dx: ?number, dy: ?number) {
+
+
     let visualClass = entity.visual.getCurrent()
+
+    //lll('visual', visualClass)
     if (!visualClass) {
       return false
     }
@@ -135,7 +151,7 @@ export default class MovementPath {
 
     sprite.setStage(this.directionName)
 
-    if (dx != null && dy != null) {
+    if (dx !== null && dy !== null) {
       //lll('sprite move', dx, dy)
       sprite.move(dx, dy)
     }

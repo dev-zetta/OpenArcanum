@@ -1,8 +1,4 @@
 import Utils from '../misc/NetworkUtils'
-import TwoVector from './TwoVector'
-import ThreeVector from './ThreeVector'
-import Quaternion from './Quaternion'
-import BaseTypes from './BaseTypes'
 
 const MAX_UINT_16 = 0xffff
 
@@ -16,9 +12,9 @@ class Serializer {
   constructor() {
     this.registeredClasses = {}
     this.customTypes = {}
-    this.registerClass(TwoVector)
-    this.registerClass(ThreeVector)
-    this.registerClass(Quaternion)
+    //this.registerClass(TwoVector)
+    //this.registerClass(ThreeVector)
+    //this.registerClass(Quaternion)
   }
 
   /**
@@ -26,8 +22,6 @@ class Serializer {
    * This will enable you to use it in an object's netScheme
    * @param customType
    */
-  // TODO: the function below is not used, and it is not clear what that
-  // first argument is supposed to be
   addCustomType(customType) {
     this.customTypes[customType.type] = customType
   }
@@ -39,7 +33,7 @@ class Serializer {
    */
   static typeCanAssign(type) {
     return (
-      type !== BaseTypes.TYPES.CLASSINSTANCE && type !== BaseTypes.TYPES.LIST
+      type !== 'class' && type !== 'list'
     )
   }
 
@@ -95,17 +89,17 @@ class Serializer {
   }
 
   writeDataView(dataView, value, bufferOffset, netSchemProp) {
-    if (netSchemProp.type === BaseTypes.TYPES.FLOAT32) {
+    if (netSchemProp.type === 'float') {
       dataView.setFloat32(bufferOffset, value)
-    } else if (netSchemProp.type === BaseTypes.TYPES.INT32) {
+    } else if (netSchemProp.type === 'int') {
       dataView.setInt32(bufferOffset, value)
-    } else if (netSchemProp.type === BaseTypes.TYPES.INT16) {
+    } else if (netSchemProp.type === 'int16') {
       dataView.setInt16(bufferOffset, value)
-    } else if (netSchemProp.type === BaseTypes.TYPES.INT8) {
+    } else if (netSchemProp.type === 'int8') {
       dataView.setInt8(bufferOffset, value)
-    } else if (netSchemProp.type === BaseTypes.TYPES.UINT8) {
+    } else if (netSchemProp.type === 'uint8') {
       dataView.setUint8(bufferOffset, value)
-    } else if (netSchemProp.type === BaseTypes.TYPES.STRING) {
+    } else if (netSchemProp.type === 'string') {
       //   MAX_UINT_16 is a reserved (length) value which indicates string hasn't changed
       if (value === null) {
         dataView.setUint16(bufferOffset, MAX_UINT_16)
@@ -119,12 +113,12 @@ class Serializer {
             value.charCodeAt(i)
           )
       }
-    } else if (netSchemProp.type === BaseTypes.TYPES.CLASSINSTANCE) {
+    } else if (netSchemProp.type === 'class') {
       value.serialize(this, {
         dataBuffer: dataView.buffer,
         bufferOffset: bufferOffset
       })
-    } else if (netSchemProp.type === BaseTypes.TYPES.LIST) {
+    } else if (netSchemProp.type === 'list') {
       let localBufferOffset = 0
 
       // a list is comprised of the number of items followed by the items
@@ -133,13 +127,13 @@ class Serializer {
 
       for (let item of value) {
         // TODO: inelegant, currently doesn't support list of lists
-        if (netSchemProp.itemType === BaseTypes.TYPES.CLASSINSTANCE) {
+        if (netSchemProp.itemType === 'class') {
           let serializedObj = item.serialize(this, {
             dataBuffer: dataView.buffer,
             bufferOffset: bufferOffset + localBufferOffset
           })
           localBufferOffset += serializedObj.bufferOffset
-        } else if (netSchemProp.itemType === BaseTypes.TYPES.STRING) {
+        } else if (netSchemProp.itemType === 'string') {
           //   MAX_UINT_16 is a reserved (length) value which indicates string hasn't changed
           if (item === null) {
             dataView.setUint16(bufferOffset + localBufferOffset, MAX_UINT_16)
@@ -177,22 +171,22 @@ class Serializer {
   readDataView(dataView, bufferOffset, netSchemProp) {
     let data, bufferSize
 
-    if (netSchemProp.type === BaseTypes.TYPES.FLOAT32) {
+    if (netSchemProp.type === 'float') {
       data = dataView.getFloat32(bufferOffset)
       bufferSize = this.getTypeByteSize(netSchemProp.type)
-    } else if (netSchemProp.type === BaseTypes.TYPES.INT32) {
+    } else if (netSchemProp.type === 'int') {
       data = dataView.getInt32(bufferOffset)
       bufferSize = this.getTypeByteSize(netSchemProp.type)
-    } else if (netSchemProp.type === BaseTypes.TYPES.INT16) {
+    } else if (netSchemProp.type === 'int16') {
       data = dataView.getInt16(bufferOffset)
       bufferSize = this.getTypeByteSize(netSchemProp.type)
-    } else if (netSchemProp.type === BaseTypes.TYPES.INT8) {
+    } else if (netSchemProp.type === 'int8') {
       data = dataView.getInt8(bufferOffset)
       bufferSize = this.getTypeByteSize(netSchemProp.type)
-    } else if (netSchemProp.type === BaseTypes.TYPES.UINT8) {
+    } else if (netSchemProp.type === 'uint8') {
       data = dataView.getUint8(bufferOffset)
       bufferSize = this.getTypeByteSize(netSchemProp.type)
-    } else if (netSchemProp.type === BaseTypes.TYPES.STRING) {
+    } else if (netSchemProp.type === 'string') {
       let length = dataView.getUint16(bufferOffset)
       let localBufferOffset = Uint16Array.BYTES_PER_ELEMENT
       bufferSize = localBufferOffset
@@ -205,11 +199,11 @@ class Serializer {
         data = String.fromCharCode.apply(null, a)
         bufferSize += length * Uint16Array.BYTES_PER_ELEMENT
       }
-    } else if (netSchemProp.type === BaseTypes.TYPES.CLASSINSTANCE) {
+    } else if (netSchemProp.type === 'class') {
       let deserializeData = this.deserialize(dataView.buffer, bufferOffset)
       data = deserializeData.obj
       bufferSize = deserializeData.byteOffset
-    } else if (netSchemProp.type === BaseTypes.TYPES.LIST) {
+    } else if (netSchemProp.type === 'list') {
       let localBufferOffset = 0
 
       let items = []
@@ -243,19 +237,19 @@ class Serializer {
 
   getTypeByteSize(type) {
     switch (type) {
-      case BaseTypes.TYPES.FLOAT32: {
+      case 'float': {
         return Float32Array.BYTES_PER_ELEMENT
       }
-      case BaseTypes.TYPES.INT32: {
+      case 'int': {
         return Int32Array.BYTES_PER_ELEMENT
       }
-      case BaseTypes.TYPES.INT16: {
+      case 'int16': {
         return Int16Array.BYTES_PER_ELEMENT
       }
-      case BaseTypes.TYPES.INT8: {
+      case 'int8': {
         return Int8Array.BYTES_PER_ELEMENT
       }
-      case BaseTypes.TYPES.UINT8: {
+      case 'uint8': {
         return Uint8Array.BYTES_PER_ELEMENT
       }
 

@@ -11,14 +11,13 @@ import Prototype from './Prototype'
 import Utils from '../misc/Utils'
 
 import Systems from './systems'
-import type GameMap from '../map/GameMap'
 import Components from './components'
 import type GameEngine from '../GameEngine'
 import ObjectPool from './ObjectPool'
 import Messenger from './Messenger'
 import type EventEmitter from '../misc/EventEmitter'
 import type System from './System'
-
+import type AssetLoader from '../assets/AssetLoader';
 
 //const ClassTransformer = require('class-transformer')
 
@@ -116,7 +115,6 @@ class Manager {
     //this.loadComponents()
   }
 
-
   /**
    *
    * @returns {EventEmitter}
@@ -124,6 +122,11 @@ class Manager {
   get events(): EventEmitter {
     return this.gameEngine.events
   }
+
+  get assetLoader(): AssetLoader {
+    return this.gameEngine.assetLoader
+  }
+
 
   /**
    * Retrieve an entity by id
@@ -243,7 +246,6 @@ class Manager {
     entity.tags.remove(entity.id)
   }
 
-
   /*getComponentPool(cName) {
     let cPool = this.componentPools.get(cName)
     if (!cPool) {
@@ -255,15 +257,16 @@ class Manager {
     return cPool
   }*/
 
-
   /**
    * @param {Entity} entity
-   * @param {Function} Class
+   * @param componentClass
+   * @param componentData
+   * @param prototype
    */
   addComponentToEntity(entity, componentClass, componentData, prototype) {
-    if (~entity.components.indexOf(componentClass)) {
-      lll('hasComponent')
-      return
+    if (entity.components.includes(componentClass)) {
+      lll(`hasComponent`, componentClass)
+      return 'cccc'
     }
 
     entity.components.push(componentClass)
@@ -279,20 +282,26 @@ class Manager {
 
     //lll(entity, componentClass, componentData, prototype)
 
-    let component = componentPool.aquire({entity})
+    let component = componentPool.aquire({ entity })
 
-    component = entity.onAddComponent(componentName, componentData, component, prototype)
+    component = entity.onAddComponent(
+      componentName,
+      componentData,
+      component,
+      prototype
+    )
     //lll(component)
 
     entity.setComponent(componentName, component)
-    entity.setSystemsDirty()
+
+    if (!(entity instanceof Prototype)) {entity.setSystemsDirty()}
 
     // Check each indexed group to see if we need to add this entity to the list
     for (const [groupName, group] in this.groups) {
       // Only add this entity to a group index if this component is in the group,
       // this entity has all the components of the group, and its not already in
       // the index.
-      if (!~group.components.indexOf(componentClass)) {
+      if (!group.components.includes(componentClass)) {
         continue
       }
 
@@ -300,7 +309,7 @@ class Manager {
         continue
       }
 
-      if (~group.entities.indexOf(entity)) {
+      if (group.entities.includes(entity)) {
         continue
       }
 
@@ -339,7 +348,7 @@ class Manager {
 
     // Check each indexed group to see if we need to remove it
     for (const [groupName, group] of this.groups) {
-      if (!~group.components.indexOf(Class)) {
+      if (!group.components.includes(Class)) {
         continue
       }
       if (!entity.hasAllComponents(group.components)) {
@@ -582,6 +591,20 @@ class Manager {
     })*/
   }
 
+  async loadPrototype(key, fileName) {
+    let meta = await this.assetLoader.loadJsonFile(fileName)
+
+
+    let prototype = new Prototype(this.gameEngine)
+    prototype.loadComponents(meta)
+
+    if (key == 4045) {
+      lll('sdfsfs', prototype, meta)
+    }
+
+    this.prototypes.set(key, prototype)
+  }
+
   /**
    *
    * @returns {Promise<void>}
@@ -591,24 +614,22 @@ class Manager {
       return
     }
 
-    let assetLoader = this.gameEngine.assetLoader
     let dataPath = AGate.getDataPath(`Prototypes`)
 
-    let typeDirs = await assetLoader.findDirs(dataPath)
+    let promises = []
+
+    let typeDirs = await this.assetLoader.findDirs(dataPath)
     for (let [type, entries] of typeDirs) {
       for (let [fileName, entry] of entries) {
-        let meta = await assetLoader.loadJsonFile(
-          `${dataPath}/${type}/${fileName}`
-        )
-
         let key = Utils.getFileBase(fileName)
 
-        let prototype = new Prototype(this.gameEngine)
-        prototype.loadComponents(meta)
-
-        this.prototypes.set(key, prototype)
+        promises.push(
+          this.loadPrototype(key, `${dataPath}/${type}/${fileName}`)
+        )
       }
     }
+
+    return Promise.all(promises)
   }
 
   /**
@@ -620,6 +641,10 @@ class Manager {
   async newEntity(id: string, data: Object): Promise<Entity> {
     // Apply prototype
     let entity = this.entityPool.aquire(this.gameEngine)
+    entity.id = id
+
+
+
     if (data[`Base`]) {
       let prototypeId = data[`Base`].prototype
 
@@ -646,11 +671,15 @@ class Manager {
     //await entity.loadData()
 
     // Add to manager
-    entity.id = id
-    entity.setSystemsDirty()
+
+    //entity.setSystemsDirty()
     this.entities.set(entity.id, entity)
 
     this._trigger(Manager.ENTITY_CREATED, entity)
+
+    //if (id == '44681452-6AD6-B342-9C16-23E68416F47E') {
+    //  lll('sdfsfsdfsd', entity)
+    //}
 
     return entity
   }

@@ -1,8 +1,8 @@
 // @flow
 
 import Component from './Component'
-import Flags from '../../Flags'
 import Location from '../../Location'
+import WaypointList from '../WaypointList';
 
 export default class Npc extends Component {
   aiData: Object
@@ -18,17 +18,14 @@ export default class Npc extends Component {
   socialClass: string
   wait: any
   generatorData: string
-  waypoints: Array<Location>
-
-  flags: Flags
+  waypoints: WaypointList
 
   /**
    *
    */
   constructor() {
     super(...arguments)
-    this.flags = new Flags()
-    this.waypoints = []
+    this.waypoints = new WaypointList()
 
     this.standpointDay = new Location()
     this.standpointNight = new Location()
@@ -38,6 +35,6 @@ export default class Npc extends Component {
     super.init(params)
 
     this.currentWaypoint = null
-    this.waypoints.length = 0
+    //this.waypoints.clear
   }
 }

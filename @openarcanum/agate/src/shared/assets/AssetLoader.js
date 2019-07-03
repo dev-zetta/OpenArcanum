@@ -26,6 +26,7 @@ export default class AssetLoader {
 
     this.useBlobs = false
     this.archives = []
+    this.queueRunning = false
   }
 
   /**
@@ -50,13 +51,85 @@ export default class AssetLoader {
    *
    * @param descriptor
    */
-  preload(descriptor: Object) {
-    if (this.loadedAssets.has(descriptor.key)) {
+  addToQueue(descriptor: Object, target: Object) {
+    //if (this.loadedAssets.has(descriptor.key)) {
+    //  this.notityTarget(descriptor, target)
+    //  return
+    //}
+
+    /*(let entries = this.preloadAssets.get(descriptor.key)
+    if (!entries) {
+      entries = []
+      this.preloadAssets.set(descriptor.key, entries)
+    }*/
+
+    this.preloadAssets.push({ descriptor, target })
+    //this.loadedAssets.set(descriptor.key, null)
+    this.startQueue()
+  }
+
+   startQueue() {
+
+    if (this.queueRunning || this.preloadAssets.length === 0) {
       return
     }
 
-    this.preloadAssets.push(descriptor)
-    this.loadedAssets.set(descriptor.key, null)
+     this.queueRunning = true
+
+
+    let length = this.preloadAssets.length
+     //if (length > 1000) {
+     //  length = 1000
+     //}
+
+     let queue = this.preloadAssets.splice(0, length)
+
+     lll(`Starting queue`, length)
+
+     let loadedAssets = {}
+     let loadPromises = []
+    for (let item of queue) {
+      let { descriptor, target } = item
+
+
+      let { key } = descriptor
+
+      if (this.loadedAssets[key]) {
+        this.notityTarget(descriptor, target)
+      }
+
+
+      if (!loadedAssets[key]) {
+        loadedAssets[key] = []
+        loadPromises.push(this.loadAssetDirect(descriptor))
+      }
+
+      loadedAssets[key].push(item)
+    }
+
+    Promise.all(loadPromises).then((assetsList) => {
+      //lll(`assets, `, assetsList)
+      let total = 0
+      for (let asset of assetsList) {
+        let { key } = asset
+        this.loadedAssets.set(key, asset)
+
+        for (let item of loadedAssets[key]) {
+          this.notityTarget(item.descriptor, item.target)
+        }
+        total++
+      }
+
+      lll(`Total resources loaded`, total)
+
+      setTimeout(() => {
+        this.queueRunning = false
+        this.startQueue()
+      }, 100)
+
+    })
+
+
   }
 
   /**
@@ -66,8 +139,8 @@ export default class AssetLoader {
    * @returns {Promise<void>}
    */
   async processArchive(file: string, zipId: number) {
-    return new Promise(resolve => {
-      console.log(`Loading archive: ${file}`)
+    return new Promise((resolve) => {
+      lll(`Loading archive: ${file}`)
 
       let zip = new StreamZip({
         file: file,
@@ -75,7 +148,7 @@ export default class AssetLoader {
         skipEntryNameValidation: true
       })
 
-      zip.on(`entry`, entry => {
+      zip.on(`entry`, (entry) => {
         if (entry.isDirectory) {return}
 
         //console.log(`Read entry ${entry.name}`);
@@ -105,7 +178,7 @@ export default class AssetLoader {
         }
       })
 
-      zip.on(`error`, err => {
+      zip.on(`error`, (err) => {
         console.log(err)
       })
 
@@ -142,9 +215,9 @@ export default class AssetLoader {
    * @returns {Promise<boolean>}
    */
   async loadAssets(list: Array<Object>, onLoaded: function) {
-    if (!list) {
+    /*if (!list) {
       list = this.preloadAssets
-    }
+    }*/
 
     let loaded = 0
     for (let i = 0; i < list.length; i++) {
@@ -163,9 +236,9 @@ export default class AssetLoader {
 
       list[i] = null
 
-      if (loaded === list.length) {
+      /*if (loaded === list.length) {
         this.preloadAssets = []
-      }
+      }*/
     }
 
     return true
@@ -226,7 +299,7 @@ export default class AssetLoader {
    * @param src
    * @param encoding
    */
-  async loadFile(src: string, encoding: string = ''): Promise<*> {
+  async loadFile(src: string, encoding: string = ``): Promise<*> {
     // Does the file exists on disk?
     if (Utils.isArray(src)) {
       for (let filePath of src) {
@@ -284,7 +357,7 @@ export default class AssetLoader {
   async loadFileToBlob(src: string): Promise<Blob> {
     let data = await this.loadFile(src)
     if (!data) {
-      return new Blob
+      return new Blob()
     }
 
     let blob = this.stringToBlob(data.toString(`binary`))
@@ -313,7 +386,7 @@ export default class AssetLoader {
     let data = await this.loadFile(src, `base64`)
     if (!data) {
       Utils.logError(`Unable to load file ${src}`)
-      return ''
+      return ``
     }
 
     let result = util.format(
@@ -382,7 +455,7 @@ export default class AssetLoader {
    * @returns {Promise<void>}
    */
   async loadTextFile(path: string): Promise<string> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       fs.readFile(path, `utf8`, (err, data) => {
         resolve(data)
       })
@@ -396,7 +469,7 @@ export default class AssetLoader {
    * @returns {Promise<void>}
    */
   async saveTextFile(path: string, data: string) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       fs.writeFile(path, data, `utf8`, (err, data) => {
         resolve(data)
       })
@@ -430,27 +503,50 @@ export default class AssetLoader {
    */
   async saveJsonFile(filePath: string, object: Object) {
     try {
-      return await writeJsonFile(filePath, object, {indent: 2})
+      return await writeJsonFile(filePath, object, { indent: 2 })
     } catch (err) {
       Utils.logError(err.message)
       return null
     }
   }
 
+  notityTarget(descriptor, target) {
+    if (target) {
+      target.onResourceLoaded(descriptor)
+    }
+
+  }
+
   /**
    *
    * @param descriptor
-   * @returns {Promise<boolean>}
+   * @param target
+   * @returns {Promise<Object>}
    */
-  async loadAsset(descriptor: Object) {
+  async loadAsset(descriptor: Object, target: ?Object) {
     let cached = this.getCachedAsset(descriptor.key)
     if (cached != null) {
       console.log(`Already loaded: ${descriptor.key}`)
       Object.assign(descriptor, cached)
-      return true
+
+      this.notityTarget(descriptor, target)
+      return descriptor
     }
 
-    let result
+    if (target) {
+      this.addToQueue(descriptor, target)
+      return
+    }
+
+    descriptor = await this.loadAssetDirect(descriptor)
+
+    this.loadedAssets.set(descriptor.key, descriptor)
+
+    return descriptor
+  }
+
+
+  async loadAssetDirect(descriptor) {
 
     switch (descriptor.type) {
       case `atlas`:
@@ -465,14 +561,14 @@ export default class AssetLoader {
 
         if (!descriptor.image) {
           Utils.logError(`Unable to load file: ${descriptor.texture}`)
-          return false //Promise.resolve(false);
+          return null
         }
 
         descriptor.meta = await this.loadJsonFile(descriptor.data)
 
         if (Utils.isUndefined(descriptor.meta)) {
           Utils.logError(`Unable to load file: ${descriptor.data}`)
-          return false //Promise.resolve(false);
+          return null
         }
 
         break
@@ -480,16 +576,14 @@ export default class AssetLoader {
         descriptor.meta = await this.loadJsonFile(descriptor.data)
         break
       case `shader`:
-        console.log('shader', descriptor.fragment)
+        console.log(`shader`, descriptor.fragment)
 
         descriptor.fragment = await this.loadTextFile(descriptor.fragment)
         descriptor.vertex = await this.loadTextFile(descriptor.vertex)
         break
     }
 
-    //console.log(descriptor.key);
-    this.loadedAssets.set(descriptor.key, descriptor)
-    return true
+    return descriptor
   }
 
   /**
@@ -500,7 +594,7 @@ export default class AssetLoader {
    */
   async findFiles(dir: string, ext: string) {
     let regExp = new RegExp(`\.${ext}`, `i`)
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       let entries = this.findInArchives(dir, regExp)
       if (entries) {
         resolve(entries)
@@ -524,7 +618,7 @@ export default class AssetLoader {
    * @returns {Promise<void>}
    */
   async findDirs(dir: string, pattern: RegExp) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       if (!pattern) {
         pattern = new RegExp(`^[^.]+$`, `i`)
       }

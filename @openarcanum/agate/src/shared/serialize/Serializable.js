@@ -1,5 +1,4 @@
 import Utils from '../misc/NetworkUtils'
-import BaseTypes from './BaseTypes'
 
 class Serializable {
 
@@ -60,7 +59,7 @@ class Serializable {
     //       a single pass by starting with a large (and static) ArrayBuffer and
     //       recursively building it up.
     // buffer has one Uint8Array for class id, then payload
-    if (options.dataBuffer == null && options.dry != true) {
+    if (options.dataBuffer == null && !options.dry) {
       let bufferSize = this.serialize(serializer, {dry: true}).bufferOffset
       dataBuffer = new ArrayBuffer(bufferSize)
     } else {
@@ -88,20 +87,20 @@ class Serializable {
           )
         }
 
-        if (netScheme[property].type === BaseTypes.TYPES.STRING) {
+        if (netScheme[property].type === 'string') {
           // derive the size of the string
           localBufferOffset += Uint16Array.BYTES_PER_ELEMENT
           if (this[property] !== null && this[property] !== undefined)
             localBufferOffset +=
               this[property].length * Uint16Array.BYTES_PER_ELEMENT
-        } else if (netScheme[property].type === BaseTypes.TYPES.CLASSINSTANCE) {
+        } else if (netScheme[property].type === 'class') {
           // derive the size of the included class
           let objectInstanceBufferOffset = this[property].serialize(
             serializer,
             {dry: true}
           ).bufferOffset
           localBufferOffset += objectInstanceBufferOffset
-        } else if (netScheme[property].type === BaseTypes.TYPES.LIST) {
+        } else if (netScheme[property].type === 'list') {
           // derive the size of the list
           // list starts with number of elements
           localBufferOffset += Uint16Array.BYTES_PER_ELEMENT
@@ -109,13 +108,13 @@ class Serializable {
           for (let item of this[property]) {
             // todo inelegant, currently doesn't support list of lists
             if (
-              netScheme[property].itemType === BaseTypes.TYPES.CLASSINSTANCE
+              netScheme[property].itemType === 'class'
             ) {
               let listBufferOffset = item.serialize(serializer, {dry: true})
                 .bufferOffset
               localBufferOffset += listBufferOffset
             } else if (
-              netScheme[property].itemType === BaseTypes.TYPES.STRING
+              netScheme[property].itemType === 'string'
             ) {
               // size includes string length plus double-byte characters
               localBufferOffset +=
@@ -140,40 +139,18 @@ class Serializable {
     return {dataBuffer, bufferOffset: localBufferOffset}
   }
 
-  // build a clone of this object with pruned strings (if necessary)
-  /*prunedStringsClone(serializer, prevObject) {
-    if (!prevObject) return this
-    prevObject = serializer.deserialize(prevObject).obj
-
-    // get list of string properties which changed
-    let netScheme = this.constructor.netScheme
-    let isString = (p) => netScheme[p].type === BaseTypes.TYPES.STRING
-    let hasChanged = (p) => prevObject[p] !== this[p]
-    let changedStrings = Object.keys(netScheme)
-      .filter(isString)
-      .filter(hasChanged)
-    if (changedStrings.length == 0) return this
-
-    // build a clone with pruned strings
-    let prunedCopy = new this.constructor(null, {id: null})
-    for (let p of Object.keys(netScheme))
-      prunedCopy[p] = changedStrings.indexOf(p) < 0 ? this[p] : null
-
-    return prunedCopy
-  }*/
-
   syncTo(other) {
     let netScheme = this.constructor.netScheme
-    for (let p of Object.keys(netScheme)) {
+    for (let p in netScheme) {
       // ignore classes and lists
       if (
-        netScheme[p].type === BaseTypes.TYPES.LIST ||
-        netScheme[p].type === BaseTypes.TYPES.CLASSINSTANCE
+        netScheme[p].type === 'list' ||
+        netScheme[p].type === 'class'
       )
         continue
 
       // strings might be pruned
-      if (netScheme[p].type === BaseTypes.TYPES.STRING) {
+      if (netScheme[p].type === 'string') {
         if (typeof other[p] === `string`) this[p] = other[p]
         continue
       }

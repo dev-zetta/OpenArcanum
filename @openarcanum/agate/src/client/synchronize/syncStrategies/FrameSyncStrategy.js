@@ -71,4 +71,28 @@ export default class FrameSyncStrategy extends SyncStrategy {
       }
     }
   }
+
+  // apply a new sync
+  applySync(sync, required) {
+
+    if (sync.syncObjects[0]) {
+      console.error('aaaaa', sync, required)
+    }
+
+
+    /*
+    fullUpdate: 0
+required: true
+stepCount: 36
+syncObjects:
+0: (2) [networkedEventPrototype, networkedEventPrototype]
+__proto__: Object
+syncSteps: {35: {…}, 36: {…}}
+
+     */
+
+
+  }
+
+
 }

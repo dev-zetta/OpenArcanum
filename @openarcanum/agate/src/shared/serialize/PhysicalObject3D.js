@@ -25,18 +25,18 @@ class PhysicalObject3D extends GameObject {
    * @example
    *     static get netScheme() {
    *       return Object.assign({
-   *           mojo: { type: BaseTypes.TYPES.UINT8 },
+   *           mojo: { type: 'uint8' },
    *         }, super.netScheme);
    *     }
    */
   static get netScheme() {
     return Object.assign(
       {
-        playerId: { type: BaseTypes.TYPES.INT16 },
-        position: { type: BaseTypes.TYPES.CLASSINSTANCE },
-        quaternion: { type: BaseTypes.TYPES.CLASSINSTANCE },
-        velocity: { type: BaseTypes.TYPES.CLASSINSTANCE },
-        angularVelocity: { type: BaseTypes.TYPES.CLASSINSTANCE }
+        playerId: { type: 'int16' },
+        position: { type: 'class' },
+        quaternion: { type: 'class' },
+        velocity: { type: 'class' },
+        angularVelocity: { type: 'class' }
       },
       super.netScheme
     )

@@ -113,7 +113,7 @@ class GameNetwork {
    */
   step(isReenact, t, dt, physicsOnly) {
     // physics-only step
-    if (physicsOnly) {
+    if (this.physicsEngine && physicsOnly) {
       if (dt) dt /= 1000 // physics engines work in seconds
       this.physicsEngine.step(dt, objectFilter)
       return

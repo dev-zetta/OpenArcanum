@@ -19,7 +19,8 @@ import type EventEmitter from '../shared/misc/EventEmitter'
 import type GameEngine from '../shared/GameEngine'
 import type AssetLoader from '../shared/assets/AssetLoader'
 import Renderer from './Renderer'
-import Camera from './Camera';
+import Camera from './Camera'
+import Vec2 from '../shared/misc/Vec2';
 
 const ShaderTest: string = `outline`
 const ShaderTest2: string = `gamma`
@@ -53,15 +54,7 @@ export default class Scene {
     //this.events.on('Map.NewEntity', this.onNewEntity, this)
 
     //this.events.on('Player:Joined', this.onPlayerJoined, this)
-    this.events.on('Object:Click', this.onObjectClick, this)
-
-  }
-
-  async onPlayerJoined(player, map) {
-    await this.onNewEntity(player)
-    this.addEntity(player, map.rootGroup)
-
-    this.sortGroup(map.rootGroup)
+    this.events.on(`Object:Click`, this.onObjectClick, this)
   }
 
   /**
@@ -72,10 +65,18 @@ export default class Scene {
     return this._canvas
   }
 
+  /**
+   *
+   * @returns {AssetLoader}
+   */
   get assetLoader(): AssetLoader {
     return this.gameEngine.assetLoader
   }
 
+  /**
+   *
+   * @returns {EventEmitter}
+   */
   get events(): EventEmitter {
     return this.gameEngine.events
   }
@@ -226,10 +227,16 @@ export default class Scene {
    * @param key
    * @param type
    * @param options
+   * @param target
    * @returns {Promise<Object>}
    */
-  async loadAsset(key: string, type: string, options: Object): Promise<Object> {
-    return this.client.loadAsset(key, type, options)
+  async loadAsset(
+    key: string,
+    type: string,
+    options: Object,
+    target: ?Object
+  ): Promise<Object> {
+    return this.client.loadAsset(key, type, options, target)
   }
 
   /**
@@ -247,52 +254,6 @@ export default class Scene {
       texture: `${dataUrl}/Tile/tiles.png`,
       data: `${dataUrl}/Tile/tiles.json`
     })
-  }
-
-  /**
-   *
-   * @param pointer
-   * @param gameObject
-   */
-  onObjectClick(gameObject: Object) {
-    lll(gameObject)
-    if (gameObject.data) {
-        let data = gameObject.data
-
-        const isObject = Utils.isUndefined(data.type)
-        if (isObject) {
-          this.client.sendInput(`Player:EntitySelect`, { entity: data })
-        } else {
-          this.client.sendInput(`Player:TileSelect`, { tile: data })
-        }
-
-        if (data.type !== `Tile`) {
-          this.client.guiManager.addDatGui(data)
-        }
-      } else {
-        this.client.guiManager.addDatGui(gameObject)
-      }
-
-    gameObject.setTint(0x66eeee)
-
-    //gameObject.setPipeline(ShaderTest)
-
-    /*gameObject.tween = this.tweens.add({
-      targets: gameObject,
-      props: {
-        isoZ: 30.0,
-      },
-      ease: 'Quad.easeInOut',
-      duration: 1000,
-      repeat: -1,
-      repeatDelay: 1000,
-      yoyo: true,
-      onUpdate: (data) => {
-        gameObject._project();
-      },
-    });
-
-    gameObject.tween.play();*/
   }
 
   /**
@@ -321,11 +282,6 @@ export default class Scene {
     //this.player = this.add.sprite(center.x, center.y, 'pointer');
     //this.player.setDepth(1);
 
-    //this.text = this.add.text(center.x, center.y, 'Phaser')
-    //this.text.setDepth(1)
-
-    //this.game.physics.p2.enable(this.player)
-
     this.setCameraLocation(map.getCenterLocation())
 
     this.addMap(map)
@@ -341,28 +297,118 @@ export default class Scene {
       if (tile.type) {
         tile.sprite = new Sprite(this)
         await tile.sprite.load(tile)
-        //tile.type = GfxTypes.get(tile.type);
       }
     }
   }
 
+  /**
+   *
+   * @param entity
+   * @param visualClass
+   * @returns {Function}
+   */
+  /*loadSprite(entity: Entity, visualClass) {
+    return async () => {
+      let sprite = new Sprite(this)
+      sprite.setData(entity)
+
+      sprite.load(visualClass)
+      visualClass.sprite = sprite
+    }
+  }*/
+
+  /**
+   *
+   *
+   * @param entity
+   * @returns {Promise<void>}
+   */
   async onNewEntity(entity: Entity) {
+    let sprites = []
     let visualComponent = entity.visual
     if (visualComponent) {
       let visualClasses = visualComponent.classes
 
+      //lll('dfdfd', visualClasses)
+
       for (let className: string in visualClasses) {
+        if (className.charAt(0) === '_') { // TODO: Hack. Use function to check if prop is private
+          continue
+        }
+
+
         let visualClass = visualClasses[className]
 
         let sprite = new Sprite(this)
         sprite.setData(entity)
-
-        await sprite.load(visualClass)
         visualClass.sprite = sprite
+
+        sprites.push(sprite.load(visualClass))
 
         //lll(`loaded visual`, entity.base.type)
       }
     }
+
+    return Promise.all(sprites)
+  }
+
+  /**
+   *
+   * @param pointer
+   * @param gameObject
+   */
+  onObjectClick(gameObject: Object) {
+    lll(gameObject)
+    if (gameObject.data) {
+      let data = gameObject.data
+
+      const isObject = Utils.isUndefined(data.type)
+      if (isObject) {
+        this.client.sendInput(`Player:EntitySelect`, { entity: data })
+      } else {
+        this.client.sendInput(`Player:TileSelect`, { tile: data })
+      }
+
+      if (data.type !== `Tile`) {
+        this.client.guiManager.addDatGui(data)
+      }
+    } else {
+      this.client.guiManager.addDatGui(gameObject)
+    }
+
+    gameObject.setTint(0x66eeee)
+
+    //gameObject.setPipeline(ShaderTest)
+
+    /*gameObject.tween = this.tweens.add({
+      targets: gameObject,
+      props: {
+        isoZ: 30.0,
+      },
+      ease: 'Quad.easeInOut',
+      duration: 1000,
+      repeat: -1,
+      repeatDelay: 1000,
+      yoyo: true,
+      onUpdate: (data) => {
+        gameObject._project();
+      },
+    });
+
+    gameObject.tween.play();*/
+  }
+
+  /**
+   *
+   * @param player
+   * @param map
+   * @returns {Promise<void>}
+   */
+  async onPlayerJoined(player, map) {
+    await this.onNewEntity(player)
+    this.addEntity(player, map.rootGroup)
+
+    this.sortGroup(map.rootGroup)
   }
 
   /**
@@ -411,7 +457,10 @@ export default class Scene {
       let pos = tiles[i]
       let location = new Location(pos[1], pos[0])
 
-      let sector = this.gameEngine.map.getSector(location.sectorX, location.sectorY)
+      let sector = this.gameEngine.map.getSector(
+        location.sectorX,
+        location.sectorY
+      )
 
       if (!sector || !sector.tiles) {
         continue
@@ -494,16 +543,17 @@ export default class Scene {
     // Add tiles
     sector.tileGroup = this.newGroup(target)
 
-    let ax = sector.x * Sector.Width * Sector.TileWidthHalf
-    let ay = sector.y * Sector.Height * Sector.TileWidthHalf
+    let ax = sector.x * Sector.Width * Sector.TileHeight
+    let ay = sector.y * Sector.Height * Sector.TileHeight
 
+    let offset = new Vec2(0, 39)
     lll(`Adding sector to scene`, ax, ay)
     for (let y = 0; y < Sector.Height; y++) {
       let dx = ax
       for (let x = 0; x < Sector.Width; x++) {
         let tile = sector.getTile(x, y)
         if (!tile) {
-          //lll(`No tile for sector`)
+          lll(`No tile for sector`)
           continue
         }
 
@@ -511,7 +561,7 @@ export default class Scene {
           tile.type &&
           (tile.type == `Facade` || tile.end.category != `BlackYall`)
         ) {
-          this.addSprite(tile.sprite, sector.tileGroup, ay, dx, 0, [0, 20])
+          this.addSprite(tile.sprite, sector.tileGroup, ay, dx, 0, offset)
           //tile.sprite.setPipeline('Light2D')
           tile.sprite.setData(tile)
         }
@@ -589,17 +639,19 @@ export default class Scene {
       offset = {x: offset[0], y: offset[1]};
     }*/
 
-    let x = location.x * Sector.TileWidthHalf
-    let y = location.y * Sector.TileWidthHalf
+    let x = location.x * Sector.TileHeight
+    let y = location.y * Sector.TileHeight
 
     if (sprite.type === Gfx.Types.Wall) {
+      //lll('entity offset', offset)
       switch (
-        sprite.currentStage // Counter clockwise
+        sprite.stage // Counter clockwise
       ) {
         case `NorthEast`:
           // South east, indoor (Up right)
           //x += 20; //(Sector.TileWidth / 2) - 1
           y -= Sector.TileWidthHalf //(Sector.TileHeight / 2)
+          //x -= 1
           break
         case `SouthEast`:
           // South west, outdoor
@@ -615,17 +667,18 @@ export default class Scene {
         case `NorthWest`:
           // South west, indoor (Up left)
           x -= Sector.TileWidthHalf //(Sector.TileWidth / 2) + 1
+          //y -= 1
           //y -= 20; //(Sector.TileHeight / 2)
           break
       }
     } else if (sprite.type === Gfx.Types.Portal) {
       switch (
-        sprite.side // Counter clockwise
+        sprite.meta.side // Counter clockwise
       ) {
         case 1:
           // South east, indoor (Up right)
           //x += 40; //(Sector.TileWidth / 2) - 1
-          y -= Sector.TileWidthHalf //(Sector.TileHeight / 2)
+          y -= Sector.TileHeight //(Sector.TileHeight / 2)
           break
         case 3:
           // South west, outdoor
@@ -640,12 +693,13 @@ export default class Scene {
 
         case 7:
           // South west, indoor (Up left)
-          x -= Sector.TileWidthHalf //(Sector.TileWidth / 2) + 1
+          x -= Sector.TileHeight //(Sector.TileWidth / 2) + 1
           //y -= 20; //(Sector.TileHeight / 2)
           break
       }
     } else {
     }
+
 
     this.addSprite(
       sprite,
@@ -660,11 +714,16 @@ export default class Scene {
     // Process render components
     let renderComponent = visualComponent.render
     if (renderComponent) {
+
+
       // Process render flags
       if (renderComponent.flags) {
+
+        //lll('render flags', renderComponent)
         let flags = renderComponent.flags
 
         for (let flag of flags) {
+          lll('render flags', flag)
           switch (flag) {
             case `BlendAdd`:
             case `BlendMul`:

@@ -165,8 +165,18 @@ export default class Location extends Vec2 {
    * @param location
    * @returns {*}
    */
-  static calculateLength(location: Array<number>): number {
-    return Math.sqrt(location[0] * location[0] + location[1] * location[1])
+  static calculateLengthRaw(x, y): number {
+    return Math.sqrt(x * x + y * y)
+  }
+
+
+  /**
+   *
+   * @param location
+   * @returns {*}
+   */
+  static calculateLength(location: Location): number {
+    return Math.sqrt(location.x * location.x + location.y * location.y)
   }
 
   /**
@@ -174,13 +184,39 @@ export default class Location extends Vec2 {
    * @param location
    * @returns {number[]}
    */
-  static calculateNormalize(location: Array<number>): Array<number> {
+  static calculateNormalizeRaw(x, y): Array<number> {
+    let length = Location.calculateLengthRaw(x, y)
+
+    // Collect a ratio to shrink the x and y coords
+    let invertedLength = length < Number.MIN_VALUE ? 0 : 1 / length
+
+    return [x * invertedLength, y * invertedLength]
+  }
+
+
+  /**
+   *
+   * @param location
+   * @returns {number[]}
+   */
+  static calculateNormalize(location: Location): Array<number> {
     let length = Location.calculateLength(location)
 
     // Collect a ratio to shrink the x and y coords
     let invertedLength = length < Number.MIN_VALUE ? 0 : 1 / length
 
-    return [location[0] * invertedLength, location[1] * invertedLength]
+    return new Location(location.x * invertedLength, location.y * invertedLength)
+  }
+
+
+  /**
+   *
+   * @param a
+   * @param b
+   * @returns {Array<number>}
+   */
+  static calculateVelocityRaw(a: Array<number>, b: Array<number>): Array<number> {
+    return Location.calculateNormalizeRaw(b[0] - a[0], b[1] - a[1])
   }
 
   /**
@@ -189,9 +225,8 @@ export default class Location extends Vec2 {
    * @param b
    * @returns {Array<number>}
    */
-  static calculateVelocity(a: Array<number>, b: Array<number>): Array<number> {
-    let velocity = [b[0] - a[0], b[1] - a[1]]
-    return Location.calculateNormalize(velocity)
+  static calculateVelocity(a: Location, b: Location): Array<number> {
+    return new Location(Location.calculateNormalizeRaw(b.x - a.x, b.y - a.y))
   }
 
   /**
@@ -200,8 +235,12 @@ export default class Location extends Vec2 {
    * @param b
    * @returns {*}
    */
-  static calculateDistance(a: Array<number>, b: Array<number>): number {
+  static calculateDistanceRaw(a: Array<number>, b: Array<number>): number {
     return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]))
+  }
+
+  static calculateDistance(a: Location, b: Location): number {
+    return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
   }
 
   /**
@@ -211,7 +250,7 @@ export default class Location extends Vec2 {
    * @param y
    * @returns {number[]}
    */
-  static calculateMultiply(
+  static calculateMultiplyRaw(
     location: Array<number>,
     x: number,
     y: ?number = null
@@ -223,13 +262,33 @@ export default class Location extends Vec2 {
     return [location[0] * x, location[1] * y]
   }
 
+
+  /**
+   *
+   * @param location
+   * @param x
+   * @param y
+   * @returns {number[]}
+   */
+  static calculateMultiply(
+    location: Location,
+    x: number,
+    y: ?number = null
+  ): Array<number> {
+    if (y == null) {
+      y = x
+    }
+
+    return [location.x * x, location.y * y]
+  }
+
   /**
    *
    * @param velocity
    * @returns {*}
    */
-  static velocityToDirection(velocity: Array<number>): string {
-    let angle = Math.atan2(velocity[1], velocity[0]) //current.angleTo(next);
+  static velocityToDirection(velocity: Location): string {
+    let angle = Math.atan2(velocity.y, velocity.x) //current.angleTo(next);
     let octant = Math.round((8 * angle) / (2 * Math.PI) + 8) % 8
 
     return Directions[octant]

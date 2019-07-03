@@ -64,6 +64,7 @@ class BaseRenderer {
    * @param {Number} dt - time elapsed since last draw
    */
   runClientStep(t) {
+
     let p = this.clientEngine.options.stepPeriod
     let dt = 0
 

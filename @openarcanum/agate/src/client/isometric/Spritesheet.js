@@ -5,6 +5,12 @@ import Math from '../../shared/misc/Math'
 import Utils from '../../shared/misc/Utils'
 
 export default class Spritesheet {
+
+  /**
+   *
+   * @param baseTexture
+   * @param data
+   */
   constructor(baseTexture, data) {
     /**
      * Reference to ths source texture
@@ -45,6 +51,16 @@ export default class Spritesheet {
 
     this._processFrames()
   }
+
+
+  get frames() {
+    return this._frames
+  }
+
+  get totalFrames() {
+    return this._frameKeys.length
+  }
+
 
   _processFrames(initialFrameIndex = 0) {
     let frameIndex = initialFrameIndex
@@ -157,17 +173,12 @@ export default class Spritesheet {
     image: ImageBitmap,
     meta: Object
   ): PIXI.Spritesheet {
+
     let baseTexture = PIXI.BaseTexture.getFromCache(key)
     if (!baseTexture) {
       baseTexture = new PIXI.BaseTexture(image, {})
       baseTexture.cacheId = key
       PIXI.BaseTexture.addToCache(baseTexture, key)
-    }
-
-    if (Utils.isUndefined(meta.meta)) {
-      meta.meta = {
-        scale: 1.0
-      }
     }
 
     let sheet = new Spritesheet(baseTexture, meta)

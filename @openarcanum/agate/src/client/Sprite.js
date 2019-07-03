@@ -7,25 +7,35 @@ import Utils from '../shared/misc/Utils'
 import GfxPathBuilder from '../shared/assets/GfxPathBuilder'
 import type Scene from './Scene'
 import Spritesheet from './isometric/Spritesheet'
+import Vec2 from '../shared/misc/Vec2'
+
+export type Meta = {}
 
 export default class Sprite {
   scene: Scene
   totalElapsed: number
-  iso: Sprite
   flipped: boolean
   type: string
+  stageKey: string // stage key
   frame: number
-  path: string
-  currentStage: string
-  selectedVariant: number
+  totalFrames: number
+  frameKey: string
   frameRate: number
   triggerFrame: number
+
+
+  path: string
+  stage: string
+  variant: number
+
   animated: boolean
-  variants: Array<Object>
-  stages: Array<Object>
+  variants: Array<string>
+  stages: Array<string>
   data: any
-  offset: Object
+  offset: Vec2
   iso: IsoSprite
+
+  //meta: Meta
 
   /**
    *
@@ -34,6 +44,15 @@ export default class Sprite {
   constructor(scene: Scene) {
     this.scene = scene
     this.totalElapsed = 0
+    this.totalFrames = 0
+    this.animated = false
+
+    let sprite = new IsoSprite(this.scene.isometric)
+    sprite.data = this
+
+    this.iso = sprite
+
+    this.offset = new Vec2()
   }
 
   /**
@@ -44,17 +63,38 @@ export default class Sprite {
     return this.texture.frameTotal
   }*/
 
+  /**
+   *
+   * @returns {AssetLoader}
+   */
   get assetLoader() {
     return this.scene.assetLoader
   }
 
+  /**
+   *
+   * @param key
+   * @param options
+   * @returns {Promise<Spritesheet>}
+   */
   async loadSpritesheet(key, options: Object) {
+    const spritesheet = this.getSpritesheetByKey(key)
+    if (spritesheet) {
+      return spritesheet
+    }
+
     let descriptor = await this.scene.loadAsset(key, `atlas`, options)
 
     if (descriptor.spritesheet) {
+      lll(`Huh?`)
       return descriptor.spritesheet
     }
 
+    descriptor = Sprite.createSpritesheet(descriptor)
+    return descriptor.spritesheet
+  }
+
+  static createSpritesheet(descriptor) {
     let spritesheet = Spritesheet.newSpritesheet(
       descriptor.key,
       descriptor.image,
@@ -66,7 +106,27 @@ export default class Sprite {
     delete descriptor.image
     delete descriptor.meta
 
-    return spritesheet
+    return descriptor
+  }
+
+  get type() {
+    return Gfx.Types.get(this.meta.type)
+  }
+
+  get stage() {
+    return this.meta.stage
+  }
+
+  set stage(stage) {
+    this.meta.stage = stage
+  }
+
+  get frame() {
+    return this.meta.frame
+  }
+
+  set frame(frame) {
+    this.meta.frame = frame
   }
 
   /**
@@ -74,47 +134,31 @@ export default class Sprite {
    * @param data
    * @returns {Promise<void>}
    */
-  async load(data: Object): Promise<void> {
+  async load(source: Object): Promise<void> {
     let dataPath = AGate.getDataPath(`Gfx/2D`)
 
     let path = ``
-    if (Utils.isObject(data)) {
-      Object.assign(this, data)
+    if (Utils.isObject(source)) {
+      this.meta = source
 
-      if (Utils.isUndefined(data.type)) {
+      if (Utils.isUndefined(source.type)) {
         //lll('Loading sprite data for undefined sprite type')
         return
       }
 
-      this.frame = Utils.isUndefined(data.frame) ? 0 : data.frame
+      this.frame = Utils.isUndefined(source.frame) ? 0 : source.frame
 
       /*if (!Utils.isUndefined(data.type)) {
         this.type = Gfx.Types.get(data.type)
       }*/
 
-      path = GfxPathBuilder.build(this)
+      path = GfxPathBuilder.build(this.meta)
     } else {
-      path = data
+      path = source
     }
 
-    this.path = path
-    this.selectedVariant = 0
-
-    switch (this.type) {
-      case Gfx.Types.Tile:
-        this.currentStage = `North`
-        return
-      default:
-        if (!Utils.isUndefined(data.stage)) {
-          this.currentStage = data.stage
-        }
-
-        if (!this.currentStage) {
-          this.currentStage = `North`
-        }
-
-        break
-    }
+    this.path = path // TODO: Prevents loading other files
+    this.variant = 0
 
     let spritePath = `${dataPath}/${this.path}`
     //console.log(`Loading: ${spritePath}`);
@@ -123,6 +167,23 @@ export default class Sprite {
     if (!meta) {
       lll(`Unable to load sprite: ${`${spritePath}/Meta.json`}`)
       return
+    }
+
+    if (this.type === Gfx.Types.Tile) {
+      this.stage = `North`
+    }
+
+    if (Utils.isUndefined(this.stage)) {
+      this.stage = `North`
+    }
+
+    let { stageKey, frameKey } = this.generateKeys()
+
+    this.stageKey = stageKey
+    this.frameKey = frameKey
+
+    if (this.type === Gfx.Types.Tile) {
+      return // TODO; Hack
     }
 
     this.frameRate = meta.frameRate
@@ -134,8 +195,8 @@ export default class Sprite {
     this.variants = []
     this.stages = []
 
-    let variantPath = `${spritePath}/${this.selectedVariant}`
-    let keyPrefix = `${this.path}/${this.selectedVariant}`
+    let variantPath = `${spritePath}/${this.variant}`
+    let keyPrefix = `${this.path}/${this.variant}`
 
     let stageDirs = await this.assetLoader.findDirs(variantPath)
 
@@ -146,49 +207,61 @@ export default class Sprite {
       let stagePath = `${variantPath}/${stageName}`
       let assetKey = `${keyPrefix}/${stageName}`
 
-      let promise = this.loadSpritesheet(assetKey, {
+      let promise = this.scene.loadAsset(
+        assetKey,
+        `atlas`,
+        {
+          texture: `${stagePath}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
+          data: `${stagePath}/Stage.json`
+        },
+        this
+      )
+
+      /*let promise = this.loadSpritesheet(assetKey, {
         texture: `${stagePath}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
         data: `${stagePath}/Stage.json`,
         flippedX: this.flipped
-      })
+      })*/
 
-      promises.push(promise)
+      //promises.push(promise) // TODO: spritesheets are not used in any way
 
       this.stages.push(stageName)
     }
 
-    return Promise.all(promises)
+    //return Promise.all(promises)
+
+    this.variants[this.variant] = this.stages
   }
 
   /**
-   *
+   * Generate sprite key and frame key according to current state
    * @returns {{key: string, frame: string}}
    */
-  makeTextureInfo(): Object {
-    let frame, key
-    let currentPath = `${this.path}/${this.selectedVariant}`
+  generateKeys(): Object {
+    let frameKey, stageKey
+    let currentPath = `${this.path}/${this.variant}`
 
     switch (this.type) {
       case Gfx.Types.Tile:
-        key = `tiles`
-        frame = `${currentPath}/${this.currentStage}/Sprite.gif`
+        stageKey = `tiles`
+        frameKey = `${currentPath}/${this.stage}/Sprite.gif`
         break
       case Gfx.Types.Wall:
-        key = `${currentPath}/North`
-        frame = `${key}/${this.frame}`
+        stageKey = `${currentPath}/North`
+        frameKey = `${stageKey}/${this.frame}`
         break
       case Gfx.Types.Portal:
-        key = `${currentPath}/North`
-        frame = `${key}/0`
+        stageKey = `${currentPath}/North`
+        frameKey = `${stageKey}/0`
         //this.animated = true;
         break
       default:
-        key = `${currentPath}/${this.currentStage}`
-        frame = `${key}/${this.frame}`
+        stageKey = `${currentPath}/${this.stage}`
+        frameKey = `${stageKey}/${this.frame}`
         break
     }
 
-    return { key, frame }
+    return { stageKey, frameKey }
   }
 
   /**
@@ -204,30 +277,32 @@ export default class Sprite {
    * @param index
    */
   setFrame(index: number) {
-    // TODO
-    return
-    let sprite = this.iso
-
-    let texture = sprite.texture
-
     // Generate key name
-    let key = this.getCacheId()
-    key = key.substring(0, key.lastIndexOf(`/`))
+    let key = this.stageKey
+    //key = key.substring(0, key.lastIndexOf(`/`))
     key = `${key}/${index}`
 
-    sprite.texture = sprite.textures[key]
-
-    sprite.displayOriginX = sprite.frame.centerX
-    sprite.displayOriginY = sprite.frame.centerY
-
     this.frame = index
+    this.setFrameByKey(key)
+  }
+
+  /**
+   *
+   * @param index
+   */
+  setFrameByKey(key: string) {
+    let sprite = this.iso
+    sprite.texture = key
+
+    //sprite.displayOriginX = sprite.frame.centerX
+    // sprite.displayOriginY = sprite.frame.centerY // TODO: Anchor
+
+    this.frameKey = key
   }
 
   getCacheId() {
     let sprite = this.iso
     let texture = sprite.texture
-
-    //console.log(texture)
 
     return texture.textureCacheIds[0]
   }
@@ -237,27 +312,25 @@ export default class Sprite {
    * @param stage
    */
   setStage(stage: string) {
-    if (stage === this.currentStage) {
+    if (stage === this.stage) {
       return
     }
 
-    //console.log(`Changing to stage ${stage}`)
+    console.log(`Changing to stage ${stage}`)
+    this.stage = stage
+    let { stageKey, frameKey } = this.generateKeys()
 
-    let sprite = this.iso
+    this.setFrameByKey(frameKey)
+
+
 
     // Generate key name
-    let key = this.getCacheId()
-    if (!key)
-      return
+
+    //lll('stage', key, stage, this.stage, this.path)
 
 
-    key = key.substring(0, key.lastIndexOf(`/`))
-    key = `${key}/${stage}`
-
-    sprite.setTexture(key)
 
 
-    this.currentStage = stage
   }
 
   /**
@@ -277,7 +350,7 @@ export default class Sprite {
     //let delta = (elapsed % 1001) / 1000;
     let sprite = this.iso
 
-    //console.log(x * delta, y * delta)
+    lll('iso move', x ,y )
     sprite.isoMove(x, y)
     sprite.postUpdate()
   }
@@ -290,18 +363,12 @@ export default class Sprite {
   update(elapsed: number, speed: number = 1.0) {
     this.totalElapsed += elapsed
 
-    let sprite = this.iso
-    if (!sprite) {
-      return
-    }
-
-    //let elapsed = (totalElapsed % 1000);
-
     let frameTime = (this.frameRate / 1000) * speed
     let frameIndex =
-      Math.round(this.totalElapsed * frameTime) % (sprite.totalFrames - 1)
+      Math.round(this.totalElapsed * frameTime) % (this.totalFrames - 1)
 
-    if (!isNaN(frameIndex)) {
+
+    if (!isNaN(frameIndex) && this.frame !== frameIndex) {
       this.setFrame(frameIndex)
     }
   }
@@ -313,15 +380,16 @@ export default class Sprite {
   setBlendMode(mode: string) {
     switch (mode) {
       case `BlendAdd`:
-        //mode = Phaser.BlendModes.ADD
+        mode = 'ADD'
         break
       case `BlendMul`:
-        //mode = Phaser.BlendModes.MULTIPLY
+        mode = 'MULTIPLY'
         break
       default:
+        lll('unknown blend mode')
         return
     }
-    //this.iso.setBlendMode(mode)
+    this.iso.setBlendMode(mode)
   }
 
   /**
@@ -341,14 +409,13 @@ export default class Sprite {
     this.frame = 0
     this.totalElapsed = 0
 
-    let { key, frame } = this.makeTextureInfo()
+    //let { stageKey, frameKey } = this.generateKeys()
 
     //console.log(`Changing to: ${key} - ${frame}`)
-    let sprite = this.iso
-    if (sprite) {
-      //const spritesheet = this.getSpritesheetByKey(key)
-      //sprite.setTexture(key, frame)
-    }
+
+      //const spritesheet = this.getSpritesheetByKey(this.stageKey)
+      //this.setSpritesheet(spritesheet)
+
   }
 
   /**
@@ -360,6 +427,11 @@ export default class Sprite {
     sprite.setPipeline(name)
   }
 
+  /**
+   *
+   * @param key
+   * @returns {*}
+   */
   getSpritesheetByKey(key) {
     let descriptor = this.assetLoader.getCachedAsset(key)
     if (!descriptor) {
@@ -368,7 +440,7 @@ export default class Sprite {
     }
 
     if (!descriptor.spritesheet) {
-      lll(`Spritesheet missing!`, descriptor)
+      //lll(`Spritesheet missing!`, descriptor)
       return
     }
 
@@ -377,7 +449,16 @@ export default class Sprite {
 
   /**
    *
-   * @param target
+   * @param spritesheet
+   */
+  setSpritesheet(spritesheet) {
+    this.totalFrames = spritesheet.totalFrames
+    this.setFrame(this.frame)
+  }
+
+  /**
+   *
+   * @param target - group
    * @param x
    * @param y
    * @param z
@@ -390,26 +471,19 @@ export default class Sprite {
     z: number = 0,
     offset: Object = null
   ) {
-    let { key, frame } = this.makeTextureInfo()
+    //if (this.type === Gfx.Types.Tile)
+    //  console.log(x, y, z, offset)
 
-    //if (this.type == GfxTypes.Tile)
-    //  console.log(offset);
-
-
-    const spritesheet = this.getSpritesheetByKey(key)
-    if (!spritesheet) {
-      return
+    if (this.type === Gfx.Types.Tile) {
+      let { stageKey, frameKey } = this.generateKeys()
+      //lll(`tile`, frameKey)
+      this.setFrameByKey(frameKey)
     }
 
-
-    if (Utils.isArray(offset)) {
-      offset = { x: offset[0], y: offset[1] }
-    }
-
-    let sprite = new IsoSprite(spritesheet, frame, this.scene.isometric)
+    let sprite = this.iso
     sprite.addToContainer(target, x, y, z, offset)
 
-    this.offset = offset
+    //this.offset = offset
 
     switch (this.type) {
       case Gfx.Types.Wall:
@@ -420,7 +494,7 @@ export default class Sprite {
 
     sprite.interactive = true
 
-    if (this.flipped && this.type !== Gfx.Types.Facade) {
+    if (this.meta.flipped && this.type !== Gfx.Types.Facade) {
       //this.sprite.originX = 0.5;
       sprite.scale.x *= -1
 
@@ -428,13 +502,12 @@ export default class Sprite {
       sprite.resetIsoBounds()
     }
 
-    this.iso = sprite
-    sprite.data = this
+
 
     /*if (this.animated) {
       for (let stageIndex = 0; stageIndex < this.stages.length; stageIndex++) {
         let stageName = this.stages[stageIndex];
-        let stagePath = `${this.path}/${this.selectedVariant}/${stageName}`;
+        let stagePath = `${this.path}/${this.variant}/${stageName}`;
 
         // create animation
         let frames = target.scene.anims.generateFrameNames(stagePath,
@@ -458,6 +531,20 @@ export default class Sprite {
     }*/
   }
 
+  onResourceLoaded(descriptor) {
+    let spritesheet = this.getSpritesheetByKey(descriptor.key)
+    if (!spritesheet) {
+      //lll('spritesheet', descriptor)
+      descriptor = Sprite.createSpritesheet(descriptor)
+      spritesheet = descriptor.spritesheet
+    }
 
+   // if (this.stageKey == 'Critter/Human/Male/ChainMail/None/Unarmed/Stand/0/South') {
+   //   lll('fdfsfdsfsdf', descriptor, spritesheet)
+    //}
 
+    //if (descriptor.key === this.frameKey) {
+    this.setSpritesheet(spritesheet)
+    //}
+  }
 }

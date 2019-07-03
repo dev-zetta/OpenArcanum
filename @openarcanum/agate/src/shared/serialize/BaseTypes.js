@@ -5,18 +5,18 @@
  * @example
  *     static get netScheme() {
  *       return {
- *             strength: { type: BaseTypes.TYPES.FLOAT32 },
- *             shield: { type: BaseTypes.TYPES.INT8 },
- *             name: { type: BaseTypes.TYPES.STRING },
- *             backpack: { type: BaseTypes.TYPES.CLASSINSTANCE },
+ *             strength: { type: 'float' },
+ *             shield: { type: 'int8' },
+ *             name: { type: 'string' },
+ *             backpack: { type: 'class' },
  *             coins: {
- *                 type: BaseTypes.TYPES.LIST,
- *                 itemType: BaseTypes.TYPES.UINT8
+ *                 type: 'list',
+ *                 itemType: 'uint8'
  *             }
  *         };
  *     }
  */
-class BaseTypes {}
+
 
 /**
  * @type {object}
@@ -29,62 +29,62 @@ class BaseTypes {}
  * @property {string} CLASSINSTANCE Seriablizable class. Make sure you register all the classes included in this way.
  * @property {string} LIST Seriablizable list.  In the netScheme definition, if an attribute is defined as a list, the itemType should also be defined.
  */
-BaseTypes.TYPES = {
+const TYPES = {
   /**
    * Seriablizable float
    * @alias TYPES.FLOAT32
    * @memberof! BaseTypes#
    */
-  FLOAT32: `FLOAT32`,
+  FLOAT32: `float`,
 
   /**
    * Seriablizable 32-bit int
    * @alias TYPES.INT32
    * @memberof! BaseTypes#
    */
-  INT32: `INT32`,
+  INT32: `int`,
 
   /**
    * Seriablizable 16-bit int
    * @alias TYPES.INT16
    * @memberof! BaseTypes#
    */
-  INT16: `INT16`,
+  INT16: `int16`,
 
   /**
    * Seriablizable 8-bit int
    * @alias TYPES.INT8
    * @memberof! BaseTypes#
    */
-  INT8: `INT8`,
+  INT8: `int8`,
 
   /**
    * Seriablizable unsigned 8-bit int
    * @alias TYPES.UINT8
    * @memberof! BaseTypes#
    */
-  UINT8: `UINT8`,
+  UINT8: `uint8`,
 
   /**
    * Seriablizable string
    * @alias TYPES.STRING
    * @memberof! BaseTypes#
    */
-  STRING: `STRING`,
+  STRING: `string`,
 
   /**
    * Seriablizable class.  Make sure you registered the classes included in this way.
    * @alias TYPES.CLASSINSTANCE
    * @memberof! BaseTypes#
    */
-  CLASSINSTANCE: `CLASSINSTANCE`,
+  CLASS: `class`,
 
   /**
    * Seriablizable list.
    * @alias TYPES.LIST
    * @memberof! BaseTypes#
    */
-  LIST: `LIST`
+  LIST: `list`
 }
 
-export default BaseTypes
+export default TYPES

@@ -12,10 +12,10 @@ const MAX_DEL_THETA = 0.2
 class Quaternion extends Serializable {
   static get netScheme() {
     return {
-      w: { type: BaseTypes.TYPES.FLOAT32 },
-      x: { type: BaseTypes.TYPES.FLOAT32 },
-      y: { type: BaseTypes.TYPES.FLOAT32 },
-      z: { type: BaseTypes.TYPES.FLOAT32 }
+      w: { type: 'float' },
+      x: { type: 'float' },
+      y: { type: 'float' },
+      z: { type: 'float' }
     }
   }
 

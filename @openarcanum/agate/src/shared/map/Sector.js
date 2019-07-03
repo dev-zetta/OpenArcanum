@@ -56,6 +56,7 @@ export default class Sector {
     this.gameEngine = map.gameEngine
 
     this.onTileLoad = null
+    this.onEntityLoad = null
   }
 
   get assetLoader(): AssetLoader {
@@ -109,7 +110,7 @@ export default class Sector {
    */
   addEntity(entity: Entity) {
     if (this.entities.has(entity.id)) {
-      lll(`Duplicate entity!!! ${entity.id}`)
+      lll(`Duplicate entity!!! ${entity.id}`, entity)
 
       return false
     }
@@ -119,12 +120,12 @@ export default class Sector {
     let tile = this.getTile(location.tileX, location.tileY)
 
     let name = Utils.camelCase(entity.base.type)
-    if (tile[name]) {
-      //console.log(entity)
-      lll(`Replacing entity: ${name}`)
+    if (!tile[name]) {
+      tile[name] = []
+      //lll(`Replacing entity: ${name}`)
     }
 
-    tile[name] = entity
+    tile[name].push(entity)
 
     this.entities.set(entity.id, entity)
   }

@@ -8,8 +8,8 @@ export default class NetworkedEventCollection extends Serializable {
   static get netScheme() {
     return {
       events: {
-        type: BaseTypes.TYPES.LIST,
-        itemType: BaseTypes.TYPES.CLASSINSTANCE
+        type: 'list',
+        itemType: 'class'
       }
     }
   }

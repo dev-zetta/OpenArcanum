@@ -380,6 +380,7 @@ class ServerNetwork {
 
     let playerId = this.getPlayerId(socket)
     if (!playerId) {
+      lll('server no id')
       playerId = ++this.gameEngine.world.playerCount
     }
     socket.playerId = playerId

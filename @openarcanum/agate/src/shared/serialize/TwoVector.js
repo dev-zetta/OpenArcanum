@@ -8,8 +8,8 @@ import BaseTypes from './BaseTypes'
 class TwoVector extends Serializable {
   static get netScheme() {
     return {
-      x: { type: BaseTypes.TYPES.FLOAT32 },
-      y: { type: BaseTypes.TYPES.FLOAT32 }
+      x: { type: 'float' },
+      y: { type: 'float' }
     }
   }
 

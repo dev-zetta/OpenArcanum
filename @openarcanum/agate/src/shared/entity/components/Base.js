@@ -2,7 +2,6 @@
 
 import Component from './Component'
 import Sector from '../../map/Sector'
-import Flags from '../../Flags'
 
 import Location from '../../Location'
 import Math from '../../misc/Math'
@@ -35,7 +34,6 @@ export default class Base extends Component {
   offset: Vec2
   resistance: Resistance
   health: Health
-  flags: Flags
 
   /**
    *
@@ -44,8 +42,6 @@ export default class Base extends Component {
     super(...arguments)
     this.location = new Location()
     this.offset = new Vec2()
-
-    this.flags = new Flags()
   }
 
   init(params) {

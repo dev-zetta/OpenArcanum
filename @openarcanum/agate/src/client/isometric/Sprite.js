@@ -92,15 +92,14 @@ export default class IsoSprite extends PIXI.Sprite {
     this.zIndex = value
   }
 
-  constructor(spritesheet: Spritesheet, key: string, isometric: Isometric) {
-    /*let textures = Utils.isArray(spritesheet.textures)
-      ? spritesheet.textures
-      : Utils.values(spritesheet.textures)*/
-
-    super(spritesheet.textures[key], false)
+  constructor(isometric: Isometric) {
+    super()
     this.isometric = isometric
-
     this.type = Isometric.ISOSPRITE
+  }
+
+  setFrameImage(spritesheet: Spritesheet, key: string) {
+    this.texture = spritesheet.textures[key]
   }
 
   get projector(): Projector {
@@ -113,10 +112,24 @@ export default class IsoSprite extends PIXI.Sprite {
 
   set texture(texture) {
     if (Utils.isString(texture)) {
-      texture = PIXI.Texture.getFromCache(texture)
+      let tex = PIXI.Texture.getFromCache(texture)
+
+      if (!tex) {
+
+        lll('Texture not in cache!', texture)
+      }
+
+      texture = tex
+    }
+
+    if (texture) {
+      this.anchor.x = texture.defaultAnchor.x
+      this.anchor.y = texture.defaultAnchor.y
     }
 
     super.texture = texture
+
+
   }
 
   setTexture(key) {
@@ -482,7 +495,45 @@ export default class IsoSprite extends PIXI.Sprite {
   }
 
 
+  setBlendMode(mode) {
+    /*
+        NORMAL:         0,
+    ADD:            1,
+    MULTIPLY:       2,
+    SCREEN:         3,
+    OVERLAY:        4,
+    DARKEN:         5,
+    LIGHTEN:        6,
+    COLOR_DODGE:    7,
+    COLOR_BURN:     8,
+    HARD_LIGHT:     9,
+    SOFT_LIGHT:     10,
+    DIFFERENCE:     11,
+    EXCLUSION:      12,
+    HUE:            13,
+    SATURATION:     14,
+    COLOR:          15,
+    LUMINOSITY:     16,
+    NORMAL_NPM:     17,
+    ADD_NPM:        18,
+    SCREEN_NPM:     19,
+    NONE:           20,
 
+    SRC_OVER:       0,
+    SRC_IN:         21,
+    SRC_OUT:        22,
+    SRC_ATOP:       23,
+    DST_OVER:       24,
+    DST_IN:         25,
+    DST_OUT:        26,
+    DST_ATOP:       27,
+    ERASE:          26,
+    SUBTRACT:       28,
+    */
+
+
+    this.blendMode = PIXI.BLEND_MODES[mode]
+  }
 
 
 }

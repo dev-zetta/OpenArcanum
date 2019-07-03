@@ -33,8 +33,6 @@ export default class State {
       this[state.value] = Utils.performance.now()
       this.counter++
     }
-
-
   }
 
   /**
@@ -109,7 +107,6 @@ export default class State {
       if (this.hasOwnProperty(property)) {
         delete this[property]
       }
-
     }
 
     this.counter = 0

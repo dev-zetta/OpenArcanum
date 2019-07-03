@@ -7,10 +7,10 @@ import * as PlayerLogic from './logic/player'
 import type AssetLoader from './assets/AssetLoader'
 import type EventEmitter from './misc/EventEmitter'
 import type Database from './realm/Database'
-import SimplePhysicsEngine from './physics/SimplePhysicsEngine';
+import SimplePhysicsEngine from './physics/SimplePhysicsEngine'
+import Entity from './entity/Entity';
 
 export default class GameEngine extends GameNetwork {
-
   map: GameMap
   assetLoader: AssetLoader
   events: EventEmitter
@@ -30,12 +30,12 @@ export default class GameEngine extends GameNetwork {
     this.map = new GameMap(this)
     this.commandEvaluators = new Map()
 
-    this.physicsEngine = new SimplePhysicsEngine({
+    /*this.physicsEngine = new SimplePhysicsEngine({
       gameEngine: this,
       collisions: {
         type: `brute`
       }
-    })
+    })*/
 
     this.events.on(`Map:Loading`, this.onMapLoading, this)
     this.events.on(`Map:Loaded`, this.onMapLoaded, this)
@@ -63,7 +63,7 @@ export default class GameEngine extends GameNetwork {
     let instances = new Map()
     for (let name in logics) {
       let classType = logics[name]
-      instances.set(name, new classType({engine: this}))
+      instances.set(name, new classType({ engine: this }))
     }
 
     this.commandEvaluators.set(name, instances)
@@ -114,15 +114,13 @@ export default class GameEngine extends GameNetwork {
     })
   }
 
-  onPlayerCommand({player: Entity, type: string}: Object) {}
+  onPlayerCommand({ player: Entity, type: string }: Object) {}
 
   /* LANCE */
 
   initWorld() {
     super.initWorld({
-      worldWrap: true,
-      width: 3000,
-      height: 3000
+      //worldWrap: true
     })
   }
 
@@ -141,7 +139,7 @@ export default class GameEngine extends GameNetwork {
    * @param serializer
    */
   registerClasses(serializer: Object) {
-    //serializer.registerClass(Ship);
+    serializer.registerClass(Entity)
     //serializer.registerClass(Missile);
   }
 
@@ -163,7 +161,7 @@ export default class GameEngine extends GameNetwork {
    */
   step(isReenact: boolean, time: number, delta: number, physicsOnly: boolean) {
     super.step(isReenact, time, delta, physicsOnly)
-    this.map.update({time, delta}).then(() => {})
+    this.map.update({ time, delta }).then(() => {})
   }
 
   /**
@@ -183,8 +181,6 @@ export default class GameEngine extends GameNetwork {
   processInput(inputData: Object, playerId: number, isServer: boolean) {
     lll(`input`, inputData, playerId, isServer)
     super.processInput(inputData, playerId, isServer)
-
-
 
     /*// get the player ship tied to the player socket
     let playerShip = this.world.queryObject({
@@ -210,7 +206,7 @@ export default class GameEngine extends GameNetwork {
   }
 
   onEntityUpdate(entity) {
-    lll('onEntityUpdate', entity._update)
+    lll(`onEntityUpdate`, entity._update)
   }
 
   /**
@@ -219,6 +215,5 @@ export default class GameEngine extends GameNetwork {
    */
   syncReceived(sync: Object) {
     super.syncReceived(sync)
-
   }
 }

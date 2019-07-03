@@ -8,9 +8,9 @@ import BaseTypes from './BaseTypes'
 class ThreeVector extends Serializable {
   static get netScheme() {
     return {
-      x: { type: BaseTypes.TYPES.FLOAT32 },
-      y: { type: BaseTypes.TYPES.FLOAT32 },
-      z: { type: BaseTypes.TYPES.FLOAT32 }
+      x: { type: 'float' },
+      y: { type: 'float' },
+      z: { type: 'float' }
     }
   }
 
