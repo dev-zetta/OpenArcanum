@@ -28,6 +28,13 @@ export default class WaypointList {
     }
   }
 
+  toPlainObject() {
+    let result = []
+    for (let waypoint of this.waypoints) {
+      result.push(waypoint.toPlainObject())
+    }
 
+    return result
+  }
 
 }

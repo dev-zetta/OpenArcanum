@@ -22,11 +22,11 @@ export const Entity = new Enum([
 ])
 
 export const AiState = new Enum([
-  `PreparingToAttack`,
-  `Attacking`, // 1
-  `Moving`, // 2
-  `MovingToWaypoint`, // 3
-  `PlanningToMove` // 4
+  `PreparingToAttack`, // 1
+  `Attacking`, // 2
+  `Moving`, // 4
+  `MovingToWaypoint`, // 8
+  `PlanningToMove` // 16
 ])
 
 export const SpriteState = new Enum([

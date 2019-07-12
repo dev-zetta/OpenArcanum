@@ -72,6 +72,14 @@ class Vec2 {
     }
   }
 
+  /**
+   *
+   * @returns {{x: *, y: *}}
+   */
+  toPlainObject() {
+    return { x: this.x, y: this.y }
+  }
+
   // reset x and y to zero
   zero() {
     return this.set(0, 0)

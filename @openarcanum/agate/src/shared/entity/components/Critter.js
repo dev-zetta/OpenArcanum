@@ -78,11 +78,11 @@ export default class Critter extends Component {
   }
 
   getViewRange(): number {
-    return 50
+    return 5
   }
 
   getMovementSpeed(): number {
-    return 0.1
+    return 1.0
   }
 
   getAttackSpeed(): number {

@@ -123,17 +123,6 @@ export default class ClientEngine extends ClientNetwork {
     //this.controls = new Lance.KeyboardControls(this)
     //}
 
-    /*this.controls.bindKey(`left`, `left`, {repeat: true})
-    this.controls.bindKey(`right`, `right`, {repeat: true})
-    this.controls.bindKey(`up`, `up`, {repeat: true})
-    this.controls.bindKey(`space`, `space`)*/
-
-    /*this.controls.on(`fire`, () => {
-      this.sendInput(`space`)
-    })*/
-
-    //})
-
     //play sound when user fire missle
     this.events.on(`fireMissile`, () => {
       lll(`fireM`)
@@ -144,11 +133,18 @@ export default class ClientEngine extends ClientNetwork {
     })
   }
 
-  async join() {
+  /**
+   *
+   * @returns {Promise<void>}
+   */
+  async connect() {
     lll('Client: Joining server')
     const config = this.gameEngine.getConfig(`client`)
     this.options.serverURL = config.serverURL
-    await this.connect()
+    await super.connect()
+
+    const player = this.player
+    await this.joinServer({playerId: player.id})
   }
 
   /**
@@ -187,15 +183,8 @@ export default class ClientEngine extends ClientNetwork {
     let player = await map.addPlayer(location)
     this.player = player
 
-    this.scene.onPlayerJoined(player, map)
+    await this.scene.onPlayerJoined(player, map)
     this.events.emit(`Player:Joined`, player, map)
-  }
-
-  /**
-   *
-   */
-  async connect() {
-    return super.connect()
   }
 
   /**
@@ -207,20 +196,24 @@ export default class ClientEngine extends ClientNetwork {
   }
 
   /**
-   * This function should be called by the client whenever a user input occurs.
-   * This function will emit the input event, forward the input to the client's
-   * game gameEngine (with a delay if so configured) and will transmit the input to the server as well.
    *
-   * This function can be called by the extended client gameEngine class, typically at
-   the beginning of client-side step processing {@see GameEngine#client__preStep}.
-   * @param input
-   * @param inputOptions
+   * @param path
+   * @param command
    */
-  sendInput(input: string, inputOptions: Object) {
-    console.log(`Sending input`, input, inputOptions)
+  sendCommand(path: string | Array, command: Object) {
+    lll(`Sending command`, path, command)
 
-    super.sendInput(input, {})
+    let result = this.gameEngine.evaluateCommand(path, command)
+    let {source, action, data} = result
+
+    this.sendRequest(action, data)
+
+    this.events.emit(`${source}.Command`, {
+      type: name,
+      command
+    })
   }
+
 
   /**
    *  handle a message that has been received from the server

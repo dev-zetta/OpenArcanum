@@ -74,11 +74,9 @@ export default class Prototype extends Entity {
         let component = entity.addComponent(componentClass, {}, prototype)
         components[key] = component
 
-        if (key == 'Visual')
-        lll('dsfdf', component.classes.current, key, prototype)
+        //if (key == 'Visual')
+        //lll('dsfdf', component.classes.current, key, prototype)
       }
-
-
     }
 
     return components
@@ -104,20 +102,20 @@ export default class Prototype extends Entity {
         continue
       }
 
-      if (key === 'Npc') {  // TODO: Hack
-        if (!data[key]['waypoints']) {
-          data[key]['waypoints'] = []
+      if (key === `Npc`) {
+        // TODO: Hack
+        if (!data[key][`waypoints`]) {
+          data[key][`waypoints`] = []
           //lll('missing waypoints', data)
         }
       }
 
-      if (key === 'Visual') {  // TODO: Hack
-        if (!data[key]['render'])
-          data[key]['render'] = {}
+      if (key === `Visual`) {
+        // TODO: Hack
+        if (!data[key][`render`]) data[key][`render`] = {}
 
-
-        if (!data[key]['render']['flags']) {
-          data[key]['render']['flags'] = []
+        if (!data[key][`render`][`flags`]) {
+          data[key][`render`][`flags`] = []
         }
       }
 
@@ -174,8 +172,8 @@ export default class Prototype extends Entity {
 
     let update = null
     let path = []
-    if (Array.isArray(obj)) {
-      lll('array')
+    /*if (Array.isArray(obj)) {
+      lll(`array`)
       let prototype = obj[`_prototype`]
       let propName = prototype[`_propName`]
 
@@ -205,50 +203,50 @@ export default class Prototype extends Entity {
         key,
         value
       }
-    } else {
+    } else {*/
+    if (
+      Prototype.isSetableObject(obj) ||
+      Prototype.isPrototypeProperty(prop, obj._prototype)
+    ) {
+      let prototype = obj[`_prototype`]
+      let propName = prototype[`_propName`]
 
+      path.push({
+        prototype
+      })
 
-      if (Prototype.isPrototypeProperty(prop, obj._prototype)) {
-        let key = prop
-        while (parent) {
-          let prototype = parent[`_prototype`]
+      let key = prop
+      while (parent) {
+        prototype = parent[`_prototype`]
+        propName = prototype[`_propName`]
 
-          path.push({
-            prototype
-          })
+        path.push({
+          prototype
+        })
 
-          key = `${prototype[`_propName`]}.${key}`
-          if (!parent[`_parent`]) {
-            break
-          }
-
-          parent = parent[`_parent`]
+        key = `${propName}.${key}`
+        if (!parent[`_parent`]) {
+          break
         }
 
-        update = {
-          key,
-          value
-        }
-      } else {
-        //lll('not')
+        parent = parent[`_parent`]
       }
-    }
 
+      update = {
+        key,
+        value
+      }
+    } else {
+      //lll('not', prop)
+    }
+    //}
 
     //lll(obj, prop, path, update)
 
     if (update) {
       let entity = parent.entity
 
-      if (!entity._update) {
-        entity._update = {
-          _totalUpdates: 0
-        }
-      }
-
-      entity._update._totalUpdates++
-
-      let currentPath = entity._update // root of entity, first is component name
+      let currentPath = entity.getUpdateState() // root of entity, first is component name
       for (let i = path.length - 1; i >= 0; i--) {
         let { prototype } = path[i]
 
@@ -262,7 +260,6 @@ export default class Prototype extends Entity {
       }
 
       currentPath[prop] = value
-
       entity.triggerUpdate()
     }
   }
@@ -310,11 +307,18 @@ export default class Prototype extends Entity {
         //if (key == 'flags')
         //  lll('asdasda', target[key], value)
 
-        if (Prototype.isSetableObject(target[key])) {
-          target[key].set(value) // Its a class. Call set method
+        let targetProp = target[key]
+        if (Prototype.isSetableObject(targetProp)) {
+          targetProp.set(value) // Its a class. Call set method
+
+          //if (key != 'offset' && key != 'flags' && key != 'location')
+          //lll('sdfsdfs', key, target[key])
+          data[key] = targetProp.toPlainObject() // Replace raw with object
+          targetProp[`_originalData`] = data[key]
+          targetProp[`_propName`] = key
         } else {
           if (Utils.isObjectLike(value)) {
-            if (!target[key]) {
+            if (!targetProp) {
               target[key] = {} // create object in target only if it doesnt exists
             }
 
@@ -328,6 +332,10 @@ export default class Prototype extends Entity {
 
     target[`_originalData`] = data
     target[`_propName`] = name
+
+    //if (name == 'location') {
+    //  lll('sadas', target)
+    //}
   }
 
   /**
@@ -381,7 +389,11 @@ export default class Prototype extends Entity {
     //  lll(key, prototype)
     //}
 
-    return prototype != null && prototype[`_originalData`] &&  key in prototype[`_originalData`]
+    return (
+      prototype != null &&
+      prototype[`_originalData`] &&
+      key in prototype[`_originalData`]
+    )
   }
 
   /**
@@ -400,17 +412,12 @@ export default class Prototype extends Entity {
     prototype: Object,
     parent: Object = object
   ): Proxy<Object> {
-
-
-
     if (Prototype.isSetableObject(prototype)) {
       object.set(data)
     } else {
       const prototypeData = prototype[`_originalData`] // original data of prototype... compare new component data with prototype component data
 
       for (let key in prototypeData) {
-
-
         let value = data[key]
         if (Utils.isUndefined(value)) {
           // the property is not present in loaded in data...
@@ -424,17 +431,8 @@ export default class Prototype extends Entity {
               delete object[key] // remove from object... it's reused component, we don't want to have previous
               continue
             }
-
-
-
           }
-
-
         }
-
-
-
-
 
         if (Prototype.canBeProxified(key, value, prototype)) {
           // replace object with wrapped object
@@ -459,15 +457,9 @@ export default class Prototype extends Entity {
       }
     }
 
-
-
     /*if (!prototype[`_propName`]) {
       prototype[`_propName`] = propertyName // TODO: Hacked, fix
     }*/
-
-    if (object == 'Item') {
-      lll('dsfsdfs', propertyName, data, prototype)
-    }
 
     object[`_prototype`] = prototype
 
@@ -493,6 +485,7 @@ export default class Prototype extends Entity {
           Prototype.isValueObject(value) &&
           Prototype.isPrototypeProperty(prop, obj._prototype)
         ) {
+          ll(`rewrapping`, prop, value)
           obj[prop] = Prototype.wrapComponentToProxy(
             prop,
             value,
@@ -500,8 +493,8 @@ export default class Prototype extends Entity {
             obj
           )
         } else {
+          //lll({obj, prop, prototype: obj._prototype})
           Prototype.dispatchPropertyChange(obj, prop, value)
-          //lll({prop, prototype: obj._prototype})
 
           obj[prop] = value
         }

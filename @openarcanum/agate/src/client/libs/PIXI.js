@@ -1,6 +1,7 @@
 let PIXI = require(`pixi.js`)
 let Viewport = require(`pixi-viewport`)
 let Cull = require('pixi-cull')
+//let Layer = require(`pixi-layers`)
 
 class ImageBitmapResource extends PIXI.resources.BaseImageResource {
   static test(source) {

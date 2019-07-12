@@ -46,52 +46,5 @@ export default class Base extends Component {
 
   init(params) {
     super.init(params)
-
-    /*Component.copyProps(this, data, [`location`, `offset`])
-
-    let { location, offset } = data
-    this.location.set(location[0], location[1])
-    this.offset.set(offset[0], offset[1])*/
-  }
-
-  /**
-   * Move using pixel values
-   * @param x pixels
-   * @param y pixels
-   * @returns {boolean}
-   */
-  move(x: number, y: number): boolean {
-    let location = this.location
-
-    this.offset.x += x
-    this.offset.y += y
-
-    let moved = false
-
-    //let ax = Math.trunc(Math.abs(this.offset[0]));
-    //if (ax >= Sector.TileHeightHalf) {
-    let xr = Math.trunc(this.offset.x / Sector.TileWidthHalf)
-    if (xr !== 0) {
-      location.x += xr
-      this.offset.x = this.offset.x % Sector.TileWidthHalf
-      moved = true
-    }
-
-    //}
-
-    //let ay = Math.trunc(Math.abs(this.offset[1]));
-    //if (ay >= Sector.TileHeightHalf) {
-    let yr = Math.trunc(this.offset.y / Sector.TileWidthHalf)
-    if (yr !== 0) {
-      location.y += yr
-      this.offset.y = this.offset.y % Sector.TileWidthHalf
-      moved = true
-    }
-
-    //}
-
-    //console.log(location, this.offset, xr, yr)
-
-    return moved
   }
 }

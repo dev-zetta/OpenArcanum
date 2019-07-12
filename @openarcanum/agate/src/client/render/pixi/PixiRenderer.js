@@ -1,14 +1,14 @@
 // @flow
 
 import PIXI from '../../libs/PIXI'
-import Renderer from '../BaseRenderer'
+import BaseRenderer from '../BaseRenderer'
 import PixiRenderableComponent from './PixiRenderableComponent'
 import type ClientEngine from '../../ClientEngine'
 
 /**
  * Pixi Renderer
  */
-export default class PixiRenderer extends Renderer {
+export default class PixiRenderer extends BaseRenderer {
   renderer: PIXI.Renderer
 
   constructor(clientEngine: ClientEngine) {
@@ -17,6 +17,7 @@ export default class PixiRenderer extends Renderer {
     this.isReady = false
 
     this.stopped = false
+
   }
 
   get stage() {
@@ -146,20 +147,12 @@ export default class PixiRenderer extends Renderer {
     }
   }
 
+  update(time, delta) {
+    this.draw(time, delta)
+  }
+
   async start() {
     await super.start()
-    let renderLoop = (timestamp) => {
-      if (this.clientEngine.stopped) {
-        this.stop()
-        return
-      }
-      this.lastTimestamp = this.lastTimestamp || timestamp
-      this.draw(timestamp, timestamp - this.lastTimestamp)
-      this.lastTimestamp = timestamp
-      window.requestAnimationFrame(renderLoop)
-    }
-
-    window.requestAnimationFrame(renderLoop)
   }
 
   onDisplayObjectClick(object) {

@@ -15,6 +15,8 @@ export default class extends Evaluator {
 
     lll(tile)
 
+    return this.result('test', {})
+
   }
 
 

@@ -68,8 +68,6 @@ class Manager {
      */
     this.updateCounter = 0
 
-    this.lastUpdate = Utils.getCurrentTimestamp()
-
     this.gameEngine = gameEngine
 
     for (let key in Systems) {
@@ -112,7 +110,7 @@ class Manager {
      */
     this.componentPools = new Map()
 
-    //this.loadComponents()
+    this.lastUpdate = 0
   }
 
   /**
@@ -541,14 +539,32 @@ class Manager {
 
     this.entitiesSystemsDirty.clear()
   }
+
+
+  isRunning() {
+    return this.lastUpdate !== 0
+  }
+
+  start() {
+    this.lastUpdate = Utils.getCurrentTimestamp()
+  }
+
+
   /**
    * Update the ecs.
    *
    * @method update
    */
   update() {
+    if (!this.isRunning()) {
+      return
+    }
+
+
     let now = Utils.getCurrentTimestamp()
     let elapsed = now - this.lastUpdate
+
+    //lll(now, elapsed)
 
     for (let [name, system] of this.systems) {
       if (this.updateCounter % system.frequency > 0) {

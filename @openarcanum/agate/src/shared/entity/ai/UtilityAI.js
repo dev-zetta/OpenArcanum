@@ -14,21 +14,21 @@ export default class UtilityAi {
     }
 
     const action = new Action(description, callback)
-
-    lll('action', action)
     this._actions.push(action)
   }
 
   evaluate(data, debug = false) {
-    return this._actions
-      .map(action => ({
-        action: action.description,
-        score: action.evaluate(data, debug)
-      }))
-      .reduce(
-        (acc, action) =>
-          acc.score !== undefined && acc.score > action.score ? acc : action,
-        {}
-      )
+
+    let result = {score: 0, action: null}
+    for (let action of this._actions) {
+      let score = action.evaluate(data, debug)
+
+      if (!result || score >= result.score) {
+        result.score = score
+        result.action = action.description
+      }
+    }
+
+    return result
   }
 }

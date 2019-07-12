@@ -108,6 +108,10 @@ export default class Flags {
     this._set.clear()
   }
 
+  toPlainObject() {
+    return [...this._set]
+  }
+
   [Symbol.iterator]() {
     let iterator = this._set[Symbol.iterator]()
 

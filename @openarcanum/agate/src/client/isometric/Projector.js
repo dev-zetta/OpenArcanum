@@ -174,7 +174,7 @@ export default class Projector {
     out.z = z
 
 
-    lll(point, out.x / 40, out.y / 40, this.camera.x, this.camera.y)
+    //lll(point, out.x / 40, out.y / 40, this.camera.x, this.camera.y)
     return out
   }
 

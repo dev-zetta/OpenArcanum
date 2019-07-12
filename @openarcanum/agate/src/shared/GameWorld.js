@@ -9,11 +9,10 @@ class GameWorld {
    */
   constructor() {
     this.stepCount = 0
-    this.objects = {}
+    this.objects = new Map()
     this.playerCount = 0
     this.idCount = 0
   }
-
 
   /**
    * Returns all the game world objects which match a criteria
@@ -26,11 +25,16 @@ class GameWorld {
    * @returns {Array | Object} All game objects which match all the query parameters, or the first match if returnSingle was specified
    */
   queryObjects(query) {
+
+
     let queriedObjects = []
 
     // todo this is currently a somewhat inefficient implementation for API testing purposes.
     // It should be implemented with cached dictionaries like in nano-ecs
-    this.forEachObject((id, object) => {
+
+    for (let [id, object] of this.objects) {
+
+
       let conditions = []
 
       // object id condition
@@ -59,10 +63,11 @@ class GameWorld {
 
       // all conditions are true, object is qualified for the query
       if (conditions.every(value => value)) {
+        if (query.returnSingle) return object
         queriedObjects.push(object)
-        if (query.returnSingle) return false
+
       }
-    })
+    }
 
     // return a single object or null
     if (query.returnSingle) {
@@ -91,7 +96,7 @@ class GameWorld {
    * @param {Object} object object to add
    */
   addObject(object) {
-    this.objects[object.id] = object
+    this.objects.set(object.id, object)
   }
 
   /**
@@ -99,7 +104,7 @@ class GameWorld {
    * @param {number} id id of the object to remove
    */
   removeObject(id) {
-    delete this.objects[id]
+    this.objects.remove(id)
   }
 
   /**

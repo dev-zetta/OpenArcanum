@@ -71,6 +71,10 @@ export default class Location extends Vec2 {
     return Math.floor(this.y % Sector.Height)
   }
 
+  equals(other: Location) {
+    return this.x === other.x && this.y === other.y
+  }
+
   /**
    *
    * @param x
@@ -226,7 +230,7 @@ export default class Location extends Vec2 {
    * @returns {Array<number>}
    */
   static calculateVelocity(a: Location, b: Location): Array<number> {
-    return new Location(Location.calculateNormalizeRaw(b.x - a.x, b.y - a.y))
+    return new Location(b.x - a.x, b.y - a.y) //new Location(Location.calculateNormalizeRaw(b.x - a.x, b.y - a.y))
   }
 
   /**

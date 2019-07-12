@@ -4,6 +4,7 @@ export default class SyncStrategy {
   constructor(clientEngine, inputOptions) {
     this.clientEngine = clientEngine
     this.gameEngine = clientEngine.gameEngine
+    this.needFirstSync = true
     this.options = Object.assign({}, inputOptions)
     this.gameEngine.events.on(`client__postStep`, this.syncStep.bind(this))
     this.gameEngine.events.on(`client__syncReceived`, this.collectSync.bind(this))

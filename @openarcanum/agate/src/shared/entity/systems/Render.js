@@ -3,7 +3,8 @@
 import System from '../System'
 import * as Enums from '../../enums/Entity'
 import type Entity from '../Entity'
-import Utils from '../../misc/Utils'
+
+const WithAnimation = [Enums.Entity.Portal, Enums.Entity.Scenery, Enums.Entity.Container, Enums.Entity.Projectile, Enums.Entity.Pc, Enums.Entity.Npc]
 
 export default class Render extends System {
   /**
@@ -12,14 +13,19 @@ export default class Render extends System {
    * @returns {boolean}
    */
   test(entity: Entity) {
-    return !!entity.visual
+
+
+    return !!entity.visual && WithAnimation.includes(Enums.Entity.get(entity.base.type))
   }
 
   /**
    *
    * @param entity
    */
-  enter(entity: Entity) {}
+  enter(entity: Entity) {
+
+
+  }
 
 
 
@@ -83,11 +89,14 @@ export default class Render extends System {
       return
     }
 
-    if (classes.next) {
-      //this.totalElapsed = 0;
-      classes.current = Object.assign(classes.current, classes.next)
-      sprite.change(classes.next)
-      delete classes.next
+    let next = entity.visualUpdate
+    if (next) {
+      for (let prop in next) {
+        classes.current[prop] = next[prop]
+      }
+
+      sprite.change(classes.current)
+      delete entity.visualUpdate
     }
 
     sprite.update(elapsed, this.getVisualRate(entity))

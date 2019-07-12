@@ -1,9 +1,8 @@
 // @flow
 
-import Sector from './map/Sector'
-import Location from './Location'
-import Math from './misc/Math'
-import type {LocationRaw} from './entity/Types'
+import Sector from './Sector'
+import Location from '../Location'
+import Math from '../misc/Math'
 
 // https://github.com/qiao/PathFinding.js
 const PF = require(`pathfinding`)
@@ -23,7 +22,7 @@ export default class PathFind {
     })
   }
 
-  async findPathAsync(start: LocationRaw, end: LocationRaw): Promise<*> {
+  async findPathAsync(start: Location, end: Location): Promise<*> {
     return this.findPath(start, end)
   }
 
@@ -52,17 +51,21 @@ export default class PathFind {
 
     let startX = start.x - range
     let startY = start.y - range
+    let endX = end.x + range
+    let endY = end.y + range
 
     if (startX < 0) {
+      //endX += range + startX
       startX = 0
+
     }
 
     if (startY < 0) {
+      //endY += range + startY
       startY = 0
     }
 
-    let endX = end.x + range
-    let endY = end.y + range
+
 
     if (endX >= tilesX) {
       endX = tilesX - 1
@@ -77,6 +80,8 @@ export default class PathFind {
     let height = Math.abs(endY - startY) + 1
     this.grid = new PF.Grid(width, height)
 
+
+
     // Set blocked tiles to the grid
     for (let y = startY; y < endY; y++) {
       for (let x = startX; x < endX; x++) {
@@ -85,6 +90,9 @@ export default class PathFind {
         }
       }
     }
+
+    this.grid.setWalkableAt(start.x - startX, start.y - startY, true) // target and start must be walkable
+    this.grid.setWalkableAt(end.x - startX, end.y - startY, true)
 
     //console.log(start, end);
     //console.log(start[0] - startX, start[1] - startY, end[0] - startX, end[1] - startY);
@@ -106,7 +114,11 @@ export default class PathFind {
       result.push(new Location(point[0] + startX, point[1] += startY))
     }
 
-    console.log(`Found`, result)
+    if (result.length === 0) {
+      //lll('Path not found', start, end, path)
+    }
+
+    //lll(`Found`, start, end, result)
     return result
   }
 }

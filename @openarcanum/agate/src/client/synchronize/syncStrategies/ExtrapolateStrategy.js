@@ -136,7 +136,7 @@ export default class ExtrapolateStrategy extends SyncStrategy {
             () =>
               `extrapolate re-enacting movement input[${inputDesc.messageIndex}]: ${inputDesc.input}`
           )
-          this.gameEngine.processInput(inputDesc, this.gameEngine.playerId)
+          this.gameEngine.processCommand(inputDesc, this.gameEngine.playerId)
         })
       }
 

@@ -88,7 +88,7 @@ export default class IsoSprite extends PIXI.Sprite {
   }
 
   set z(value) {
-    lll('setting z', value)
+    lll(`setting z`, value)
     this.zIndex = value
   }
 
@@ -115,8 +115,7 @@ export default class IsoSprite extends PIXI.Sprite {
       let tex = PIXI.Texture.getFromCache(texture)
 
       if (!tex) {
-
-        lll('Texture not in cache!', texture)
+        lll(`Texture not in cache!`, texture)
       }
 
       texture = tex
@@ -128,15 +127,11 @@ export default class IsoSprite extends PIXI.Sprite {
     }
 
     super.texture = texture
-
-
   }
 
   setTexture(key) {
     this.texture = key
   }
-
-
 
   /**
    *
@@ -224,7 +219,6 @@ export default class IsoSprite extends PIXI.Sprite {
     }
 
     let pos = this.projector.project(this._isoPosition, this.offset)
-
 
     if (this.snap > 0) {
       this._setPosition(
@@ -384,6 +378,7 @@ export default class IsoSprite extends PIXI.Sprite {
 
   isoMove(x: number, y: number) {
     this._isoPosition.add(x, y, 0)
+    //lll('isssss', x, y, this._isoPosition)
     this._depthChanged = this._isoPositionChanged = this._isoBoundsChanged = true
     if (this.body) {
       this.body._reset = true
@@ -425,24 +420,25 @@ export default class IsoSprite extends PIXI.Sprite {
   }
 
   updateDepth() {
-    let depth = this._isoPosition.x + this._isoPosition.y + this._isoPosition.z * 1.25
-    depth -= (this.anchor.x * this.width )
-    depth -= (this.anchor.y * this.height)
+    let depth =
+      this._isoPosition.x + this._isoPosition.y + this._isoPosition.z * 1.25
 
+    let x = 0 // (this.anchor.x * this.width )
+    let y = 0 // (this.anchor.y * this.height)
 
     if (this.offset) {
-      depth -= this.offset.x
-      depth += this.offset.y
-
+      x += this.offset.x
+      y += this.offset.y
     }
 
-    //let depth = 0 //this.y - this.x
+    let offset = new Point3(x, y)
+    //et isoOffset = this.projector.unprojectAbsolute(offset)
 
+    const c = 40
+    depth += offset.x / 40.0
+    depth += offset.y / 40.0
 
     this.zIndex = depth
-
-
-
     this._depthChanged = false
   }
 
@@ -494,7 +490,6 @@ export default class IsoSprite extends PIXI.Sprite {
     graphics.strokePath()
   }
 
-
   setBlendMode(mode) {
     /*
         NORMAL:         0,
@@ -531,9 +526,6 @@ export default class IsoSprite extends PIXI.Sprite {
     SUBTRACT:       28,
     */
 
-
     this.blendMode = PIXI.BLEND_MODES[mode]
   }
-
-
 }

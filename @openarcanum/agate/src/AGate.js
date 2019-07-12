@@ -11,6 +11,7 @@ import ServerEngine from './server/ServerEngine'
 import AssetLoader from './shared/assets/AssetLoader'
 
 global.lll = console.warn
+global.lle = console.error
 
 class AGateEngine {
   Const: Object
@@ -154,14 +155,10 @@ class AGateEngine {
 
     await this.client.create(canvas)
 
-    await this.client.join()
+    await this.client.connect()
     await this.client.start()
-
   }
 
-  joinGame() {
-    this.client.join()
-  }
 
   /**
    *

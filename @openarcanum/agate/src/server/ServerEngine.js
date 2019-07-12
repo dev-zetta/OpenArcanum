@@ -96,10 +96,11 @@ export default class ServerEngine extends ServerNetwork {
    *
    * @param socket
    */
+  /*
   onPlayerConnected(socket: Object) {
     lll('player connected', socket)
     super.onPlayerConnected(socket)
-  }
+  }*/
 
   /**
    *

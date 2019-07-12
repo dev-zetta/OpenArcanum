@@ -216,7 +216,7 @@ class GameNetwork {
    * @param {Number} playerId - the player ID
    * @param {Boolean} isServer - indicate if this function is being called on the server side
    */
-  processInput(inputDesc, playerId, isServer) {
+  processCommand(inputDesc, playerId, isServer) {
     this.trace.info(
       () =>
         `game engine processing input[${inputDesc.messageIndex}] <${inputDesc.input}> from playerId ${playerId}`

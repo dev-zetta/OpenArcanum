@@ -2,6 +2,7 @@
 
 import Location from '../Location'
 import Utils from '../misc/Utils'
+import * as Enums  from '../enums/Entity'
 
 import type GameMap from './GameMap'
 import type Entity from '../entity/Entity'
@@ -12,10 +13,10 @@ import type EventEmitter from '../misc/EventEmitter';
 
 export default class Sector {
   static get TileWidth(): number {
-    return 78
+    return 80
   }
   static get TileWidthHalf(): number {
-    return 39
+    return 40
   }
 
   static get TileHeight(): number {
@@ -85,8 +86,16 @@ export default class Sector {
    */
   isTileBlocked(x: number, y: number): boolean {
     let tile = this.getTile(x, y)
-    return !tile || tile.blocked
+    if (!tile || tile.blocked) {
+      return true
+    }
+
+    return false
   }
+
+
+
+
 
   /**
    *
@@ -103,6 +112,10 @@ export default class Sector {
     return tile
   }
 
+  getTileFromLocation(location) {
+    return this.getTile(location.tileX, location.tileY)
+  }
+
   /**
    *
    * @param entity
@@ -117,18 +130,44 @@ export default class Sector {
 
     let location = entity.base.location
 
-    let tile = this.getTile(location.tileX, location.tileY)
+    let tile = this.getTileFromLocation(location)
 
-    let name = Utils.camelCase(entity.base.type)
-    if (!tile[name]) {
-      tile[name] = []
-      //lll(`Replacing entity: ${name}`)
-    }
-
-    tile[name].push(entity)
+    this.addEntityToTile(tile, entity)
 
     this.entities.set(entity.id, entity)
   }
+
+  getTileEntities(tile, type) {
+    return tile[String(type)]
+
+  }
+
+
+  addEntityToTile(tile, entity) {
+    let name = String(entity.base.type)
+    if (!tile[name]) {
+      tile[name] = {
+        //count: 0
+      }
+      //lll(`Replacing entity: ${name}`)
+    }
+
+    tile[name][entity.id] = entity
+    //tile[name].count++
+  }
+
+  removeEntityFromTile(tile, entity) {
+    let name = String(entity.base.type)
+    if (!tile[name] || !tile[name][entity.id]) {
+      lll('entity not found')
+      return
+    }
+
+    delete tile[name][entity.id]
+    //tile[name].count--
+  }
+
+
 
   /**
    *
@@ -187,36 +226,5 @@ export default class Sector {
     if (!this.tiles) {
       return
     }
-
-    // Loop through all tiles and test to see if the 3D position from above intersects with the automatically generated IsoSprite tile bounds.
-    /*var cursorPos = this.gameEngine.client.scene.cursorPos;
-
-    if (!AGate.Utils.isUndefined(this.tileGroup)) {
-
-        this.tileGroup.getChildren().forEach((tile) => {
-            var inBounds = tile.isoBounds.containsXY(cursorPos.x, cursorPos.y);
-            // If it does, do a little animation and tint change.
-            if (inBounds) {
-                //tile.selected = true;
-                tile.tint = 0x86bfda;
-                //self.tweens(tile).to({ isoZ: 4 }, 200, Phaser.Easing.Quadratic.InOut, true);
-            }
-            // If not, revert back to how it was.
-            else if (!inBounds) {
-                //tile.selected = false;
-                tile.tint = 0xffffff;
-                //self.add.tween(tile).to({ isoZ: 0 }, 200, Phaser.Easing.Quadratic.InOut, true);
-            }
-        });
-
-
-      for (let y = 0; y < Sector.Height; y++) {
-        for (let x = 0; x < Sector.Width; x++) {
-          let tile = this.getTile(x, y);
-
-          //tile.sprite.sprite.debug();
-        }
-      }
-    }*/
   }
 }

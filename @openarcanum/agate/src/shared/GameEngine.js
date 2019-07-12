@@ -8,7 +8,7 @@ import type AssetLoader from './assets/AssetLoader'
 import type EventEmitter from './misc/EventEmitter'
 import type Database from './realm/Database'
 import SimplePhysicsEngine from './physics/SimplePhysicsEngine'
-import Entity from './entity/Entity';
+import Entity from './entity/Entity'
 
 export default class GameEngine extends GameNetwork {
   map: GameMap
@@ -89,14 +89,7 @@ export default class GameEngine extends GameNetwork {
    */
   onMapLoaded(map: GameMap) {}
 
-  /**
-   *
-   * @param path
-   * @param command
-   */
-  sendCommand(path: string | Array, command: Object) {
-    lll(`Sending command`, path, command)
-
+  evaluateCommand(path: string, command: Object) {
     path = path.split(`:`)
     let source = path[0]
     let name = path[1]
@@ -105,8 +98,19 @@ export default class GameEngine extends GameNetwork {
 
     let evaluator = evaluators.get(name)
 
-    console.log(`command`, command)
     let result = evaluator.onCommand(command)
+
+    console.log(`command`, { command, result })
+    return {source, name, action: result.action, data: result.data}
+  }
+
+  /**
+   *
+   * @param path
+   * @param command
+   */
+  sendCommand(path: string | Array, command: Object) {
+    lll(`Sending command`, path, command)
 
     this.events.emit(`${source}.Command`, {
       type: name,
@@ -178,31 +182,18 @@ export default class GameEngine extends GameNetwork {
    * @param playerId
    * @param isServer
    */
-  processInput(inputData: Object, playerId: number, isServer: boolean) {
-    lll(`input`, inputData, playerId, isServer)
-    super.processInput(inputData, playerId, isServer)
+  processCommand(inputData: Object, playerId: number, isServer: boolean) {
+    lll(`input`, { inputData, playerId, isServer })
+    super.processCommand(inputData, playerId, isServer)
 
-    /*// get the player ship tied to the player socket
-    let playerShip = this.world.queryObject({
-      playerId: playerId,
-      instanceType: Ship
-    });
+    // get the player ship tied to the player socket
+    let playerEntity = this.world.queryObject({
+      //playerId: playerId,
+      id: playerId
+      //instanceType: Entity
+    })
 
-    if (playerShip) {
-      if (inputData.input == 'up') {
-        playerShip.accelerate(0.05);
-        playerShip.showThrust = 5; // show thrust for next steps.
-      } else if (inputData.input == 'right') {
-        playerShip.turnRight(2.5);
-      } else if (inputData.input == 'left') {
-        playerShip.turnLeft(2.5);
-      } else if (inputData.input == 'space') {
-        this.makeMissile(playerShip, inputData.messageIndex);
-        this.emit('fireMissile');
-      }
-    }*/
-
-    //this.emit(`fireMissile`)
+    playerEntity
   }
 
   onEntityUpdate(entity) {

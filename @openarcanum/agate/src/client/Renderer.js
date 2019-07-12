@@ -3,7 +3,7 @@
 import PixiRenderer from './render/pixi/PixiRenderer'
 import type ClientEngine from './ClientEngine'
 import Utils from '../shared/misc/Utils'
-import { Pipeline } from './render/pipeline'
+import { Filter } from './render/Filter'
 
 export default class Renderer extends PixiRenderer {
   shaders: Object
@@ -17,12 +17,13 @@ export default class Renderer extends PixiRenderer {
 
     this.gameEngine = clientEngine.gameEngine
     this.shaders = {}
+
   }
 
   async init() {
     await super.init()
+    await this.loadShaders()
   }
-
 
   /**
    *
@@ -33,16 +34,25 @@ export default class Renderer extends PixiRenderer {
     super.draw(t, dt)
   }
 
+  update(time, delta) {
+    super.update(time, delta)
+
+    for (let key in this.shaders) {
+      let shader = this.shaders[key]
+      if (shader.shader) {
+        this.updateShader(shader.shader)
+      }
+    }
+  }
 
   onDisplayObjectClick(object) {
     super.onDisplayObjectClick(object)
 
     let sprite = object.data
 
-    this.gameEngine.events.emit('Object:Click', sprite)
+    this.gameEngine.events.emit(`Object:Click`, sprite)
   }
 
-  addPipeline(name: string, pipeline: Pipeline) {}
 
   /**
    *
@@ -51,14 +61,27 @@ export default class Renderer extends PixiRenderer {
    */
   getShader(name: string): Object {
     let descriptor = this.shaders[name]
-    if (!descriptor.pipeline) {
-      descriptor.pipeline = this.addPipeline(
-        name,
-        new Pipeline(this.game, descriptor.vertex, descriptor.fragment)
-      )
+
+
+    if (!descriptor.shader) {
+      descriptor.shader = new Filter(descriptor.vertex, descriptor.fragment)
     }
 
-    return descriptor
+    return descriptor.shader
+  }
+
+  bindShader(shader, update = true) {
+    if (update) {
+      this.updateShader(shader)
+    }
+
+    this.stage.filters = [shader]
+  }
+
+  updateShader(shader) {
+    let screen = this.renderer.screen
+    shader.uniforms[`iResolution`] = [screen.width, screen.height]
+    shader.uniforms[`iTime`] = this.lastTimestamp / 1000
   }
 
   /**
@@ -94,6 +117,14 @@ export default class Renderer extends PixiRenderer {
       )
     }
 
-    return Promise.all(promises)
+    let descriptors = await Promise.all(promises)
+    for (let descriptor of descriptors) {
+      //lle('loading shader', descriptor.key, descriptor)
+      this.shaders[descriptor.key] = descriptor
+    }
+
+    return descriptors
   }
+
+
 }

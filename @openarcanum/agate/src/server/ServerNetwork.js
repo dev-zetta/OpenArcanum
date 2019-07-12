@@ -99,7 +99,8 @@ class ServerNetwork {
     this.playerInputQueues = {}
     this.objMemory = {}
 
-    io.on(`connection`, this.onPlayerConnected.bind(this))
+    io.on(`connection`, this.onClientConnect.bind(this))
+
     this.gameEngine.events.on(`objectAdded`, this.onObjectAdded.bind(this))
     this.gameEngine.events.on(
       `objectDestroyed`,
@@ -134,8 +135,7 @@ class ServerNetwork {
     this.serverTime = new Date().getTime()
 
     // for each player, replay all the inputs in the oldest step
-    for (let playerIdStr of Object.keys(this.playerInputQueues)) {
-      let playerId = Number(playerIdStr)
+    for (let playerId in this.playerInputQueues) {
       let inputQueue = this.playerInputQueues[playerId]
       let queueSteps = Object.keys(inputQueue)
       let minStep = Math.min.apply(null, queueSteps)
@@ -149,7 +149,7 @@ class ServerNetwork {
             playerId
           })
           this.gameEngine.events.emit(`processInput`, { input, playerId })
-          this.gameEngine.processInput(input, playerId, true)
+          this.gameEngine.processCommand(input, playerId, true)
         })
         delete inputQueue[minStep]
       }
@@ -363,13 +363,18 @@ class ServerNetwork {
     })
   }
 
-  getPlayerId(socket) {}
+  getPlayerId(socket, data) {
+    let playerId = data.playerId
+    if (!playerId) {
+      lll('server no id')
+      playerId = ++this.gameEngine.world.playerCount
+    }
 
-  // handle new player connection
-  onPlayerConnected(socket) {
-    let that = this
+    return playerId
+  }
 
-    console.log(`Client connected`)
+  onClientConnect(socket) {
+    console.log(`Client Connected`, socket.id)
 
     // save player
     this.connectedPlayers[socket.id] = {
@@ -378,18 +383,21 @@ class ServerNetwork {
       roomName: this.DEFAULT_ROOM_NAME
     }
 
-    let playerId = this.getPlayerId(socket)
-    if (!playerId) {
-      lll('server no id')
-      playerId = ++this.gameEngine.world.playerCount
-    }
+    socket.on(`joinServer`, (data) => {
+      this.onPlayerConnected(socket, data)
+    })
+  }
+
+  // handle new player connection
+  onPlayerConnected(socket, data) {
+    let that = this
+    let playerId = this.getPlayerId(socket, data)
+
     socket.playerId = playerId
 
     socket.lastHandledInput = null
     socket.joinTime = new Date().getTime()
     this.resetIdleTimeout(socket)
-
-    console.log(`Client Connected`, socket.id)
 
     let playerEvent = {
       id: socket.id,
@@ -408,9 +416,8 @@ class ServerNetwork {
       that.gameEngine.events.emit(`playerDisconnected`, playerEvent)
     })
 
-    // todo rename, use number instead of name
-    socket.on(`move`, function(data) {
-      that.onReceivedInput(data, socket)
+    socket.on(`request`, function(data) {
+      that.onReceivedRequest(data, socket)
     })
 
     // we got a packet of trace data, write it out to a side-file
@@ -474,7 +481,7 @@ class ServerNetwork {
   }
 
   // an input has been received from a client, queue it for next step
-  onReceivedInput(data, socket) {
+  onReceivedRequest(data, socket) {
     if (this.connectedPlayers[socket.id]) {
       this.connectedPlayers[socket.id].socket.lastHandledInput =
         data.messageIndex

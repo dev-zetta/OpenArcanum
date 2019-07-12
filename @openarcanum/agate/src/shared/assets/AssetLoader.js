@@ -94,8 +94,11 @@ export default class AssetLoader {
 
       let { key } = descriptor
 
-      if (this.loadedAssets[key]) {
+      if (this.loadedAssets.has(key)) {
+        // asset with key already loaded
+        //lll('already loaded', key)
         this.notityTarget(descriptor, target)
+        continue
       }
 
 
@@ -114,7 +117,11 @@ export default class AssetLoader {
         let { key } = asset
         this.loadedAssets.set(key, asset)
 
-        for (let item of loadedAssets[key]) {
+        let items = loadedAssets[key]
+        let item = items.shift()
+        this.notityTarget(item.descriptor, item.target, true)
+
+        for (let item of items) {
           this.notityTarget(item.descriptor, item.target)
         }
         total++
@@ -510,9 +517,9 @@ export default class AssetLoader {
     }
   }
 
-  notityTarget(descriptor, target) {
+  notityTarget(descriptor, target, firstTime) {
     if (target) {
-      target.onResourceLoaded(descriptor)
+      target.onResourceLoaded(descriptor, firstTime)
     }
 
   }
@@ -545,7 +552,11 @@ export default class AssetLoader {
     return descriptor
   }
 
-
+  /**
+   *
+   * @param descriptor
+   * @returns {Promise<*>}
+   */
   async loadAssetDirect(descriptor) {
 
     switch (descriptor.type) {

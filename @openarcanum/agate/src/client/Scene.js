@@ -87,6 +87,14 @@ export default class Scene {
    * @param delta
    */
   update(time: number, delta: number) {
+
+
+    /*
+    let shader = this.renderer.getShader(ShaderTest2)
+    if (shader) {
+      this.renderer.updateShader(shader)
+    }*/
+
     //let pos = this.input.activePointer.positionToCamera(this.cameras.main)
     //this.iso.unproject(pos, this.cursorPos)
     /*if (!Utils.isUndefined(this.cameraControls)) {
@@ -109,24 +117,30 @@ export default class Scene {
       ])
     } else {
       this.debugText = this.client.guiManager.findWidget(`debugText`)
-    }
-
-    let pipeline: Pipeline = this.getRenderer().getPipeline(ShaderTest2)
-    if (pipeline) {
-      pipeline.setFloat1(`iTime`, time / 1000)
     }*/
-  }
 
-  /**
-   *
-   */
-  render() {
-    //this.debug.cameraInfo(this.game.camera, 32, 32)
-    //this.game.debug.spriteCoords(this.player, 32, 500);
+    this.renderer.update(time, delta)
   }
 
   async start() {
-    this.renderer.start()
+    await this.renderer.start()
+
+    let renderLoop = (timestamp) => {
+      if (this.stopped) {
+        this.renderer.stop()
+        return
+      }
+
+      this.lastTimestamp = this.lastTimestamp || timestamp
+      this.update(timestamp, timestamp - this.lastTimestamp)
+      this.lastTimestamp = timestamp
+
+      window.requestAnimationFrame(renderLoop)
+    }
+
+    window.requestAnimationFrame(renderLoop)
+
+
   }
 
   /**
@@ -171,7 +185,8 @@ export default class Scene {
       autoStart: false,
       view: canvas,
       transparent: true,
-      resolution: window.devicePixelRatio || 1
+      resolution: window.devicePixelRatio || 1,
+      resizeTo: window
     })
 
     this.pixi.ticker.stop()
@@ -185,16 +200,7 @@ export default class Scene {
     let stage = this.renderer.stage
     stage.interactive = true
 
-    /*
 
-    stage.on(`pointerdown`, (event) => {
-      let { global } = event.data
-
-      console.log(event)
-
-      let point = this.isometric.projector.unproject(global)
-
-    })*/
 
     this.resizeViewport(this.pixi.screen.width, this.pixi.screen.height)
 
@@ -244,8 +250,7 @@ export default class Scene {
    * @returns {Promise<void>}
    */
   async loadAssets() {
-    //await this.loadShaders()
-    //this.setCameraShader(ShaderTest2)
+    this.setCameraShader(ShaderTest2)
 
     let tiles = new Sprite(this)
 
@@ -303,22 +308,6 @@ export default class Scene {
 
   /**
    *
-   * @param entity
-   * @param visualClass
-   * @returns {Function}
-   */
-  /*loadSprite(entity: Entity, visualClass) {
-    return async () => {
-      let sprite = new Sprite(this)
-      sprite.setData(entity)
-
-      sprite.load(visualClass)
-      visualClass.sprite = sprite
-    }
-  }*/
-
-  /**
-   *
    *
    * @param entity
    * @returns {Promise<void>}
@@ -328,8 +317,6 @@ export default class Scene {
     let visualComponent = entity.visual
     if (visualComponent) {
       let visualClasses = visualComponent.classes
-
-      //lll('dfdfd', visualClasses)
 
       for (let className: string in visualClasses) {
         if (className.charAt(0) === '_') { // TODO: Hack. Use function to check if prop is private
@@ -364,9 +351,9 @@ export default class Scene {
 
       const isObject = Utils.isUndefined(data.type)
       if (isObject) {
-        this.client.sendInput(`Player:EntitySelect`, { entity: data })
+        this.client.sendCommand(`Player:EntitySelect`, { entity: data })
       } else {
-        this.client.sendInput(`Player:TileSelect`, { tile: data })
+        this.client.sendCommand(`Player:TileSelect`, { tile: data })
       }
 
       if (data.type !== `Tile`) {
@@ -376,26 +363,10 @@ export default class Scene {
       this.client.guiManager.addDatGui(gameObject)
     }
 
-    gameObject.setTint(0x66eeee)
+    let color = Math.random() * 0xFFFFFF
+    gameObject.setTint(color)
 
     //gameObject.setPipeline(ShaderTest)
-
-    /*gameObject.tween = this.tweens.add({
-      targets: gameObject,
-      props: {
-        isoZ: 30.0,
-      },
-      ease: 'Quad.easeInOut',
-      duration: 1000,
-      repeat: -1,
-      repeatDelay: 1000,
-      yoyo: true,
-      onUpdate: (data) => {
-        gameObject._project();
-      },
-    });
-
-    gameObject.tween.play();*/
   }
 
   /**
@@ -427,7 +398,6 @@ export default class Scene {
   }
 
   resizeViewport(width: number, height: number) {
-    //this.camera
   }
 
   /**
@@ -435,14 +405,14 @@ export default class Scene {
    * @param name
    */
   setCameraShader(name: string) {
-    let shader = this.getShader(name)
-    let pipeline: Pipeline = shader.pipeline
+    let shader = this.renderer.getShader(name)
+    if (!shader) {
+      return false
+    }
+
     //pipeline.setFloat1('brightPassThreshold', 0.1)
 
-    //console.log('pipeline', pipeline)
-    //this.cameras.main.setRenderToTexture(pipeline)
-
-    pipeline.setFloat2(`uResolution`, pipeline.width, pipeline.height)
+    this.renderer.bindShader(shader)
   }
 
   /**
@@ -450,23 +420,15 @@ export default class Scene {
    * @param tiles
    */
   highlightTiles(tiles: Array<Object>) {
-    return
-    let color = Math.random() * 16000000
+    let color = Math.random() * 0xFFFFFF
 
-    for (let i = 0; i < tiles.length; i++) {
-      let pos = tiles[i]
-      let location = new Location(pos[1], pos[0])
 
-      let sector = this.gameEngine.map.getSector(
-        location.sectorX,
-        location.sectorY
+    for (let location of tiles) {
+      let tile = this.gameEngine.map.getTile(
+        location.y,
+        location.x
       )
 
-      if (!sector || !sector.tiles) {
-        continue
-      }
-
-      let tile = sector.getTile(location.tileX, location.tileY)
       if (!tile || !tile.sprite) {
         continue
       }
@@ -484,7 +446,7 @@ export default class Scene {
     }
 
     let container = new PIXI.Container()
-    //container.sortableChildren = true
+    container.sortableChildren = true
     //container.interactive = true
     parent.addChild(container)
 
@@ -546,7 +508,7 @@ export default class Scene {
     let ax = sector.x * Sector.Width * Sector.TileHeight
     let ay = sector.y * Sector.Height * Sector.TileHeight
 
-    let offset = new Vec2(0, 39)
+    let offset = new Vec2(0, 20)
     lll(`Adding sector to scene`, ax, ay)
     for (let y = 0; y < Sector.Height; y++) {
       let dx = ax
@@ -746,6 +708,21 @@ export default class Scene {
         )
       }
     }
+
+    if (sprite.type === Gfx.Types.Critter) {
+      let shader = this.renderer.getShader('test')
+      if (shader) {
+        /*shader.uniforms.shadowDirection = [0.4, 0.5];
+        shader.uniforms.floorY = 300
+        shader.padding = 100*/
+      }
+
+      sprite.setFilter(shader)
+    }
+
+
+
+
   }
 
   /**
@@ -816,61 +793,6 @@ export default class Scene {
   sortGroups(groups: Array<Object>) {
     this.iso.topologicalSort(groups)
   }
-
-  /**
-   * Adds isometric sprite to scene
-   * @param x
-   * @param y
-   * @param z
-   * @param key
-   * @param frame
-   * @param group
-   * @param offset
-   * @returns {Sprite}
-   */
-  /*
-  addIsoSprite(
-    x: number,
-    y: number,
-    z: number,
-    key: string,
-    frame: number,
-    group: Object,
-    offset: ?Object = null
-  ): IsoSprite {
-    /*let textures = this.sys.textures;
-  let texture = textures.get(key);
-  let frameData = texture.get(frame);
-
-  if (!offset) {
-    offset = {x: 0, y: 0};
-  }
-
-  if (frameData.delta) {
-   // offset.x = offset.x - (frameData.delta.x);
-    //offset.y = offset.y - (frameData.delta.y);
-  }*/
-
-  /*if (offset) {
-    offset = this.iso.unprojectAbsolute(offset);
-
-    x += offset.y;
-    y += offset.x;
-  }*/
-  /*
-    let sprite = new IsoSprite(this, x, y, z, key, frame, offset)
-
-    //sprite.displayOriginX = delta.x;
-    //sprite.displayOriginY = delta.y;
-
-    //this.physics.world.enableBody(sprite);
-
-    //this.add.displayList.add(sprite);
-    //this.add.updateList.add(sprite);
-
-    group.add(sprite, true)
-    return sprite
-  }*/
 
   static stringToColor(value: string): number {
     if (value.startsWith(`rgba`) || value.startsWith(`rgb`)) {

@@ -15,6 +15,7 @@ import Key from './Key'
 import Written from './Written'
 import Generic from './Generic'
 import Trap from './Trap'
+import Pc from './Pc'
 
 const Components = {
   //Wall,
@@ -32,7 +33,7 @@ const Components = {
   //Keyring,
   Written,
   Generic,
-  //Pc,
+  Pc,
   Npc,
   Trap,
 

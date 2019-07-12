@@ -6,4 +6,8 @@ export default class {
   onCommand(command: Object) {
 
   }
+
+  result(action, data) {
+    return {action, data}
+  }
 }

@@ -13,12 +13,18 @@ export default class extends Evaluator {
 
     let {entity} = command
 
-    lll(entity)
+    lll(`handle${entity.base.type}`, entity)
     let result = this[`handle${entity.base.type}`](entity)
+
+    return this.result('test', {})
+  }
+
+  handlePc(entity: Entity) {
+
   }
 
   handleNpc(entity: Entity) {
-    lll(entity)
+
   }
 
   handleWall(entity: Entity) {
@@ -26,6 +32,14 @@ export default class extends Evaluator {
   }
 
   handlePortal(entity: Entity) {
+    lll(entity)
+  }
+
+  handleScenery(entity: Entity) {
+    lll(entity)
+  }
+
+  handleContainer(entity: Entity) {
     lll(entity)
   }
 }

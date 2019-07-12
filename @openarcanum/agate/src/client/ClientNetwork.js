@@ -112,7 +112,7 @@ class ClientNetwork {
    * @param {Object} [options] additional socket.io options
    * @return {Promise} Resolved when the connection is made to the server
    */
-  connect(options = {}) {
+  async connect(options = {}) {
     let connectSocket = matchMakerAnswer =>
       new Promise((resolve, reject) => {
         if (matchMakerAnswer.status !== `ok`)
@@ -132,19 +132,6 @@ class ClientNetwork {
         this.socket.once(`error`, error => {
           reject(error)
         })
-
-        this.socket.on(`playerJoined`, playerData => {
-          this.gameEngine.playerId = playerData.playerId
-          this.messageIndex = Number(this.gameEngine.playerId) * 10000
-        })
-
-        this.socket.on(`worldUpdate`, worldData => {
-          this.inboundMessages.push(worldData)
-        })
-
-        this.socket.on(`roomUpdate`, roomData => {
-          this.gameEngine.events.emit(`client__roomUpdate`, roomData)
-        })
       })
 
     let matchmaker = Promise.resolve({
@@ -155,6 +142,28 @@ class ClientNetwork {
       matchmaker = Utils.httpGetPromise(this.options.matchmaker)
 
     return matchmaker.then(connectSocket)
+  }
+
+  /**
+   *
+   * @param data
+   * @returns {Promise<void>}
+   */
+  async joinServer(data) {
+    this.socket.on(`playerJoined`, playerData => {
+      this.gameEngine.playerId = playerData.playerId
+      this.messageIndex = Number(this.gameEngine.playerId) * 10000
+    })
+
+    this.socket.on(`worldUpdate`, worldData => {
+      this.inboundMessages.push(worldData)
+    })
+
+    this.socket.on(`roomUpdate`, roomData => {
+      this.gameEngine.events.emit(`client__roomUpdate`, roomData)
+    })
+
+    this.socket.emit(`joinServer`, data)
   }
 
   /**
@@ -293,7 +302,7 @@ class ClientNetwork {
   }
 
   // apply a user input on the client side
-  doInputLocal(message) {
+  doRequestLocal(message) {
     // some synchronization strategies (interpolate) ignore inputs on client side
     if (this.gameEngine.ignoreInputs) {
       return
@@ -305,7 +314,7 @@ class ClientNetwork {
     }
     this.gameEngine.events.emit(`client__processInput`, inputEvent)
     this.gameEngine.events.emit(`processInput`, inputEvent)
-    this.gameEngine.processInput(message.data, this.gameEngine.playerId, false)
+    this.gameEngine.processCommand(message.data, this.gameEngine.playerId, false)
   }
 
   // apply user inputs which have been queued in order to create
@@ -317,7 +326,7 @@ class ClientNetwork {
     let that = this
     let delayed = this.delayedInputs.shift()
     if (delayed && delayed.length) {
-      delayed.forEach(that.doInputLocal.bind(that))
+      delayed.forEach(that.doRequestLocal.bind(that))
     }
     this.delayedInputs.push([])
   }
@@ -334,21 +343,21 @@ class ClientNetwork {
    * @param {String} input - string representing the input
    * @param {Object} inputOptions - options for the input
    */
-  sendInput(input, inputOptions) {
+  sendRequest(name, payload) {
     let inputEvent = {
-      command: `move`,
+      command: `request`,
       data: {
         messageIndex: this.messageIndex,
         step: this.gameEngine.world.stepCount,
-        input: input,
-        options: inputOptions
+        name,
+        payload
       }
     }
 
     this.gameEngine.trace.info(
       () =>
-        `USER INPUT[${this.messageIndex}]: ${input} ${
-          inputOptions ? JSON.stringify(inputOptions) : `{}`
+        `USER INPUT[${this.messageIndex}]: ${name} ${
+          payload ? JSON.stringify(payload) : `{}`
         }`
     )
 
@@ -357,7 +366,7 @@ class ClientNetwork {
     if (this.delayedInputs) {
       this.delayedInputs[this.delayedInputs.length - 1].push(inputEvent)
     } else {
-      this.doInputLocal(inputEvent)
+      this.doRequestLocal(inputEvent)
     }
 
     if (this.options.standaloneMode !== true) {
@@ -369,11 +378,8 @@ class ClientNetwork {
 
   // handle a message that has been received from the server
   handleInboundMessage(syncData) {
-
-
     let syncEvents = this.networkTransmitter.deserializePayload(syncData).events
     let syncHeader = syncEvents.find((e) => e.eventName === `syncHeader`)
-
 
     // emit that a snapshot has been received
     if (

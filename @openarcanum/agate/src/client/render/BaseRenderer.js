@@ -15,6 +15,7 @@ class BaseRenderer {
   constructor(clientEngine) {
     this.clientEngine = clientEngine
     this.gameEngine = clientEngine.gameEngine
+    this.lastTimestamp = 0
 
     this.gameEngine.events.on(`client__stepReset`, () => {
       this.doReset = true
@@ -49,11 +50,12 @@ class BaseRenderer {
    * @param {Number} t - current time (only required in render-schedule mode)
    * @param {Number} dt - time elapsed since last draw
    */
-  draw(t: number, dt: number) {
+  draw(time: number, dt: number) {
+    this.lastTimestamp = time
     //this.gameEngine.events.emit(`client__draw`)
 
     if (this.clientEngine.options.scheduler === `render-schedule`)
-      this.runClientStep(t)
+      this.runClientStep(time)
   }
 
   /**

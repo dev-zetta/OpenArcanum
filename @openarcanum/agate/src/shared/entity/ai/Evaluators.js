@@ -3,7 +3,7 @@
 const Evaluators = {
   Pc: {
     actions: {
-
+      MoveToLocation: {}
     }
   },
   Npc: {

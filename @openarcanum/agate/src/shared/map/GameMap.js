@@ -4,7 +4,7 @@ import Manager from '../entity/Manager'
 import Location from '../Location'
 import Sector from './Sector'
 import AiSystem from '../entity/ai/System'
-import PathFind from '../PathFind'
+import PathFind from './PathFind'
 
 import Entity from '../entity/Entity'
 
@@ -14,6 +14,7 @@ import Utils from '../misc/Utils'
 import type GameEngine from '../GameEngine'
 import type AssetLoader from '../assets/AssetLoader'
 import type EventEmitter from '../misc/EventEmitter'
+import * as Enums from '../enums/Entity'
 
 export default class GameMap {
   gameEngine: GameEngine
@@ -106,6 +107,8 @@ export default class GameMap {
 
     this.isLoading = false
     this.isLoaded = true
+
+    this.entitySystem.start()
 
     this.events.emit(`Map:Loaded`, this)
   }
@@ -208,19 +211,58 @@ export default class GameMap {
     return entity
   }
 
+  isTileBlocked(x: number, y: number) {
+    let location = new Location(x, y)
+    return this.isTileBlockedFromLocation(location)
+  }
+
   /**
    *
    * @param x
    * @param y
    * @returns {boolean}
    */
-  isTileBlocked(x: number, y: number): boolean {
-    let tile = this.getTile(x, y)
-    if (!tile) {
+  isTileBlockedFromLocation(location): boolean {
+    let sector = this.getSectorFromLocation(location)
+    if (!sector) {
       return true
     }
 
-    return tile.blocked
+    let tile = sector.getTileFromLocation(location)
+    if (!tile) {
+      lll(`tile not found`)
+      return true
+    }
+
+    if (tile.blocked) {
+      return true
+    }
+
+    let npcs = sector.getTileEntities(tile, Enums.Entity.Npc)
+    if (npcs) {
+      for (let id in npcs) {
+        //lll(`blocked npc`)
+        return true
+      }
+    }
+
+    let portals = sector.getTileEntities(tile, Enums.Entity.Portal)
+    if (portals) {
+      for (let id in portals) {
+        //lll(`blocked portal`)
+        return false
+      }
+    }
+
+    let walls = sector.getTileEntities(tile, Enums.Entity.Wall)
+    if (walls) {
+      for (let id in walls) {
+        //lll(`blocked walls`)
+        return true
+      }
+    }
+
+    return false
   }
 
   /**
@@ -233,6 +275,10 @@ export default class GameMap {
     return this.sectors.get(x, y)
   }
 
+  getSectorFromLocation(location) {
+    return this.getSector(location.sectorX, location.sectorY)
+  }
+
   /**
    *
    * @param x
@@ -242,12 +288,12 @@ export default class GameMap {
   getTile(x: number, y: number): Object {
     let location = new Location(x, y)
 
-    let sector = this.getSector(location.sectorX, location.sectorY)
+    let sector = this.getSectorFromLocation(location)
     if (!sector) {
       return null
     }
 
-    return sector.getTile(location.tileX, location.tileY)
+    return sector.getTileFromLocation(location)
   }
 
   /**
@@ -268,7 +314,7 @@ export default class GameMap {
     let names = []
     if (types) {
       for (let i = 0; i < types.length; i++) {
-        let name = Utils.camelCase(String(types[i])) // TODO: Should use real name, hacked
+        let name = String(types[i])
         names.push(name)
       }
     }
@@ -319,13 +365,12 @@ export default class GameMap {
         if (types) {
           for (let i = 0; i < names.length; i++) {
             // Has tile the entity of given type
-            let entityList = tile[names[i]]
+            let entityList = sector.getTileEntities(tile, names[i])
             if (!entityList) {
               continue
             }
-            for (let entity of entityList) {
-
-              //let entity = tile[names[i]]
+            for (let id in entityList) {
+              let entity = entityList[id]
 
               // Is entity being ignored?
               if (ignore) {
@@ -361,9 +406,35 @@ export default class GameMap {
       }
     }
 
-    result.sort((a, b) => a._distanceToCenter - b._distanceToCenter)
+    result.sort((a, b) => a._distanceToCenter - b._distanceToCenter) // sort, from shorter distance to longer
 
     return result
+  }
+
+  moveEntity(entity: Entity, origin: Location, target: Location) {
+    //lll(`moving entity to different tile`, { entity, origin, target })
+
+    const ex = origin.sectorX
+    const ey = origin.sectorY
+    const wx = target.sectorX
+    const wy = target.sectorY
+
+    let originSector = this.getSector(ex, ey)
+    let targetSector = this.getSector(wx, wy)
+
+    if (ex !== wx || ey !== wy) {
+      entity.onSectorLeave(originSector)
+      entity.onSectorEnter(targetSector)
+
+      originSector.onEntityLeave(entity)
+      targetSector.onEntityEnter(entity)
+    }
+
+    let originTile = originSector.getTileFromLocation(origin)
+    let targetTile = targetSector.getTileFromLocation(target)
+
+    originSector.removeEntityFromTile(originTile, entity)
+    targetSector.addEntityToTile(targetTile, entity)
   }
 
   /**
@@ -385,6 +456,10 @@ export default class GameMap {
 
     this.gameEngine.addObjectToWorld(entity)
     return entity
+  }
+
+  isDynamicEntity(entity) {
+    return entity.critter || entity.projectile
   }
 
   /**

@@ -46,7 +46,7 @@ export default class Spritesheet {
      * @type {string[]}
      * @private
      */
-    this._frameKeys = Object.keys(this._frames)
+    this._frameKeys = []
     this.resolution = 1
 
     this._processFrames()
@@ -61,20 +61,37 @@ export default class Spritesheet {
     return this._frameKeys.length
   }
 
+  getFrameKey(index) {
+    if (index >= this._frameKeys.length) {
+      lle('Accessing unknown key', index)
+      return null
+    }
 
-  _processFrames(initialFrameIndex = 0) {
-    let frameIndex = initialFrameIndex
+
+    return this._frameKeys[index]
+  }
+
+  getTextureByIndex(index) {
+    let texture = this.textures[this.getFrameKey(index)]
+    if (!texture) {
+      lle('Nonexisting texture', index, this)
+    }
+
+    return texture
+  }
+
+  _processFrames() {
 
     if (this.resolution !== 1) {
       this.baseTexture.setResolution(this.resolution)
     }
 
-    while (
-      /*frameIndex - initialFrameIndex < maxFrames && */ frameIndex <
-      this._frameKeys.length
-    ) {
-      const i = this._frameKeys[frameIndex]
-      const data = this._frames[i]
+    for (let key in this._frames) {
+      let i = key.substr(key.lastIndexOf('/') + 1)
+      this._frameKeys[Number(i)] = key
+
+
+      const data = this._frames[key]
       const rect = data.frame
 
       if (rect) {
@@ -126,7 +143,7 @@ export default class Spritesheet {
           }
         }
 
-        this.textures[i] = new PIXI.Texture(
+        this.textures[key] = new PIXI.Texture(
           this.baseTexture,
           frame,
           orig,
@@ -136,11 +153,11 @@ export default class Spritesheet {
         )
 
         // lets also add the frame to pixi's global cache for 'from' and 'fromLoader' functions
-        PIXI.Texture.addToCache(this.textures[i], i)
+        PIXI.Texture.addToCache(this.textures[key], key)
       }
-
-      frameIndex++
     }
+
+    //this._frameKeys.sort()
   }
 
   /**

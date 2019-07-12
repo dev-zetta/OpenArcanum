@@ -334,5 +334,19 @@ export default class Entity extends GameObject {
     //this.updateComponents(data)
   }
 
-  triggerUpdate() {}
+  getUpdateState() {
+    if (!this._update) {
+      this._update = {
+        _totalUpdates: 0
+      }
+    }
+
+    this._update._totalUpdates++
+
+    return this._update
+  }
+
+  triggerUpdate() {
+    //lll('fdfdfd', this._update)
+  }
 }

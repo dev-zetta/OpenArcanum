@@ -41,7 +41,7 @@ export default class Action {
     console.log(...msg)
   }
 
-  evaluate(data, debug = false) {
+  evaluate(data, debug = true) {
     this._print_debug = debug
 
     this.log(`Evaluate Action: `, this.description)
@@ -50,16 +50,15 @@ export default class Action {
       return -Infinity
     }
 
-    const score = this._scores
-      .map(score => {
-        const _score = this._validateScore(score.callback(data))
-        this.log(`- `, score.description, _score)
-        return _score
-      })
-      .reduce((acc, score) => acc + score, 0)
+    let totalScore = 0
+    for (let score of this._scores) {
+      const _score = this._validateScore(score.callback(data))
+      this.log(`- `, score.description, _score)
 
-    this.log(`Final Score: `, score)
+      totalScore += _score
+    }
 
-    return score
+    this.log(`Final Score: `, totalScore)
+    return totalScore
   }
 }
