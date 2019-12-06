@@ -167,13 +167,13 @@ export default class DynamicEntity extends Entity {
   static get netScheme() {
     return Object.assign(
       {
-        playerId: { type: 'int16' },
-        position: { type: 'class' },
-        width: { type: 'int16' },
-        height: { type: 'int16' },
-        isStatic: { type: 'uint8' },
-        velocity: { type: 'class' },
-        angle: { type: 'float' }
+        playerId: { type: `int16` },
+        position: { type: `class` },
+        width: { type: `int16` },
+        height: { type: `int16` },
+        isStatic: { type: `uint8` },
+        velocity: { type: `class` },
+        angle: { type: `float` }
       },
       super.netScheme
     )
@@ -265,9 +265,7 @@ export default class DynamicEntity extends Entity {
    */
   bendingToString() {
     if (this.bendingIncrements)
-      return `ΔPos=${this.bendingPositionDelta} ΔVel=${
-        this.bendingVelocityDelta
-      } ΔAngle=${this.bendingAngleDelta} increments=${this.bendingIncrements}`
+      return `ΔPos=${this.bendingPositionDelta} ΔVel=${this.bendingVelocityDelta} ΔAngle=${this.bendingAngleDelta} increments=${this.bendingIncrements}`
     return `no bending`
   }
 
@@ -298,7 +296,7 @@ export default class DynamicEntity extends Entity {
   }
 
   bendToCurrent(original, percent, worldSettings, isLocal, increments) {
-    let bending = {increments, percent}
+    let bending = { increments, percent }
     // if the object has defined a bending multiples for this object, use them
     let positionBending = Object.assign({}, bending, this.bending.position)
     let velocityBending = Object.assign({}, bending, this.bending.velocity)

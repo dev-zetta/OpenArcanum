@@ -1,13 +1,20 @@
+// @flow
+
+import GameMap from './map/GameMap'
+import type GameEngine from './GameEngine'
+
 /**
  * This class represents an instance of the game world,
  * where all data pertaining to the current state of the
  * world is saved.
  */
-class GameWorld {
+class GameWorld extends GameMap {
   /**
    * Constructor of the World instance
    */
-  constructor() {
+  constructor(gameEngine: GameEngine) {
+    super(gameEngine)
+
     this.stepCount = 0
     this.objects = new Map()
     this.playerCount = 0
@@ -25,16 +32,12 @@ class GameWorld {
    * @returns {Array | Object} All game objects which match all the query parameters, or the first match if returnSingle was specified
    */
   queryObjects(query) {
-
-
     let queriedObjects = []
 
     // todo this is currently a somewhat inefficient implementation for API testing purposes.
     // It should be implemented with cached dictionaries like in nano-ecs
 
     for (let [id, object] of this.objects) {
-
-
       let conditions = []
 
       // object id condition
@@ -65,7 +68,6 @@ class GameWorld {
       if (conditions.every(value => value)) {
         if (query.returnSingle) return object
         queriedObjects.push(object)
-
       }
     }
 
@@ -97,6 +99,9 @@ class GameWorld {
    */
   addObject(object) {
     this.objects.set(object.id, object)
+    object.world = this
+
+    if (typeof object.onAddToWorld === `function`) { object.onAddToWorld(this) }
   }
 
   /**
@@ -104,7 +109,11 @@ class GameWorld {
    * @param {number} id id of the object to remove
    */
   removeObject(id) {
+    if (typeof object.onRemoveFromWorld === `function`)
+      object.onRemoveFromWorld(this)
+
     this.objects.remove(id)
+    object.world = null
   }
 
   /**

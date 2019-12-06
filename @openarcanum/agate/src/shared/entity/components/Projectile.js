@@ -18,4 +18,3 @@ export default class Projectile extends Component {
     super.init(params)
   }
 }
-

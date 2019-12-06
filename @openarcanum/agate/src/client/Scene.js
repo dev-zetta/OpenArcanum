@@ -23,7 +23,7 @@ import Camera from './Camera'
 import Vec2 from '../shared/misc/Vec2';
 
 const ShaderTest: string = `outline`
-const ShaderTest2: string = `gamma`
+const ShaderTest2: string = `test`
 
 export default class Scene {
   customLoader: boolean
@@ -87,14 +87,6 @@ export default class Scene {
    * @param delta
    */
   update(time: number, delta: number) {
-
-
-    /*
-    let shader = this.renderer.getShader(ShaderTest2)
-    if (shader) {
-      this.renderer.updateShader(shader)
-    }*/
-
     //let pos = this.input.activePointer.positionToCamera(this.cameras.main)
     //this.iso.unproject(pos, this.cursorPos)
     /*if (!Utils.isUndefined(this.cameraControls)) {
@@ -120,7 +112,10 @@ export default class Scene {
     }*/
 
     this.renderer.update(time, delta)
+
+
   }
+
 
   async start() {
     await this.renderer.start()
@@ -162,9 +157,6 @@ export default class Scene {
 
     // This is used to set a game canvas-based offset for the 0, 0, 0 isometric coordinate - by default
     // this point would be at screen coordinates 0, 0 (top left) which is usually undesirable.
-
-    //this.text = this.add.text(0, 0, 'Phaser');
-
     this._canvas = canvas
 
     let contextCreationConfig = {
@@ -200,8 +192,6 @@ export default class Scene {
     let stage = this.renderer.stage
     stage.interactive = true
 
-
-
     this.resizeViewport(this.pixi.screen.width, this.pixi.screen.height)
 
     //this.isoGroup = this.add.group()
@@ -209,7 +199,6 @@ export default class Scene {
     this.isometric = new Isometric(this, Isometric.ISOMETRIC)
 
     /*
-
     this.lights.enable().setAmbientColor(0x333333)
 
     let light = this.lights
@@ -223,8 +212,6 @@ export default class Scene {
     })*/
 
     await this.loadAssets()
-    //this.game.physics.startSystem(Phaser.Physics.P2JS);
-
     this.events.emit(`Scene:Created`)
   }
 
@@ -250,7 +237,9 @@ export default class Scene {
    * @returns {Promise<void>}
    */
   async loadAssets() {
-    this.setCameraShader(ShaderTest2)
+    //this.setCameraShader('gamma')
+    //this.setCameraShader(ShaderTest2)
+
 
     let tiles = new Sprite(this)
 
@@ -345,24 +334,6 @@ export default class Scene {
    * @param gameObject
    */
   onObjectClick(gameObject: Object) {
-    lll(gameObject)
-    if (gameObject.data) {
-      let data = gameObject.data
-
-      const isObject = Utils.isUndefined(data.type)
-      if (isObject) {
-        this.client.sendCommand(`Player:EntitySelect`, { entity: data })
-      } else {
-        this.client.sendCommand(`Player:TileSelect`, { tile: data })
-      }
-
-      if (data.type !== `Tile`) {
-        this.client.guiManager.addDatGui(data)
-      }
-    } else {
-      this.client.guiManager.addDatGui(gameObject)
-    }
-
     let color = Math.random() * 0xFFFFFF
     gameObject.setTint(color)
 
@@ -377,9 +348,13 @@ export default class Scene {
    */
   async onPlayerJoined(player, map) {
     await this.onNewEntity(player)
-    this.addEntity(player, map.rootGroup)
 
-    this.sortGroup(map.rootGroup)
+    const {location} = player.base
+    const sector = map.getSector(location.sectorX, location.sectorY)
+
+    this.addEntity(player, sector.staticGroup)
+
+    //this.sortGroup(map.rootGroup)
   }
 
   /**
@@ -424,7 +399,7 @@ export default class Scene {
 
 
     for (let location of tiles) {
-      let tile = this.gameEngine.map.getTile(
+      let tile = this.gameEngine.world.getTile(
         location.y,
         location.x
       )
@@ -434,9 +409,6 @@ export default class Scene {
       }
 
       tile.sprite.setTint(color)
-      //tile.sprite.setBlendMode('BlendAdd');
-
-      //tile.sprite.sprite.alpha = 0.7;
     }
   }
 
@@ -597,10 +569,6 @@ export default class Scene {
     }
 
     let offset = baseComponent.offset
-    /*if (AGate.Utils.isArray(offset)) {
-      offset = {x: offset[0], y: offset[1]};
-    }*/
-
     let x = location.x * Sector.TileHeight
     let y = location.y * Sector.TileHeight
 
@@ -685,7 +653,6 @@ export default class Scene {
         let flags = renderComponent.flags
 
         for (let flag of flags) {
-          lll('render flags', flag)
           switch (flag) {
             case `BlendAdd`:
             case `BlendMul`:
@@ -709,12 +676,13 @@ export default class Scene {
       }
     }
 
-    if (sprite.type === Gfx.Types.Critter) {
-      let shader = this.renderer.getShader('test')
+    if (sprite.type === Gfx.Types.Critter || sprite.type === Gfx.Types.UniqueNpc) {
+      let shader = this.renderer.getShader('GlowFilter')
       if (shader) {
-        /*shader.uniforms.shadowDirection = [0.4, 0.5];
-        shader.uniforms.floorY = 300
-        shader.padding = 100*/
+       // shader.uniforms.thickness = 4
+        // shader.uniforms.shadowDirection = [0.4, 0.5];
+        // shader.uniforms.floorY = 129
+         shader.padding = 50
       }
 
       sprite.setFilter(shader)

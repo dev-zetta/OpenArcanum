@@ -4,6 +4,8 @@ import {  action, computed } from '@ember/object'
 
 let jsPanel = requireNode(`jspanel4/dist/jspanel`)
 
+const Utils = AGate.Utils
+
 @classNames(``)
 class GuiWindow extends GuiWidget {
   @className(`has-toolbar`)

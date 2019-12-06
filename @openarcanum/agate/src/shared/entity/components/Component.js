@@ -2,7 +2,7 @@
 
 import type Entity from '../Entity'
 import GameComponent from '../../serialize/GameComponent'
-import Flags from '../../Flags';
+import Flags from '../../Flags'
 
 export default class Component extends GameComponent {
   entity: Entity

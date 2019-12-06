@@ -1,5 +1,7 @@
+// @flow
 import Serializable from './Serializable'
 import BaseTypes from './BaseTypes'
+import type GameWorld from '../GameWorld'
 
 /**
  * GameObject is the base class of all game objects.
@@ -9,7 +11,7 @@ import BaseTypes from './BaseTypes'
  * or PhysicalObject.
  */
 class GameObject extends Serializable {
-
+  world: GameWorld
 
 
   static get netScheme() {
@@ -27,18 +29,18 @@ class GameObject extends Serializable {
 
   /**
    * Creates an instance of a game object.
-   * @param {GameEngine} gameEngine - the gameEngine this object will be used in
+   * @param {Manager} manager - the manager this object will be used in
    * @param {Object} options - options for instantiation of the GameObject
    * @param {Number} id - if set, the new instantiated object will be set to this id instead of being generated a new one. Use with caution!
    */
-  constructor(gameEngine, options = null) {
+  constructor(manager: Manager, options = null) {
     super()
 
     /**
-     * The gameEngine this object will be used in
-     * @member {GameEngine}
+     * The manager this object will be used in
+     * @member {Manager}
      */
-    this.gameEngine = gameEngine
+    this.manager = manager
 
 
       if (options && `id` in options) {
@@ -77,16 +79,16 @@ class GameObject extends Serializable {
    * Called after the object is added to to the game world.
    * This is the right place to add renderer sub-objects, physics sub-objects
    * and any other resources that should be created
-   * @param {GameEngine} gameEngine the game engine
+   * @param {GameWorld} world
    */
-  onAddToWorld(gameEngine) {}
+  onAddToWorld(world) {}
 
   /**
    * Called after the object is removed from game-world.
    * This is where renderer sub-objects and any other resources should be freed
-   * @param {GameEngine} gameEngine the game engine
+   * @param {GameWorld} world
    */
-  onRemoveFromWorld(gameEngine) {}
+  onRemoveFromWorld(world) {}
 
   /**
    * Formatted textual description of the game object.
@@ -105,7 +107,7 @@ class GameObject extends Serializable {
   }
 
   saveState(other) {
-    this.savedCopy = new this.constructor(this.gameEngine, { id: null })
+    this.savedCopy = new this.constructor(this.manager, { id: null })
     this.savedCopy.syncTo(other ? other : this)
   }
   /**

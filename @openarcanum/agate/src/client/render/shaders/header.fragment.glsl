@@ -7,5 +7,7 @@ uniform sampler2D uSampler;
 in vec2 vTextureCoord;
 uniform vec4 inputSize;
 uniform vec4 outputFrame;
+uniform vec2 iMouse;
+uniform vec2 iWorldPosition;
 layout(location = 0) out vec4 outFragColor;
 

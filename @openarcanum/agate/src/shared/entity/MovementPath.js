@@ -84,7 +84,7 @@ export default class MovementPath {
     let direction = Location.velocityToDirection(this.velocity)
     this.directionName = String(direction)
 
-   /* lll(
+    /* lll(
       `movement started`,
       this.currentIndex,
       this.directionName,

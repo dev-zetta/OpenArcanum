@@ -15,7 +15,7 @@ global.lle = console.error
 
 class AGateEngine {
   Const: Object
-  //Utils: Utils
+  Utils: Utils
   //Math: Math
 
   config: Object
@@ -33,7 +33,7 @@ class AGateEngine {
    * @param config
    */
   constructor(config: Object) {
-    //this.Utils = Utils
+    this.Utils = Utils
    // this.Math = Math
 
     this.Const = {
@@ -136,29 +136,31 @@ class AGateEngine {
     this._engine = new GameEngine(this, this.gameOptions)
   }
 
+  async init() {
+    await this.assetLoader.initialize()
+    await this.database.initialize()
+    await this.engine.init()
+
+    if (this.config.server) {
+      await this.createServer()
+    }
+  }
+
+
   /**
    *
    * @param canvas
    * @returns {Promise<void>}
    */
   async createClient(canvas: HTMLCanvasElement): Promise<*> {
+    await this.init()
+
     this.engine.events.on(`Client:Created`, this.onClientCreated, this)
-
-    await this.assetLoader.initialize()
-    await this.database.initialize()
-
-    if (this.config.server) {
-      await this.createServer()
-    }
-
     this.client = new ClientEngine(this.engine, this.gameOptions)
 
     await this.client.create(canvas)
-
-    await this.client.connect()
-    await this.client.start()
+    await this.engine.load()
   }
-
 
   /**
    *
@@ -172,11 +174,12 @@ class AGateEngine {
       timeoutInterval: 0 // no timeout
     })
 
-    await this.server.start()
+    return this.server.start()
   }
 
   onClientCreated() {
-    this.engine.load()
+
+
   }
 
 

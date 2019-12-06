@@ -1,4 +1,7 @@
 
+
+const Utils = AGate.Utils
+
 /**
  *
  * @returns {{}}
@@ -7,7 +10,7 @@ function loadComponents() {
   let resolve = {}
   let result = {}
 
-  return result
+  //return result
 
   Utils.loadScripts(`client/gui`, (name, script) => {
     let widget = script
@@ -79,10 +82,12 @@ export default function(server) {
   }
 
   let components = loadComponents()
+
+
   for (let key in components) {
     let component = components[key]
 
     let instance = componentToWidget(key, component, null)
-    //console.log(instance)
+
   }
 }

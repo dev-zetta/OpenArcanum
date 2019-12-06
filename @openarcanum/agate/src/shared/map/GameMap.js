@@ -14,7 +14,7 @@ import Utils from '../misc/Utils'
 import type GameEngine from '../GameEngine'
 import type AssetLoader from '../assets/AssetLoader'
 import type EventEmitter from '../misc/EventEmitter'
-import * as Enums from '../enums/Entity'
+import * as Enums from '../entity/Enums'
 
 export default class GameMap {
   gameEngine: GameEngine
@@ -60,12 +60,28 @@ export default class GameMap {
 
   /**
    *
+   * @returns {number[]}
+   */
+  getStartLocation(): Location {
+    return new Location(92, 99)
+  }
+
+  /**
+   *
    * @param x
    * @param y
    * @returns {string}
    */
   getSectorPath(x: number, y: number): string {
     return `${this.path}/Sector/${x}/${y}`
+  }
+
+  async init(settings) {
+    await this.entitySystem.loadPrototypes()
+  }
+
+  async start() {
+    this.entitySystem.start()
   }
 
   /**
@@ -80,8 +96,6 @@ export default class GameMap {
     this.isLoaded = false
 
     this.events.emit(`Map:Loading`, this)
-
-    await this.entitySystem.loadPrototypes()
 
     Utils.logError(`Loading map: ${path}`)
     let data = await this.assetLoader.loadJsonFile(`${path}/Map.json`)
@@ -107,8 +121,6 @@ export default class GameMap {
 
     this.isLoading = false
     this.isLoaded = true
-
-    this.entitySystem.start()
 
     this.events.emit(`Map:Loaded`, this)
   }
@@ -198,6 +210,7 @@ export default class GameMap {
 
     let id = Utils.getFileBase(path)
     let entity = await this.entitySystem.newEntity(id, data)
+    //entity.addToWorld(this)
 
     //this.events.emit('Map.NewEntity', entity)
     if (this.onNewEntity) {
@@ -205,24 +218,25 @@ export default class GameMap {
     }
 
     if (entity.base.type === `Npc`) {
-      this.gameEngine.addObjectToWorld(entity)
-    }
+       this.gameEngine.addObjectToWorld(entity)
+     }
 
     return entity
   }
 
-  isTileBlocked(x: number, y: number) {
-    let location = new Location(x, y)
-    return this.isTileBlockedFromLocation(location)
-  }
-
   /**
    *
-   * @param x
+   * @param location/x
    * @param y
    * @returns {boolean}
    */
-  isTileBlockedFromLocation(location): boolean {
+  isTileBlocked(location: Location|number, y: number): boolean {
+
+    if (!(location instanceof Location)) {
+      location = new Location(location, y)
+    }
+
+
     let sector = this.getSectorFromLocation(location)
     if (!sector) {
       return true
@@ -423,11 +437,16 @@ export default class GameMap {
     let targetSector = this.getSector(wx, wy)
 
     if (ex !== wx || ey !== wy) {
-      entity.onSectorLeave(originSector)
+      this.events.emit(`Entity:MoveToSector`, {
+        entity,
+        originSector,
+        targetSector
+      })
+      /*entity.onSectorLeave(originSector)
       entity.onSectorEnter(targetSector)
 
       originSector.onEntityLeave(entity)
-      targetSector.onEntityEnter(entity)
+      targetSector.onEntityEnter(entity)*/
     }
 
     let originTile = originSector.getTileFromLocation(origin)
@@ -451,13 +470,18 @@ export default class GameMap {
 
     //await this.sectors.load(location.sectorX, location.sectorY)
 
-    let id = `blablabla` // AGate.Utils.getFileBase(path)
+    let id = `0` // AGate.Utils.getFileBase(path)
     let entity = await this.entitySystem.newEntity(id, player)
 
     this.gameEngine.addObjectToWorld(entity)
     return entity
   }
 
+  /**
+   *
+   * @param entity
+   * @returns {*}
+   */
   isDynamicEntity(entity) {
     return entity.critter || entity.projectile
   }

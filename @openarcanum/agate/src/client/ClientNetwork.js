@@ -193,18 +193,18 @@ class ClientNetwork {
       })
     }*/
 
-    return new Promise((resolve, reject) => {
-      this.resolveGame = resolve
+    //return new Promise((resolve, reject) => {
+      //this.resolveGame = resolve
       if (this.socket) {
         this.socket.on(`disconnect`, () => {
           if (!this.resolved && !this.stopped) {
             if (this.options.verbose) console.log(`disconnected by server...`)
             this.stopped = true
-            reject()
+            //reject()
           }
         })
       }
-    })
+    //})
   }
 
   /**
@@ -249,7 +249,7 @@ class ClientNetwork {
   // execute a single game step.  This is normally called by the Renderer
   // at each draw event.
   step(t, dt, physicsOnly) {
-    if (!this.resolved) {
+    /*if (!this.resolved) {
       const result = this.gameEngine.getPlayerGameOverResult()
       if (result) {
         this.resolved = true
@@ -257,7 +257,7 @@ class ClientNetwork {
         // simulation can continue...
         // call disconnect to quit
       }
-    }
+    }*/
 
     // physics only case
     if (physicsOnly) {
@@ -349,7 +349,7 @@ class ClientNetwork {
       data: {
         messageIndex: this.messageIndex,
         step: this.gameEngine.world.stepCount,
-        name,
+        action: name,
         payload
       }
     }

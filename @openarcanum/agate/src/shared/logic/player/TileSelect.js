@@ -13,12 +13,16 @@ export default class extends Evaluator {
 
     let {tile} = command
 
-    lll(tile)
+    this.checkMapLocation(tile)
 
-    return this.result('test', {})
+    return this.result('MoveToLocation', tile.location)
 
   }
 
+  checkMapLocation(tile) {
+    if (tile.blocked) {
 
+    }
 
+  }
 }

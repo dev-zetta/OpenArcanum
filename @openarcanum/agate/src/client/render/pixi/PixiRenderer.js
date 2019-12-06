@@ -159,4 +159,9 @@ export default class PixiRenderer extends BaseRenderer {
 
   }
 
+  newFilter(name, options) {
+    let filter = new PIXI.Filters2[name](options)
+    return  filter
+  }
+
 }

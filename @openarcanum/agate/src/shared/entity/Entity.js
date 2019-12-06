@@ -3,20 +3,14 @@
 import GameObject from '../serialize/GameObject'
 import Utils from '../misc/Utils'
 
-import type GameEngine from '../GameEngine'
 import type Manager from './Manager'
+import State from './State'
 
 export default class Entity extends GameObject {
   /**
    *
    */
-  gameEngine: GameEngine
-
-  /**
-   * A reference to parent ECS class.
-   * @property {ECS} manager
-   */
-  manager: ?Manager
+  manager: Manager
 
   /**
    *
@@ -52,29 +46,24 @@ export default class Entity extends GameObject {
    */
   tags: Array<string>
 
+  state: State
+
   /**
    * @class Entity
    * @constructor
    *
-   * @param gameEngine
+   * @param manager
    * @param options
    */
-  constructor(gameEngine: GameEngine, options: Object = {}) {
-    super(gameEngine, options)
+  constructor(manager: Manager, options: Object = {}) {
+    super(manager, options)
 
     //this.id = options.id || null
 
     this.systems = []
     this.components = []
     this.tags = []
-  }
-
-  /**
-   *
-   * @returns {Manager}
-   */
-  get manager() {
-    return this.gameEngine.map.entitySystem
+    this.state = new State()
   }
 
   /*get id() {
@@ -348,5 +337,17 @@ export default class Entity extends GameObject {
 
   triggerUpdate() {
     //lll('fdfdfd', this._update)
+  }
+
+  syncTo(other) {
+    super.syncTo(other)
+    /*this.position.copy(other.position)
+    this.velocity.copy(other.velocity)
+    this.width = other.width
+    this.height = other.height
+    this.bendingAngle = other.bendingAngle
+    this.rotationSpeed = other.rotationSpeed
+    this.acceleration = other.acceleration
+    this.deceleration = other.deceleration*/
   }
 }

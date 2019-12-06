@@ -1,8 +1,7 @@
 // @flow
 
 import Component from './Component'
-import Flags from '../../Flags';
-
+import Flags from '../../Flags'
 
 export default class Weapon extends Component {
   fateFlags: Flags
@@ -13,9 +12,6 @@ export default class Weapon extends Component {
   playerName: string
   bankMoney: string
 
-
-
-
   /**
    *
    */
@@ -23,7 +19,6 @@ export default class Weapon extends Component {
     super(...arguments)
 
     this.fateFlags = new Flags()
-
   }
 
   init(params) {

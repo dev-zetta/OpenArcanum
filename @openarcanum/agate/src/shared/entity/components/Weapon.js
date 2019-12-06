@@ -13,7 +13,6 @@ export type Magic = {
   criticalMissEffect: number
 }
 
-
 export default class Weapon extends Component {
   magic: Magic
   paperDoll: Object // art
@@ -28,8 +27,6 @@ export default class Weapon extends Component {
   ammoConsumption: number
   criticalHitChart: number
   criticalMissChart: number
-
-
 
   /**
    *

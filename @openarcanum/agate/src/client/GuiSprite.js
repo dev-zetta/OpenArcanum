@@ -1,4 +1,4 @@
-/* global AGate */
+import Utils from '../shared/misc/Utils'
 
 export default class Sprite {
   /**

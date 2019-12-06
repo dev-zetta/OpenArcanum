@@ -1,8 +1,8 @@
-import * as Entity from './Entity'
+//import * as Entity from './Entity'
 import GfxTypes from './Gfx'
 
 export default {
-  Entity,
+  //Entity,
   GfxTypes
 }
 

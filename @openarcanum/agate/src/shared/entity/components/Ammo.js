@@ -16,5 +16,4 @@ export default class Ammo extends Component {
   init(params) {
     super.init(params)
   }
-
 }

@@ -2,7 +2,7 @@
 
 import Component from './Component'
 import Location from '../../Location'
-import WaypointList from '../WaypointList';
+import WaypointList from '../WaypointList'
 
 export default class Npc extends Component {
   aiData: Object

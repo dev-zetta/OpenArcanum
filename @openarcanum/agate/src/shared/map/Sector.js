@@ -2,7 +2,7 @@
 
 import Location from '../Location'
 import Utils from '../misc/Utils'
-import * as Enums  from '../enums/Entity'
+//import * as Enums  from '../entity/Enums'
 
 import type GameMap from './GameMap'
 import type Entity from '../entity/Entity'

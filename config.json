@@ -4,10 +4,10 @@
   "appProtocol": "asset://",
 
   "client": {
-    "serverURL": "ws://127.0.0.1:3000"
+    "serverURL": "ws://127.0.0.1:3333"
   },
 
   "server": {
-    "listenPort": 3000
+    "listenPort": 3333
   }
 }

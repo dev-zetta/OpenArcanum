@@ -94,6 +94,7 @@ export default class SyncStrategy {
 
     // enforce object implementations of syncTo
     if (!curObj.__proto__.hasOwnProperty(`syncTo`)) {
+      lle(newObj)
       throw `GameObject of type ${curObj.class} does not implement the syncTo() method, which must copy the netscheme`
     }
 

@@ -1,11 +1,9 @@
 import Waypoint from './Waypoint'
 
 export default class WaypointList {
-
   constructor() {
     this.waypoints = []
   }
-
 
   get count() {
     return this.waypoints.length
@@ -17,7 +15,6 @@ export default class WaypointList {
 
   set(waypoints) {
     this.waypoints.clear()
-
 
     for (let waypoint of waypoints) {
       if (!(waypoint instanceof Waypoint)) {
@@ -36,5 +33,4 @@ export default class WaypointList {
 
     return result
   }
-
 }

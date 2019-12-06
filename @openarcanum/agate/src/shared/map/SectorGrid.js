@@ -4,6 +4,7 @@ import SectorCache from './SectorCache'
 import GameMap from './GameMap'
 
 export class SectorGrid {
+  map: GameMap
   sectors: Array<Array<Sector>>
   sectorsInGrid: Array<Sector>
 
@@ -34,8 +35,6 @@ export class SectorGrid {
     const gh = SectorGrid.GridHeight / 2.0
     this.rangeSubX = Math.floor(gw)
     this.rangeSubY = Math.floor(gh)
-
-    lll()
   }
 
   /**

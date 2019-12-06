@@ -22,13 +22,13 @@ class GuiInventoryItem extends GuiWidget {
 
   setEntity(entity) {
     this.entity = entity
-    
+
     let art = entity.Item ? entity.Item.inventory : entity.Visual.current
-    let path = this.getEngine().assetLoader.buildPath(art)
+    let path = AGate.client.getGfxPath(art)
     let url = AGate.getGfxUrl(path)
 
     //console.error(art, builder.toPath(), url)
-    this.setSprite(url + `/0/North/Sprite.gif`)
+    //this.setSprite(url + `/0/North/Sprite`)
   }
 
   /*drag(e) {

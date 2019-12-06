@@ -1,4 +1,4 @@
-/* global AGate */
+const Utils = AGate.Utils
 
 import GuiWidget from '../gui-widget'
 

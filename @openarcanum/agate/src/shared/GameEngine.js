@@ -1,6 +1,5 @@
 //@flow
 import GameNetwork from './GameNetwork'
-import GameMap from './map/GameMap'
 import type AGateEngine from '../AGate'
 
 import * as PlayerLogic from './logic/player'
@@ -11,7 +10,6 @@ import SimplePhysicsEngine from './physics/SimplePhysicsEngine'
 import Entity from './entity/Entity'
 
 export default class GameEngine extends GameNetwork {
-  map: GameMap
   assetLoader: AssetLoader
   events: EventEmitter
   database: Database
@@ -27,7 +25,6 @@ export default class GameEngine extends GameNetwork {
     this.assetLoader = core.assetLoader
     this.events = core.eventEmitter
     this.database = core.database
-    this.map = new GameMap(this)
     this.commandEvaluators = new Map()
 
     /*this.physicsEngine = new SimplePhysicsEngine({
@@ -69,12 +66,16 @@ export default class GameEngine extends GameNetwork {
     this.commandEvaluators.set(name, instances)
   }
 
+  async init() {
+    await this.initWorld()
+  }
+
   /**
    *
    */
-  load() {
+  async load() {
     let path = this.core.getDataPath(`Bates Mansion Lev 2`)
-    this.map.load(path)
+    return this.world.load(path)
   }
 
   /**
@@ -89,6 +90,12 @@ export default class GameEngine extends GameNetwork {
    */
   onMapLoaded(map: GameMap) {}
 
+  /**
+   *
+   * @param path
+   * @param command
+   * @returns {{source: string, name: string, action: *, data: *}}
+   */
   evaluateCommand(path: string, command: Object) {
     path = path.split(`:`)
     let source = path[0]
@@ -110,7 +117,7 @@ export default class GameEngine extends GameNetwork {
    * @param command
    */
   sendCommand(path: string | Array, command: Object) {
-    lll(`Sending command`, path, command)
+    lll(`Game: Sending command`, path, command)
 
     this.events.emit(`${source}.Command`, {
       type: name,
@@ -118,12 +125,12 @@ export default class GameEngine extends GameNetwork {
     })
   }
 
-  onPlayerCommand({ player: Entity, type: string }: Object) {}
+  //onPlayerCommand({ player: Entity, type: string }: Object) {}
 
   /* LANCE */
 
-  initWorld() {
-    super.initWorld({
+  async initWorld() {
+    await super.initWorld({
       //worldWrap: true
     })
   }
@@ -152,8 +159,8 @@ export default class GameEngine extends GameNetwork {
    * start method is useful for setting up the game's worldSettings attribute,
    * and registering methods on the event handler.
    */
-  start() {
-    super.start()
+  async start() {
+    await super.start()
   }
 
   /**
@@ -165,7 +172,7 @@ export default class GameEngine extends GameNetwork {
    */
   step(isReenact: boolean, time: number, delta: number, physicsOnly: boolean) {
     super.step(isReenact, time, delta, physicsOnly)
-    this.map.update({ time, delta }).then(() => {})
+    this.world.update({ time, delta }).then(() => {})
   }
 
   /**
@@ -183,17 +190,21 @@ export default class GameEngine extends GameNetwork {
    * @param isServer
    */
   processCommand(inputData: Object, playerId: number, isServer: boolean) {
-    lll(`input`, { inputData, playerId, isServer })
+    lll(`processCommand`, { inputData, playerId, isServer })
     super.processCommand(inputData, playerId, isServer)
 
     // get the player ship tied to the player socket
+    lle(this.world.queryObject)
     let playerEntity = this.world.queryObject({
       //playerId: playerId,
       id: playerId
       //instanceType: Entity
     })
 
-    playerEntity
+
+    //(inputData.action, inputData.payload)
+
+    lll(playerEntity)
   }
 
   onEntityUpdate(entity) {

@@ -1,15 +1,20 @@
 // @flow
 
 import Utils from '../../misc/Utils'
+import type Action from './Action'
 
 export default class State {
   counter: number
+  actions: Map<string, Action>
 
   /**
    *
    */
-  constructor(counter: number = 0) {
+  constructor(counter: number = 0) {}
+
+  init(counter: number = 0) {
     this.counter = counter
+    this.actions = new Map()
   }
 
   remember() {
@@ -17,7 +22,19 @@ export default class State {
   }
 
   changed() {
-    return this._counter != this.counter
+    return this._counter !== this.counter
+  }
+
+  // get currentAction(): Action {
+  //   return this.actions[this.actions.length - 1]
+  // }
+  //
+  // get lastAction(): Action {
+  //   return this.actions[this.actions.length - 2]
+  // }
+
+  addAction(action: Action) {
+    this.actions.set(action.name, action)
   }
 
   /**
@@ -109,6 +126,6 @@ export default class State {
       }
     }
 
-    this.counter = 0
+    this.init()
   }
 }

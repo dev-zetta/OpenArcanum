@@ -17,7 +17,6 @@ export default class Renderer extends PixiRenderer {
 
     this.gameEngine = clientEngine.gameEngine
     this.shaders = {}
-
   }
 
   async init() {
@@ -53,7 +52,6 @@ export default class Renderer extends PixiRenderer {
     this.gameEngine.events.emit(`Object:Click`, sprite)
   }
 
-
   /**
    *
    * @param name
@@ -61,6 +59,13 @@ export default class Renderer extends PixiRenderer {
    */
   getShader(name: string): Object {
     let descriptor = this.shaders[name]
+
+    if (!descriptor) {
+      let shader = this.newFilter(name)
+      descriptor = { shader }
+        this.shaders[name] = descriptor
+      return shader
+    }
 
 
     if (!descriptor.shader) {
@@ -75,13 +80,24 @@ export default class Renderer extends PixiRenderer {
       this.updateShader(shader)
     }
 
-    this.stage.filters = [shader]
+    if (!this.stage.filters) {
+      this.stage.filters = []
+    }
+
+    this.stage.filters.push(shader)
   }
 
   updateShader(shader) {
     let screen = this.renderer.screen
     shader.uniforms[`iResolution`] = [screen.width, screen.height]
     shader.uniforms[`iTime`] = this.lastTimestamp / 1000
+
+    const { interaction } = this.renderer.plugins
+    const { global } = interaction.mouse
+
+    const { position } = this.stage
+    shader.uniforms[`iMouse`] = [global.x, global.y]
+    shader.uniforms[`iWorldPosition`] = [position.x, position.y]
   }
 
   /**
@@ -125,6 +141,4 @@ export default class Renderer extends PixiRenderer {
 
     return descriptors
   }
-
-
 }

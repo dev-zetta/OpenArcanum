@@ -1,10 +1,17 @@
 // @flow
 
 import System from '../System'
-import * as Enums from '../../enums/Entity'
+import * as Enums from '../Enums'
 import type Entity from '../Entity'
 
-const WithAnimation = [Enums.Entity.Portal, Enums.Entity.Scenery, Enums.Entity.Container, Enums.Entity.Projectile, Enums.Entity.Pc, Enums.Entity.Npc]
+const WithAnimation = [
+  Enums.Entity.Portal,
+  Enums.Entity.Scenery,
+  Enums.Entity.Container,
+  Enums.Entity.Projectile,
+  Enums.Entity.Pc,
+  Enums.Entity.Npc
+]
 
 export default class Render extends System {
   /**
@@ -13,23 +20,17 @@ export default class Render extends System {
    * @returns {boolean}
    */
   test(entity: Entity) {
-
-
-    return !!entity.visual && WithAnimation.includes(Enums.Entity.get(entity.base.type))
+    return (
+      !!entity.visual &&
+      WithAnimation.includes(Enums.Entity.get(entity.base.type))
+    )
   }
 
   /**
    *
    * @param entity
    */
-  enter(entity: Entity) {
-
-
-  }
-
-
-
-
+  enter(entity: Entity) {}
 
   /**
    *
@@ -57,7 +58,7 @@ export default class Render extends System {
 
     if (entity.npc) {
       let { critter, npc } = entity
-      let {aiState} = critter
+      let { aiState } = critter
 
       if (aiState.has(Enums.AiState.Moving)) {
         let speed = critter.getMovementSpeed()
@@ -79,16 +80,34 @@ export default class Render extends System {
    * @param elapsed
    */
   processVisual(entity: Entity, elapsed: number) {
-    let {classes} = entity.visual
+    let { classes } = entity.visual
     if (!classes) {
       return
     }
 
-    let {sprite} = classes.current
+    let { sprite } = classes.current
     if (!sprite) {
       return
     }
 
+    /*
+
+    attacktarget  // this.changeVisual(entity, {
+    //  animation: `Attack`,
+    //  weapon: `Default`
+    // })
+
+    stopmovement //this.changeVisual(entity, { animation: `Stand`, frame: 0 })
+
+
+    movetolocation     //this.changeVisual(entity, { animation: `Walk` })
+
+    // if (this.gameEngine.client) {
+    //   this.gameEngine.client.scene.highlightTiles(path)
+    // }
+    //console.log(path);
+
+*/
     let next = entity.visualUpdate
     if (next) {
       for (let prop in next) {
@@ -100,5 +119,15 @@ export default class Render extends System {
     }
 
     sprite.update(elapsed, this.getVisualRate(entity))
+  }
+
+  /**
+   *
+   * @param entity
+   * @param options
+   */
+  changeVisual(entity: Entity, options: Object) {
+    let { classes } = entity.visual
+    entity.state.visualUpdate = Object.assign({}, entity.visualUpdate, options)
   }
 }

@@ -51,5 +51,4 @@ export default function() {
 
   //this.passthrough('https://conversejs.org/**');
 
-  /*this.get('/gui-widgets');*/
 }

@@ -12,6 +12,8 @@ import podNames from 'ember-component-css/pod-names'
 
 const cash = require('cash-dom')
 
+const Utils = AGate.Utils
+
 const getWidgetClass = (type, dot = false) =>
   dot ? `.${podNames[`gui-${type}`]}` : podNames[`gui-${type}`]
 
@@ -329,8 +331,8 @@ class GuiWidget extends Component {
    * @param name
    * @param listener
    */
-  listenComponentEvent(id, name, listener) {
-    this.getClient().listenUI(`${id}:${name}`, listener)
+  listenComponentEvent(id, name, listener, context) {
+    this.getClient().listenUI(`${id}:${name}`, listener, context)
   }
 
   /**
@@ -338,8 +340,8 @@ class GuiWidget extends Component {
    * @param name
    * @param listener
    */
-  listenComponentEventOnce(id, name, listener) {
-    this.getClient().listenOnceUI(`${id}:${name}`, listener)
+  listenComponentEventOnce(id, name, listener, context) {
+    this.getClient().listenOnceUI(`${id}:${name}`, listener, context)
   }
 
   /**
@@ -358,6 +360,7 @@ class GuiWidget extends Component {
       }
     }
 
+    //lle('dfsf', name)
     this.emitComponentEvent(this.getId(), name)
   }
 

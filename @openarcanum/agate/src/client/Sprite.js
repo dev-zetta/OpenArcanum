@@ -95,6 +95,18 @@ export default class Sprite {
     return spritesheet ? spritesheet.totalFrames : 0
   }
 
+  getGlobalPosition() {
+    let sprite = this.iso
+
+    let position = sprite.getGlobalPosition()
+    let bounds = this.iso.getBounds()
+    position.x -= (sprite.width * sprite.anchor.x) / 2
+    position.y -= bounds.height
+
+
+    return position
+  }
+
   /**
    *
    * @param key

@@ -47,7 +47,7 @@ class GameRender extends Component {
    * @returns {Manager}
    */
   getManager() {
-    return this.engine.client.guiManager
+    return AGate.client.guiManager
   }
 
   /**
@@ -77,10 +77,9 @@ class GameRender extends Component {
   }
 
   async createClient(canvas) {
-    this.engine = AGate.createEngine()
-    await AGate.createClient(canvas)
-
     let widgets = await this.loadWindows()
+    AGate.createEngine()
+    await AGate.createClient(canvas)
     let manager = this.getManager()
     manager.setRootWidget(this)
     manager.setMouseSprite(`cursor`)

@@ -5,7 +5,6 @@
  * @param {Function} T
  */
 export default class ObjectPool {
-
   constructor(T, ...constructParams) {
     this.constructParams = constructParams
     this.freeList = []

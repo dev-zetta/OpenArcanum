@@ -16,8 +16,8 @@ class Manager {
    *
    * @param engine
    */
-  constructor(engine) {
-    this.engine = engine
+  constructor(gameEngine) {
+    this.gameEngine = gameEngine
     this.sprites = new Map()
 
     this.widgets = new Map()
@@ -31,7 +31,7 @@ class Manager {
     //await this.generateAssets()
 
     let assetPath = AGate.getAppPath(`gui`)
-    let assetLoader = this.engine.assetLoader
+    let assetLoader = this.gameEngine.assetLoader
 
     let guiMeta = await assetLoader.loadJsonFile(`${assetPath}/gui-images.json`)
 
@@ -41,6 +41,7 @@ class Manager {
       let sprite = new Sprite(key, imageMeta)
       this.sprites.set(key, sprite)
     }
+
 
     /*let assetLoader = this.engine.assetLoader;
     let guiPath = AGate.getDataPath('Interface');
@@ -73,7 +74,7 @@ class Manager {
       return
     }
 
-    let assetLoader = this.engine.assetLoader
+    let assetLoader = this.gameEngine.assetLoader
     let guiPath = AGate.getAppPath(`Interface`)
 
     let files = await assetLoader.findFiles(guiPath, `.json`)

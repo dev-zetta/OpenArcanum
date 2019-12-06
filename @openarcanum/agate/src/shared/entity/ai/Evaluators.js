@@ -1,15 +1,21 @@
-
+import AttackNearby from './actions/AttackNearby'
+import AttackTarget from './actions/AttackTarget'
+import MoveToWaypoint from './actions/MoveToWaypoint'
+import MoveToLocation from './actions/MoveToLocation'
 
 const Evaluators = {
   Pc: {
     actions: {
-      MoveToLocation: {}
+      MoveToLocation,
+      AttackTarget
     }
   },
   Npc: {
     actions: {
-      MoveToWaypoint: {},
-      AttackNearby: {}
+      MoveToWaypoint,
+      MoveToLocation,
+      AttackNearby,
+      AttackTarget
     }
   }
 }

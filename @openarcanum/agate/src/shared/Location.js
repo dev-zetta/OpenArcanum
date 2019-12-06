@@ -2,7 +2,7 @@
 
 import Sector from './map/Sector'
 import Math from './misc/Math'
-import { Direction } from './enums/Entity'
+import { Direction } from './entity/Enums'
 import type { LocationRaw } from './entity/Types'
 import Utils from './misc/Utils'
 import Vec2 from './misc/Vec2'

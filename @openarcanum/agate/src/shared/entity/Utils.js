@@ -1,7 +1,5 @@
 // @flow
 
-class EntityUtils {
-
-}
+class EntityUtils {}
 
 export default EntityUtils

@@ -9,6 +9,7 @@ import type GameEngine from '../shared/GameEngine'
 import type GameMap from '../shared/map/GameMap'
 import type AssetLoader from '../shared/assets/AssetLoader';
 import type EventEmitter from '../shared/misc/EventEmitter';
+import GfxPathBuilder from '../shared/assets/GfxPathBuilder';
 
 export default class ClientEngine extends ClientNetwork {
   socket: Object // IO socket from lance
@@ -38,6 +39,7 @@ export default class ClientEngine extends ClientNetwork {
     this.events.on(`Map:Loading`, this.onMapLoading, this)
     this.events.on(`Map:Loaded`, this.onMapLoaded, this)
     this.events.on(`Scene:Created`, this.onSceneCreated, this)
+    this.events.on(`Object:Click`, this.onObjectClick, this)
 
     // https://github.com/lance-gg/spaaace/blob/master/src/client/SpaaaceClientEngine.js
     this.networkMonitor.events.on(`RTTUpdate`, (e) => {
@@ -98,7 +100,102 @@ export default class ClientEngine extends ClientNetwork {
     /*this.listenUI(`game.reload`, () => {
       this.start()
     })*/
+
+    this.listenUI('startGameBtn:click', () => {
+      this.onStartGame()
+    })
+
+    //this.events.on(`objectAdded`, this.onObjectAdded.bind(this))
   }
+
+  async onStartGame() {
+    await this.start()
+    await this.connect()
+
+    await this.gameEngine.world.start()
+
+    let entities = this.gameEngine.world.objects
+
+    for (let [id, entity] of entities) {
+      this.onObjectAdded(entity)
+    }
+  }
+
+  onObjectAdded(entity) {
+    let dialogWin = this.guiManager.findWidget('dialogWin')
+
+    let { classes } = entity.visual
+    if (!classes) {
+      return
+    }
+
+    let { sprite } = classes.current
+    if (!sprite) {
+      return
+    }
+
+    let position = sprite.getGlobalPosition()
+
+
+    let model = dialogWin.createChild({
+      id: entity.id,
+      type: `text`,
+      position: [position.x, position.y],
+      size: [100, 50],
+      value: `${entity.id}`,
+      style: { background: `rgba(255, 255, 255, 0.8)`},
+      options: {
+
+      }
+    })
+
+
+  }
+
+
+  updateEntities() {
+    let entities = this.gameEngine.world.objects
+
+    for (let [id, entity] of entities) {
+      this.updateEntity(entity)
+    }
+  }
+
+  updateEntity(entity) {
+    let { classes } = entity.visual
+    if (!classes) {
+      return
+    }
+
+    let { sprite } = classes.current
+    if (!sprite) {
+      return
+    }
+
+    let position = sprite.getGlobalPosition()
+
+    let dialogWin = this.guiManager.findWidget('dialogWin')
+    if (!dialogWin) {
+      return
+    }
+    let widget = dialogWin.getChild(entity.id)
+  if (!widget) {
+    return
+  }
+
+    let bubbleWidth = 100
+    let bubbleHeight = 50
+
+    widget.setValue(`${position.x}, ${position.y}`)
+    widget.setPosition(position.x - bubbleWidth /2, position.y - bubbleHeight)
+  }
+
+  step(t, dt, physicsOnly) {
+    super.step(t, dt, physicsOnly)
+    this.updateEntities()
+  }
+
+
 
   /**
    *
@@ -167,10 +264,30 @@ export default class ClientEngine extends ClientNetwork {
    * @param map
    */
   onMapLoaded(map: GameMap) {
-    let location = map.getCenterLocation()
+    let location = map.getStartLocation()
 
     this.addPlayer(map, location)
 
+  }
+
+  onObjectClick(gameObject: Object) {
+    lll(gameObject)
+    if (gameObject.data) {
+      let data = gameObject.data
+
+      const isObject = Utils.isUndefined(data.type)
+      if (isObject) {
+        this.sendCommand(`Player:EntitySelect`, { entity: data })
+      } else {
+        this.sendCommand(`Player:TileSelect`, { tile: data })
+      }
+
+      if (data.type !== `Tile`) {
+        this.guiManager.addDatGui(data)
+      }
+    } else {
+      this.guiManager.addDatGui(gameObject)
+    }
   }
 
   /**
@@ -201,12 +318,15 @@ export default class ClientEngine extends ClientNetwork {
    * @param command
    */
   sendCommand(path: string | Array, command: Object) {
-    lll(`Sending command`, path, command)
+    lll(`Client: Sending command`, path, command)
 
     let result = this.gameEngine.evaluateCommand(path, command)
     let {source, action, data} = result
 
-    this.sendRequest(action, data)
+    if (action) {
+      this.sendRequest(action, data)
+    }
+
 
     this.events.emit(`${source}.Command`, {
       type: name,
@@ -233,21 +353,23 @@ export default class ClientEngine extends ClientNetwork {
   /**
    *
    * @param name
-   * @param args
+   * @param listener
+   * @param context
    * @returns {EventEmitter}
    */
-  listenUI(name: string, args: any) {
-    return this.events.on(`ui.${name}`, args)
+  listenUI(name: string, listener: any, context) {
+    return this.events.on(`ui.${name}`, listener, context)
   }
 
   /**
    *
    * @param name
-   * @param args
+   * @param listener
+   * @param context
    * @returns {EventEmitter}
    */
-  listenOnceUI(name: string, args: any) {
-    return this.events.once(`ui.${name}`, args)
+  listenOnceUI(name: string, listener: any, context) {
+    return this.events.once(`ui.${name}`, listener, context)
   }
 
   /**
@@ -300,4 +422,13 @@ export default class ClientEngine extends ClientNetwork {
 
     return descriptor
   }
+
+  /**
+   *
+   * @param art
+   */
+  getGfxPath(art) {
+    return GfxPathBuilder.build(art)
+  }
+
 }

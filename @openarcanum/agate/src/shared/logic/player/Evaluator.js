@@ -1,6 +1,7 @@
 export default class {
   constructor(options) {
-    this.engine = options.engine
+    this.gameEngine = options.engine
+
   }
 
   onCommand(command: Object) {

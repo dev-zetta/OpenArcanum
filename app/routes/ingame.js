@@ -32,15 +32,15 @@ export default class IngameRoute extends Route {
 
   afterModel(resolvedModel, transition) {
     set(this, `headData.title`, `OpenArcanum`)
-    //set(this, `headData.css`, `asset://gui/gui-images.css`)
+    set(this, `headData.css`, `asset://gui/gui-images.css`)
   }
 
-  /*model() {
+  model() {
     return this.get('store').query('gui-widget', {
       include: 'components',
       filter: {
         type: 'window'
       }
     });
-  }*/
+  }
 }

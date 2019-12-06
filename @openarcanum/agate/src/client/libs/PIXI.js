@@ -1,6 +1,8 @@
 let PIXI = require(`pixi.js`)
 let Viewport = require(`pixi-viewport`)
 let Cull = require('pixi-cull')
+
+let Filters = require('../../../vendor/pixi-filters/bundle/lib/pixi-filters.cjs.js')
 //let Layer = require(`pixi-layers`)
 
 class ImageBitmapResource extends PIXI.resources.BaseImageResource {
@@ -17,6 +19,7 @@ PIXI.Texture.getFromCache = (key) => PIXI.utils.TextureCache[key]
 
 PIXI.Viewport = Viewport.Viewport
 PIXI.Cull = Cull
+PIXI.Filters2 = Filters
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST
 

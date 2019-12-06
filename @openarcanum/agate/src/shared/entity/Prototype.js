@@ -13,8 +13,8 @@ export default class Prototype extends Entity {
   /**
    *
    */
-  constructor(engine: GameEngine, options: Object = {}) {
-    super(engine, options)
+  constructor(manager: Manager, options: Object = {}) {
+    super(manager, options)
   }
 
   /**
@@ -39,9 +39,9 @@ export default class Prototype extends Entity {
 
   /**
    * Create proxified components for entity/prototype
+   * @param entity
    * @param data - raw components
    * @param prototype - Prototype
-   * @param target - where to add generated components
    * @returns {*}
    */
   static addComponentsToEntity(
@@ -84,8 +84,8 @@ export default class Prototype extends Entity {
 
   /**
    * Create proxified components for entity/prototype
+   * @param prototype
    * @param data - raw components
-   * @param target - where to add generated components
    * @returns {*}
    */
   static createPrototypeComponentsFromData(

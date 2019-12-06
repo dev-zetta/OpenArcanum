@@ -24,6 +24,7 @@ import Trace from './misc/Trace'
  * with client-side predictions.
  */
 class GameNetwork {
+  world: GameWorld
   playerId: string
 
   /**
@@ -34,6 +35,8 @@ class GameNetwork {
    * @param {Number} options.traceLevel - the trace level.
    */
   constructor(options) {
+    this.world = new GameWorld(this)
+
     // place the game engine in the LANCE globals
     const isServerSide = typeof window === `undefined`
     // set options
@@ -65,8 +68,8 @@ class GameNetwork {
     return null
   }
 
-  initWorld(worldSettings) {
-    this.world = new GameWorld()
+  async initWorld(worldSettings) {
+
 
     // on the client we have a different ID space
     if (this.options.clientIDSpace) {
@@ -81,6 +84,8 @@ class GameNetwork {
      * @memberof GameEngine
      */
     this.worldSettings = Object.assign({}, worldSettings)
+
+    await this.world.init(this.worldSettings)
   }
 
   /**
@@ -89,10 +94,8 @@ class GameNetwork {
    * for setting up the game's worldSettings attribute,
    * and registering methods on the event handler.
    */
-  start() {
+  async start() {
     this.trace.info(() => `========== game engine started ==========`)
-    this.initWorld()
-
     // create the default timer
     this.timer = new Timer()
     this.timer.play()
@@ -183,9 +186,7 @@ class GameNetwork {
 
     this.world.addObject(object)
 
-    // tell the object to join the game, by creating
-    // its corresponding physical entities and renderer entities.
-    if (typeof object.onAddToWorld === `function`) object.onAddToWorld(this)
+
 
     this.events.emit(`objectAdded`, object)
     this.trace.info(
@@ -240,9 +241,6 @@ class GameNetwork {
     this.trace.info(
       () => `========== destroying object ${object.toString()} ==========`
     )
-
-    if (typeof object.onRemoveFromWorld === `function`)
-      object.onRemoveFromWorld(this)
 
     this.events.emit(`objectDestroyed`, object)
     this.world.removeObject(objectId)

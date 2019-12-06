@@ -1,6 +1,6 @@
 // @flow
 import Component from './Component'
-import Flags from '../../Flags';
+import Flags from '../../Flags'
 
 export type VisualClass = {}
 
@@ -24,8 +24,8 @@ export default class Visual extends Component {
   constructor() {
     super(...arguments)
 
-    this.render = { flags: new Flags()}
-    this.classes = {current: {}}
+    this.render = { flags: new Flags() }
+    this.classes = { current: {} }
   }
 
   /**

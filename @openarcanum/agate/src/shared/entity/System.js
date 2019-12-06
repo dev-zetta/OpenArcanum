@@ -2,7 +2,7 @@
 import type Manager from './Manager'
 import type GameEngine from '../GameEngine'
 import type Entity from './Entity'
-
+import EventEmitter from '../misc/EventEmitter'
 
 /**
  * @class  Manager
@@ -12,27 +12,22 @@ import type Entity from './Entity'
  * define specific logic.
  */
 export default class System {
-
   frequency: number
   entities: Map<string, Entity>
-  engine: GameEngine
+  gameEngine: GameEngine
+  events: EventEmitter
   manager: Manager
   totalElapsed: number
-
 
   /**
    * @class  Manager
    * @constructor
-   * @param engine
+   * @param gameEngine
    * @param manager
    * @param [frequency=1] {Number} Frequency of execution.
    */
-  constructor(
-    engine: GameEngine,
-    manager: Manager,
-    frequency: number = 1
-  ) {
-    this.engine = engine
+  constructor(gameEngine: GameEngine, manager: Manager, frequency: number = 1) {
+    this.gameEngine = gameEngine
     this.manager = manager
     this.totalElapsed = 0
 
@@ -51,12 +46,16 @@ export default class System {
     this.entities = new Map()
   }
 
+  get events() {
+    return this.gameEngine.events
+  }
+
   /**
    *
    * @returns {*}
    */
-  get map() {
-    return this.engine.map
+  get world() {
+    return this.gameEngine.world
   }
 
   /**

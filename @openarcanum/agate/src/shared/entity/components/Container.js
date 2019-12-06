@@ -1,7 +1,7 @@
 // @flow
 
 import Component from './Component'
-import Flags from '../../Flags';
+import Flags from '../../Flags'
 
 export default class Container extends Component {
   lockDifficulty: number
@@ -19,9 +19,7 @@ export default class Container extends Component {
     this.flags = new Flags()
   }
 
-
   init(params) {
     super.init(params)
   }
-
 }

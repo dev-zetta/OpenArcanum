@@ -1,6 +1,6 @@
 // @flow
 
-import type MovementPath from '../MovementPath';
+import type MovementPath from '../MovementPath'
 
 const Mixin = (superclass) =>
   class extends superclass {
@@ -18,4 +18,4 @@ const Mixin = (superclass) =>
     }
   }
 
-  export default Mixin
+export default Mixin

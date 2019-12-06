@@ -49,7 +49,7 @@ protocols.register("asset", uri => {
 //     submitURL: 'https://your-domain.com/url-to-submit',
 //     autoSubmit: true
 // });
-//app.commandLine.appendSwitch('--disable-gpu') // --ignore-gpu-blacklist
+//app.commandLine.appendSwitch('--ignore-gpu-blacklist');
 
 //app.commandLine.appendSwitch('--experimental-modules')
 
@@ -73,6 +73,7 @@ app.on("ready", () => {
     autoHideMenuBar: true,
     devTools: true,
     webPreferences: {
+      webgl: true,
       webviewTag: true,
       nodeIntegration: true,
       webSecurity: false,

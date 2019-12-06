@@ -1,4 +1,4 @@
-/* global AGate, window */
+// @flow
 
 import Math from '../../client/isometric/Math'
 
