@@ -24,7 +24,7 @@
     "test": "node --test --test-isolation=none ember-electron/*.test.cjs @openarcanum/agate/tests/*.test.cjs @openarcanum/asset-converter/lib/__tests__/*.test.js",
     "check": "npm test && npm run test:ui && npm run build && npm run smoke && npm run smoke:renderer",
     "smoke:renderer": "node @openarcanum/agate/tests/renderer-smoke.cjs",
-    "test:ui": "npm run build:ui -- --mode development && node scripts/electron-launch.cjs --ui-test"
+    "test:ui": "npm run build:engine && npm run build:ui -- --mode development && node scripts/electron-launch.cjs --ui-test"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",

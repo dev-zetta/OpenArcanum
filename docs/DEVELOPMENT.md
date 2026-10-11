@@ -38,7 +38,7 @@ uses existing build output. Append `-- --devtools` to inspect the renderer.
 report. Smoke success requires the actual Ember readiness marker and no renderer
 exceptions, crashes or timeout; the normal missing-data state is supported.
 
-`npm run test:ui` builds the development UI and runs its QUnit suite inside
+`npm run test:ui` builds AGate and the development UI, then runs its QUnit suite inside
 Electron. Rebuild normally afterwards for production output. The separate
 `smoke:renderer` check creates synthetic graphics and checks actual WebGL pixels,
 atlas metadata and custom filter behavior; it does not require game assets.

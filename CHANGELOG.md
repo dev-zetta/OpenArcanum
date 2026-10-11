@@ -65,6 +65,8 @@ source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
 - Added a local real-data scene smoke check with movement, native mouse input,
   delayed-error monitoring and optional private diagnostics. Kept converted game
   assets, reports and screenshots under the ignored local-data directory.
+- Made the UI test command build its engine prerequisite so the real runtime
+  integration tests work in a fresh source checkout without cached build output.
 - Removed a subsequently discovered commented login block from affected published
   history, retaining a private backup and updating canonical history links.
 - Documented known implementation gaps and the first offline playable checkpoint.
