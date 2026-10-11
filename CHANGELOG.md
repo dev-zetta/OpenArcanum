@@ -44,6 +44,8 @@ source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
 - Updated connection rejection handling for Socket.IO 4 and covered rejected
   handshakes with a packet-level regression test. Configured the CI runner's
   Electron user-namespace permissions without disabling Chromium's sandbox.
+- Added an explicit SwiftShader mode for synthetic rendering checks on headless
+  runners while retaining the default GPU rendering check for local development.
 - Documented known implementation gaps and the first offline playable checkpoint.
   A successful development build does not establish a playable game release.
 

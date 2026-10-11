@@ -4,6 +4,7 @@ const { spawn } = require('node:child_process')
 const root = path.resolve(__dirname, '../../..')
 const source = path.join(root, '@openarcanum/agate/src')
 const fixture = path.join(root, '@openarcanum/agate/dist/renderer-smoke.cjs')
+const softwareRendering = process.argv.includes('--software-rendering')
 
 async function main() {
   const { build } = await import('esbuild')
@@ -36,7 +37,8 @@ async function main() {
   })
   const env = { ...process.env }
   delete env.ELECTRON_RUN_AS_NODE
-  const child = spawn(require('electron'), [path.join(__dirname, 'renderer-smoke-electron.cjs'), fixture], {
+  const smokeArgs = softwareRendering ? ['--software-rendering'] : []
+  const child = spawn(require('electron'), [path.join(__dirname, 'renderer-smoke-electron.cjs'), fixture, ...smokeArgs], {
     cwd: root,
     env,
     stdio: 'inherit'

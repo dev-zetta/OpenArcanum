@@ -40,6 +40,10 @@ exceptions, crashes or timeout; the normal missing-data state is supported.
 Electron. Rebuild normally afterwards for production output. The separate
 `smoke:renderer` check creates synthetic graphics and checks actual WebGL pixels,
 atlas metadata and custom filter behavior; it does not require game assets.
+On a runner without a supported GPU, use
+`npm run smoke:renderer -- --software-rendering` to run that fixture with
+Chromium's CPU-backed SwiftShader driver. This option affects only the synthetic
+test process. The default check continues to exercise the available GPU.
 
 See [DEPENDENCIES](DEPENDENCIES.md) for version choices and audit limitations.
 The converter has its own legacy `lib/start.js` entry point; its executor still
@@ -60,7 +64,8 @@ on Linux with Node 24.14.1 and npm 11.11.0:
 - PixiJS 8.22.0 WebGL 2 rendering with expected atlas/filter pixels and no GL
   errors, using synthetic fixtures on an Intel Mesa GPU.
 
-The GitHub workflow runs the same checks on a headless Linux display. On runners
+The GitHub workflow runs the same checks on Ubuntu 24.04 with a headless display
+and uses the explicit SwiftShader mode for the graphics fixture. On runners
 with Ubuntu's AppArmor user-namespace restriction, it loads a profile for the
 exact Electron executable so Chromium can use its normal namespace sandbox.
 These checks do not validate original game assets, full map startup or gameplay.
