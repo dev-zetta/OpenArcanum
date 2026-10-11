@@ -1,2 +1,9 @@
 #version 300 es
-precision mediump float;
+
+uniform sampler2D uTexture;
+in vec2 vTextureCoord;
+out vec4 outFragColor;
+
+void main(void) {
+  outFragColor = texture(uTexture, vTextureCoord);
+}

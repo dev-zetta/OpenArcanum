@@ -2,7 +2,7 @@
  * @module  uid
  */
 
-const uuidv5 = require(`uuid`)
+import { v4 as uuidv4 } from 'uuid'
 
 /*
  * UIDGenerator for multi-instance Entity Component System
@@ -89,8 +89,7 @@ class UUIDGenerator {
   constructor(salt = 0) {}
 
   next() {
-    const MY_NAMESPACE = `4ea2b974-fc49-4c84-b03d-7cb70946e583`
-    return uuidv5(`agate-ecs`, MY_NAMESPACE)
+    return uuidv4()
   }
 }
 

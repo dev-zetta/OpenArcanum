@@ -1,11 +1,13 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 /* global AGate */
 
 import GuiWindow from '../gui-window'
 
 import { action } from '@ember/object'
-import {inject as service} from '@ember/service'
+import { service } from '@ember/service'
 
-import Url from 'url'
+
 
 class GuiGoogleAuth extends GuiWindow {
   @service
@@ -39,14 +41,14 @@ class GuiGoogleAuth extends GuiWindow {
    * @returns {boolean}
    */
   handleNavigation(url) {
-    const query = Url.parse(url, true).query
+    const query = Object.fromEntries(new URL(url).searchParams)
     if (query) {
       if (query.error) {
         alert(new Error(`There was an error: ${query.error}`))
         return false
       } else if (query.code) {
         // Login is complete
-        setImmediate(() => this.onClose())
+        setTimeout(() => this.hide(), 0)
 
         // This is the authorization code we need to request tokens
         this.onAuthCodeReceived(query.code)
@@ -56,7 +58,7 @@ class GuiGoogleAuth extends GuiWindow {
   }
 
   onAuthCodeReceived(code) {
-    let onAuthCode = this.get(`onFinish`)
+    let onAuthCode = this.get(`onAuthCode`)
     if (onAuthCode) {
       onAuthCode(code)
     }
@@ -70,4 +72,4 @@ class GuiGoogleAuth extends GuiWindow {
   }
 }
 
-export default GuiGoogleAuth
+export default setComponentTemplate(template, GuiGoogleAuth)

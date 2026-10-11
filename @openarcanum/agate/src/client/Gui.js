@@ -3,7 +3,6 @@
 import Utils from '../shared/misc/Utils'
 import Sprite from './GuiSprite'
 
-const dat = require(`dat.gui`)
 
 let DatConfig = {
   Entity: {
@@ -306,6 +305,8 @@ class Manager {
         this.datGui.destroy()
       }
 
+      // dat.gui requires a DOM; loading the engine in Node must not create one.
+      const dat = require(`dat.gui`)
       this.datGui = new dat.GUI()
     }
 

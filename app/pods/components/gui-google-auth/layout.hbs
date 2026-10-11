@@ -1,0 +1,3 @@
+<a href={{this.authUrl}} target="_blank" rel="noopener noreferrer">Login to Google</a>
+{{#gui-webview parentWidget=this authUrl=this.authUrl onWillNavigate=this.onBrowserRedirect}}{{/gui-webview}}
+{{yield}}

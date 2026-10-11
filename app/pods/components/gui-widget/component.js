@@ -1,26 +1,31 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
+import { utils as runtimeUtils } from 'open-arcanum/lib/runtime'
 /* global AGate */
 
 import Component from '@ember/component'
-import { inject as service } from '@ember/service'
+import { service } from '@ember/service'
 import { action, computed } from '@ember/object'
-import { classNames, attribute } from '@ember-decorators/component'
-import { runTask, runDisposables } from 'ember-lifeline'
 
-import widgetLayout from 'open-arcanum/pods/components/gui-widget/template'
-import podNames from 'ember-component-css/pod-names'
 //import cash from 'cash-dom'
 
-const cash = require('cash-dom')
+import cash from 'cash-dom'
 
-const Utils = AGate.Utils
+const Utils = runtimeUtils
 
 const getWidgetClass = (type, dot = false) =>
-  dot ? `.${podNames[`gui-${type}`]}` : podNames[`gui-${type}`]
+  dot ? `.gui-${type}` : `gui-${type}`
 
-@classNames(`gui-widget ${getWidgetClass(`widget`)}`)
 class GuiWidget extends Component {
+  classNames = ['gui-widget']
+  attributeBindings = ['dataId:data-id', 'tooltip:title']
+  default = { type: 'widget', options: {} }
+  errors = []
 
-  @attribute(`data-id`)
+  @computed('widget.options.tooltip')
+  get tooltip() { return this.get('widget.options.tooltip') }
+
+
   @computed(`widget`)
   get dataId() {
     return this.get(`widget.id`) || 0
@@ -28,8 +33,6 @@ class GuiWidget extends Component {
 
   @service
   store
-  @service
-  hifi
 
   visible = true
   sprite = null
@@ -46,7 +49,6 @@ class GuiWidget extends Component {
     this.children = new Map()
     this.cachedWidgets = new Map()
 
-    this.set(`layout`, widgetLayout)
   }
 
   /**
@@ -68,7 +70,7 @@ class GuiWidget extends Component {
    * @returns {Ember.View|*|null}
    */
   getParent() {
-    return this.parentView
+    return this.parentWidget || this.parentView
     //return this.get('widget.parent');
   }
 
@@ -825,7 +827,7 @@ class GuiWidget extends Component {
    *
    */
   getRandomId() {
-    return Utils.getRandomUUID()
+    return crypto.randomUUID()
   }
 
   /**
@@ -836,16 +838,9 @@ class GuiWidget extends Component {
     if (!widgetProps) {
       let definition = this.get(`default`)
       widgetProps = this.createModel(
-        Object.assign(definition, {id: this.getRandomId()})
+        Object.assign({}, definition, {id: this.getRandomId()})
       )
       this.set(`widget`, widgetProps)
-    }
-
-    let childPartial = this.get(`child_partial`)
-    if (!childPartial) {
-      let childPartial = `components/${widgetProps.componentName}`
-      //let child = childLayout.referrer.moduleName.replace('open-arcanum/pods/', '').replace('/template.hbs', '')
-      this.set(`child_partial`, childPartial)
     }
 
     this.set(`data-id`, this.get(`widget.id`))
@@ -1078,14 +1073,10 @@ class GuiWidget extends Component {
 
     // is it root widget?
     let parent = this.getParent()
-    if (!parent.parentView) {
-      let manager = this.getManager()
-      manager.addWidget(this)
-    }
-
-    // add everything except game-render
-    if (parent && parent.parentView) {
+    if (parent && typeof parent.addChild === 'function') {
       parent.addChild(this)
+    } else {
+      this.getManager().addWidget(this)
     }
 
     let element = this.getElement()
@@ -1130,8 +1121,7 @@ class GuiWidget extends Component {
   }
 
   willDestroy() {
-    this._super(...arguments)
-    runDisposables(this) // ensure that lifeline will clean up any remaining async work
+    super.willDestroy(...arguments)
   }
 
   drag(e) {
@@ -1206,23 +1196,18 @@ class GuiWidget extends Component {
   @action
   required(event) {
     if (!event.target.value) {
-      this.get(`errors`).pushObject({
+      this.set(`errors`, [...this.errors, {
         message: `${event.target.name} is required`
-      })
+      }])
     }
   }
 
   @action
-  playAudio(id) {
-    this.get(`hifi`)
-      .play(this.fetchAudio(id))
-      .then(({ sound }) => {
-        console.log(sound)
-      })
-      .catch(error => {
-        console.log(error)
-      })
+  async playAudio(id) {
+    const audio = new Audio(await this.fetchAudio(id))
+    await audio.play()
   }
+
 }
 
-export default GuiWidget
+export default setComponentTemplate(template, GuiWidget)

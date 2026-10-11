@@ -1,134 +1,231 @@
 /* eslint-env node */
-const { app, BrowserWindow, protocol } = require("electron");
-const { dirname, join, resolve } = require("path");
-const protocolServe = require("electron-protocol-serve");
-const protocols = require("electron-protocols");
+'use strict'
 
-let appPath = resolve(__dirname, "..");
-let config = require(join(appPath, "config/project"))();
+const fs = require('node:fs')
+const os = require('node:os')
+const path = require('node:path')
+const { pathToFileURL } = require('node:url')
+const { app, BrowserWindow, ipcMain, net, protocol, session } = require('electron')
+const { resolveProtocolFile } = require('./protocol-files.cjs')
 
-//const reload = require('electron-reload')
-//reload(appPath)
+const projectRoot = path.resolve(__dirname, '..')
+const config = require(path.join(projectRoot, 'config', 'project.js'))()
+const uiRoot = path.join(projectRoot, 'dist')
+const appUrl = 'serve://app/'
+const smoke = process.argv.includes('--smoke')
+const uiTest = process.argv.includes('--ui-test')
+const automated = smoke || uiTest
+const loadUrl = uiTest ? `${appUrl}tests/index.html` : appUrl
+const option = name => {
+  const prefix = `${name}=`
+  const argument = process.argv.find(value => value.startsWith(prefix))
+  return argument ? argument.slice(prefix.length) : null
+}
+const defaultTimeout = uiTest ? 60000 : 15000
+const configuredTimeout = Number(option('--ui-test-timeout') || option('--smoke-timeout') || defaultTimeout)
+const smokeTimeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : defaultTimeout
+const smokeReport = option('--ui-test-report') || option('--smoke-report')
+const errors = []
+const messages = []
+const failedRequests = []
+let mainWindow
+let smokeFinished = false
+let smokeTimer
+let smokeSettleTimer
 
-/*require("electron-dl")({
-  saveAs: true
-});*/
-
-let mainWindow = null;
-// Registering a protocol & schema to serve our Ember application
+app.setName('OpenArcanum')
+if (automated) {
+  app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'openarcanum-electron-smoke-')))
+}
 protocol.registerSchemesAsPrivileged([
-  {scheme: 'serve', privileges: { standard: true, secure: true }}
+  { scheme: 'serve', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
+  { scheme: 'asset', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }
 ])
 
-protocolServe({
-  cwd: join(__dirname || resolve(dirname("")), "..", "ember"),
-  app,
-  protocol,
-  name: "serve",
-  endpoint: "dist"
-});
-
-function capitalizeFirstLetter(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1);
+function recordError(kind, error) {
+  const entry = { kind, message: String(error && error.message ? error.message : error) }
+  if (error && error.stack) entry.stack = String(error.stack)
+  errors.push(entry)
+  console.error(`[OpenArcanum:${kind}] ${entry.message}`)
 }
 
-protocols.register("asset", uri => {
-  let base = config.dataPath; // app.getAppPath();
-  //console.log(uri.host);
-
-  if (uri.pathname) {
-    //console.error(base, uri.host, uri.pathname);
-    return join(base, uri.host, uri.pathname);
+function finishSmoke(renderer = null, reason = null) {
+  if (smokeFinished) return
+  smokeFinished = true
+  clearTimeout(smokeTimer)
+  clearTimeout(smokeSettleTimer)
+  if (uiTest && renderer && (!renderer.qunit || renderer.qunit.total === 0)) reason = 'QUnit completed without any assertions'
+  if (uiTest && renderer && renderer.qunit && renderer.qunit.failed > 0) reason = 'QUnit reported failing assertions'
+  let ok = Boolean(renderer) && errors.length === 0 && !reason
+  const report = {
+    ok,
+    mode: uiTest ? 'ui-test' : 'smoke',
+    reason,
+    versions: { electron: process.versions.electron, node: process.versions.node, chrome: process.versions.chrome },
+    application: { url: loadUrl, uiRoot, dataPath: config.dataPath, dataDirectoryExists: fs.existsSync(config.dataPath) },
+    compatibility: { nodeIntegration: true, contextIsolation: false, webSecurity: true },
+    renderer,
+    errors,
+    console: messages,
+    failedRequests
   }
-  //console.error(join(base, uri.host));
-  return join(base, uri.host);
-});
-
-// Uncomment the lines below to enable Electron's crash reporter
-// For more information, see http://electron.atom.io/docs/api/crash-reporter/
-// electron.crashReporter.start({
-//     productName: 'YourName',
-//     companyName: 'YourCompany',
-//     submitURL: 'https://your-domain.com/url-to-submit',
-//     autoSubmit: true
-// });
-//app.commandLine.appendSwitch('--ignore-gpu-blacklist');
-
-//app.commandLine.appendSwitch('--experimental-modules')
-
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
+  if (smokeReport) {
+    try {
+      const file = path.resolve(smokeReport)
+      fs.mkdirSync(path.dirname(file), { recursive: true })
+      fs.writeFileSync(file, `${JSON.stringify(report, null, 2)}\n`)
+    } catch (error) {
+      recordError('smoke-report', error)
+      ok = report.ok = false
+    }
   }
-});
+  process.stdout.write(`${uiTest ? 'OPENARCANUM_UI_TEST' : 'OPENARCANUM_SMOKE'} ${JSON.stringify(report)}\n`, () => app.exit(ok ? 0 : 1))
+}
 
-app.on("ready", () => {
+async function serveLocal(request, settings) {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', { status: 405 })
+  try {
+    const file = resolveProtocolFile(settings.root, request.url, settings)
+    if (!file) {
+      if (automated) failedRequests.push({ url: request.url, status: 404, message: 'Local resource not found' })
+      return new Response('Local resource not found', { status: 404 })
+    }
+    const response = await net.fetch(pathToFileURL(file).toString(), { headers: request.headers })
+    const headers = new Headers(response.headers)
+    if (settings.scheme === 'asset') {
+      headers.set('Access-Control-Allow-Origin', 'serve://app')
+      headers.set('Cross-Origin-Resource-Policy', 'cross-origin')
+    }
+    return new Response(request.method === 'HEAD' ? null : response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers
+    })
+  } catch (error) {
+    if (automated) failedRequests.push({ url: request.url, message: error.message })
+    return new Response('Invalid local resource request', { status: 403 })
+  }
+}
+
+function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
-    height: 1024,
-    //frame: false,
-    resizable: true,
-    transparent: true,
-    title: "OpenArcanum",
-    alwaysOnTop: "true",
-    //kiosk: true,
+    height: 900,
+    show: !automated,
+    title: 'OpenArcanum',
+    backgroundColor: '#191611',
     autoHideMenuBar: true,
-    devTools: true,
     webPreferences: {
-      webgl: true,
-      webviewTag: true,
+      preload: path.join(__dirname, 'preload.cjs'),
+      // See README.md: explicit compatibility mode for the existing Node/DOM engine.
       nodeIntegration: true,
-      webSecurity: false,
-      experimentalFeatures: true,
-      nodeIntegrationInWorker: true,
-      defaultFontFamily: {
-        standard: 'Helvetica'
-      }
-
+      contextIsolation: false,
+      sandbox: false,
+      webSecurity: true,
+      webviewTag: false,
+      nodeIntegrationInWorker: false,
+      backgroundThrottling: !automated,
+      additionalArguments: uiTest ? ['--ui-test'] : smoke ? ['--smoke'] : []
     }
-  });
-  //mainWindow.webContents.openDevTools();
-  // If you want to open up dev tools programmatically, call
-  mainWindow.openDevTools();
+  })
 
-  /*installExtension({id: 'bpconcjcammlapcogcnnelfmaeghhagj', electron: '>=1.2.1'})
-  .then((name) => console.log(`Added Extension:  ${name}`))
-  .catch((err) => console.log('An error occurred: ', err));*/
+  const contents = mainWindow.webContents
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  contents.on('will-navigate', (event, target) => {
+    if (!target.startsWith(appUrl)) event.preventDefault()
+  })
+  contents.on('will-attach-webview', event => event.preventDefault())
+  contents.on('console-message', details => {
+    const record = {
+      level: details.level, message: details.message, line: details.lineNumber, source: details.sourceId
+    }
+    if (automated && messages.length < 200) messages.push(record)
+    if (automated && (record.level === 'error' || record.level === 3)) recordError('renderer-console', record.message)
+  })
+  contents.on('did-fail-load', (event, code, description, url, isMainFrame) => {
+    if (isMainFrame && code !== -3) {
+      recordError('load', `${description} (${code}) at ${url}`)
+      if (automated) finishSmoke(null, 'Main application document failed to load')
+    }
+  })
+  contents.on('render-process-gone', (event, details) => {
+    recordError('renderer-process', details.reason)
+    if (automated) finishSmoke(null, 'Renderer process exited')
+  })
+  mainWindow.on('unresponsive', () => {
+    recordError('renderer-process', 'Window became unresponsive')
+    if (automated) finishSmoke(null, 'Renderer became unresponsive')
+  })
+  mainWindow.on('closed', () => { mainWindow = null })
+  if (process.argv.includes('--devtools')) contents.openDevTools({ mode: 'detach' })
+  if (automated) smokeTimer = setTimeout(() => finishSmoke(null, uiTest ?
+    'Timed out waiting for QUnit to finish' : 'Timed out waiting for the real Ember application readiness marker'), smokeTimeout)
+  mainWindow.loadURL(loadUrl).catch(error => {
+    recordError('load', error)
+    if (automated) finishSmoke(null, 'Application load rejected')
+  })
+}
 
-  const emberAppLocation = "serve://dist";
-  // Load the ember application using our custom protocol/scheme
-  mainWindow.loadURL(emberAppLocation);
-  // If a loading operation goes wrong, we'll send Electron back to
-  // Ember App entry point
-  mainWindow.webContents.on("did-fail-load", () => {
-    mainWindow.loadURL(emberAppLocation);
-  });
-  mainWindow.webContents.on("crashed", () => {
-    console.log(
-      "Your Ember app (or other code) in the main window has crashed."
-    );
-    console.log(
-      "This is a serious issue that needs to be handled and/or debugged."
-    );
-  });
-  mainWindow.on("unresponsive", () => {
-    console.log(
-      "Your Ember app (or other code) has made the window unresponsive."
-    );
-  });
-  mainWindow.on("responsive", () => {
-    console.log("The main window has become responsive again.");
-  });
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
-});
+function isMainApplication(contents, url) {
+  return Boolean(mainWindow && !mainWindow.isDestroyed() && contents === mainWindow.webContents &&
+    typeof url === 'string' && url.startsWith(appUrl))
+}
 
-process.on("uncaughtException", err => {
-  console.log("An exception in the main thread was not handled.");
-  console.log(
-    "This is a serious issue that needs to be handled and/or debugged."
-  );
-  console.log(`Exception: ${err}`);
-});
+ipcMain.on('openarcanum:renderer-error', (event, error) => {
+  if (mainWindow && event.sender === mainWindow.webContents) recordError(error.kind || 'renderer', error)
+})
+ipcMain.on('openarcanum:renderer-ready', (event, renderer) => {
+  if (!smoke || uiTest || smokeFinished || !mainWindow || event.sender !== mainWindow.webContents) return
+  // Give errors from initial rendering a short opportunity to surface.
+  smokeSettleTimer = setTimeout(() => finishSmoke(renderer), 400)
+})
+ipcMain.on('openarcanum:ui-tests-done', (event, renderer) => {
+  if (!uiTest || smokeFinished || !mainWindow || event.sender !== mainWindow.webContents) return
+  smokeSettleTimer = setTimeout(() => finishSmoke(renderer), 400)
+})
+
+app.whenReady().then(() => {
+  if (!fs.existsSync(path.join(uiRoot, uiTest ? 'tests/index.html' : 'index.html'))) {
+    throw new Error('Built Ember UI is missing. Run npm run build before launching Electron.')
+  }
+  protocol.handle('serve', request => serveLocal(request, { root: uiRoot, scheme: 'serve', host: 'app', index: true }))
+  protocol.handle('asset', request => serveLocal(request, { root: config.dataPath, scheme: 'asset', caseInsensitive: true }))
+  session.defaultSession.setPermissionCheckHandler((contents, permission, origin, details) => {
+    return permission === 'display-capture' && details.isMainFrame &&
+      isMainApplication(contents, details.requestingUrl)
+  })
+  session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => {
+    callback(permission === 'display-capture' && details.isMainFrame &&
+      isMainApplication(contents, details.requestingUrl))
+  })
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    const frame = request.frame
+    if (!automated && request.userGesture && request.videoRequested && !request.audioRequested && frame &&
+      mainWindow && !mainWindow.isDestroyed() && frame === mainWindow.webContents.mainFrame &&
+      frame === frame.top && frame.url.startsWith(appUrl)) {
+      // Record this application's WebContents only, never an arbitrary desktop.
+      callback({ video: frame })
+    } else callback(null)
+  })
+  createWindow()
+}).catch(error => {
+  recordError('startup', error)
+  if (automated) finishSmoke(null, 'Electron startup failed')
+  else app.exit(1)
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin' || automated) app.quit()
+})
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0 && fs.existsSync(path.join(uiRoot, 'index.html'))) createWindow()
+})
+process.on('uncaughtException', error => {
+  recordError('main-uncaught-exception', error)
+  if (automated) finishSmoke(null, 'Unhandled main-process exception')
+  else app.exit(1)
+})
+process.on('unhandledRejection', error => {
+  recordError('main-unhandled-rejection', error)
+  if (automated) finishSmoke(null, 'Unhandled main-process rejection')
+})

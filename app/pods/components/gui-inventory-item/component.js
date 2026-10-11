@@ -1,10 +1,12 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 /* global AGate */
 
 import GuiWidget from '../gui-widget'
-import { classNames } from '@ember-decorators/component'
 
-@classNames(`draggable-source`)
 class GuiInventoryItem extends GuiWidget {
+  classNames = ['gui-widget', 'gui-inventory-item', 'draggable-source']
+
   /**
    *
    * @type {null}
@@ -71,4 +73,4 @@ class GuiInventoryItem extends GuiWidget {
   }*/
 }
 
-export default GuiInventoryItem
+export default setComponentTemplate(template, GuiInventoryItem)

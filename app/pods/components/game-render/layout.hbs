@@ -1,0 +1,28 @@
+<figure id="mouse-pointer"></figure>
+<canvas id="render2d" hidden={{unless this.running true}}></canvas>
+
+{{#unless this.running}}
+  <section class="app-status" aria-labelledby="startup-heading" data-runtime-status="ready" data-assets-state={{if this.dataStatus.ready "available" "missing"}}>
+    <h1 id="startup-heading">OpenArcanum</h1>
+    <p>The engine and game interface are under active development. A playable campaign is not yet available.</p>
+    <p>{{this.dataStatus.message}}</p>
+    <p>Local data directory: <code>{{this.dataStatus.dataPath}}</code></p>
+    <p>Provide your own converted Arcanum data, including GUI scripts and image metadata and compatible ZIP archives. The conversion pipeline is incomplete; copying the original DAT archives here is insufficient.</p>
+    <button type="button" class="btn btn-secondary" {{on "click" this.refreshDataStatus}}>Check data again</button>
+    {{#if this.dataStatus.ready}}
+      <button type="button" class="btn btn-primary" disabled={{this.starting}} {{on "click" this.startGame}}>
+        {{if this.starting "Starting…" "Start development runtime"}}
+      </button>
+    {{/if}}
+    {{#if this.error}}<p role="alert">Startup failed: {{this.error}}</p>{{/if}}
+  </section>
+{{/unless}}
+
+<div id="gui">
+  <screen><page>
+    {{#each this.widgets as |widget|}}
+      {{component (ensure-safe-component (widget-component widget.componentName)) parentWidget=this widget=widget data-id=widget.id}}
+    {{/each}}
+  </page></screen>
+</div>
+{{yield}}

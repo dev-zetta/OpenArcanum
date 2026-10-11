@@ -1,101 +1,58 @@
-// @flow
-
-import Component from '@ember/component'
-import { classNames } from '@ember-decorators/component'
-import { inject as service } from '@ember/service'
+import Component, { setComponentTemplate } from '@ember/component'
+import { service } from '@ember/service'
 import { action } from '@ember/object'
+import { getAGate, getDataStatus } from 'open-arcanum/lib/runtime'
+import template from './layout.hbs'
 
-@classNames(`game-render`)
 class GameRender extends Component {
+  @service store
 
-  @service
-  store
+  classNames = ['game-render']
+  widgets = null
+  running = false
+  starting = false
+  error = null
 
-  @service
-  resize
-
-  //@attribute
-  shouldRender = false
-
-  @action
-  onClick() {
-
-  }
-
-  /**
-   *
-   */
   constructor() {
     super(...arguments)
-
-   this.get(`resize`).on(`didResize`, event => {
-     AGate.engine.client.emitUI(
-        `window.resize`
-      )
-    })
+    this.dataStatus = getDataStatus()
   }
 
-  /**
-   *
-   */
-  getElement() {
-    return this.get(`element`)
+  getElement() { return this.element }
+  getManager() { return this.client.guiManager }
+
+  @action
+  refreshDataStatus() {
+    this.set('dataStatus', getDataStatus())
   }
 
-  /**
-   *
-   * @returns {Manager}
-   */
-  getManager() {
-    return this.client.guiManager
+  @action
+  async startGame() {
+    if (this.starting || this.running || !this.dataStatus.ready) return
+    this.setProperties({ starting: true, error: null })
+    try {
+      const runtime = getAGate()
+      const widgets = await this.store.query('gui-widget', { filter: { type: 'window' } })
+      const canvas = this.element.querySelector('canvas')
+      this.client = await runtime.createEngine().createClient(canvas)
+      if (this.isDestroying || this.isDestroyed) return
+      const manager = this.getManager()
+      manager.setRootWidget(this)
+      manager.setMouseSprite('cursor')
+      this.setProperties({ widgets, running: true })
+      this.onWindowResize = () => this.client.emitUI('window.resize')
+      window.addEventListener('resize', this.onWindowResize)
+    } catch (error) {
+      if (!this.isDestroying && !this.isDestroyed) this.set('error', error.message)
+    } finally {
+      if (!this.isDestroying && !this.isDestroyed) this.set('starting', false)
+    }
   }
 
-  /**
-   *
-   * @returns {Promise<*>}
-   */
-  async loadWindows() {
-    return this.get(`store`).query(`gui-widget`, {
-      include: `components,components.components`,
-      filter: {
-        type: `window`
-        //visible: true
-        //id: ['topWin', 'middleWin', 'bottomWin']
-      }
-    })
+  willDestroyElement() {
+    window.removeEventListener('resize', this.onWindowResize)
+    super.willDestroyElement(...arguments)
   }
-
-  /**
-   *
-   */
-  didInsertElement() {
-    super.didInsertElement(...arguments)
-
-    let canvas = document.getElementById(`render2d`)
-
-    this.createClient(canvas)
-  }
-
-  async createClient(canvas) {
-    let widgets = await this.loadWindows()
-    const engine = AGate.createEngine()
-
-
-    this.client = await engine.createClient(canvas)
-    let manager = this.getManager()
-    manager.setRootWidget(this)
-    manager.setMouseSprite(`cursor`)
-
-    this.set(`widgets`, widgets)
-  }
-
-  /**
-   *
-   * @param event
-   */
-  // mouseMove(event) {
-  //   //this.getManager().onMouseMove(event);
-  // }
 }
 
-export default GameRender
+export default setComponentTemplate(template, GameRender)

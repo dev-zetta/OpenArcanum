@@ -14,7 +14,7 @@ let myConsole = false
 
 // https://lodash.com/docs/4.17.4
 
-const uuidv5 = require('uuid')
+import { v5 as uuidv5 } from 'uuid'
 const lodash = require('lodash')
 
 export default class Utils extends lodash {
@@ -190,7 +190,7 @@ export default class Utils extends lodash {
   }
 
   static getCurrentTimestamp() {
-    return window.performance.now()
+    return Utils.performance.now()
   }
 
   static snapTo(value, gap, start, divide) {
@@ -213,8 +213,4 @@ export default class Utils extends lodash {
   }
 }
 
-if (window.performance) {
-  Utils.performance = window.performance
-} else {
-  alert(`TODO`)
-}
+Utils.performance = globalThis.performance

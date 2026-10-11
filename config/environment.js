@@ -1,6 +1,7 @@
 'use strict'
 
-const config = require('./project')()
+// Runtime paths are resolved in Electron's preload, not baked into UI artifacts.
+const config = require('../config.json')
 
 module.exports = function(environment) {
   let ENV = {
@@ -8,47 +9,24 @@ module.exports = function(environment) {
     podModulePrefix: `open-arcanum/pods`,
     environment,
     rootURL: `/`,
-    locationType: `auto`,
-    vendorFiles: { 'jquery.js': null },
-
+    locationType: `hash`,
 
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
         // e.g. 'with-controller': true
       },
-      EXTEND_PROTOTYPES: {
-        // Prevent Ember Data from overriding Date.parse.
-        Date: false
-      }
+      EXTEND_PROTOTYPES: false
     },
 
     APP: {
       // Here you can pass flags/options to your application instance
       // when it is created
-    },
-
-    EmberHammertime: {
-      touchActionOnAction: true,
-      touchActionAttributes: [`onclick`],
-      touchActionSelectors: [`button`, `input`, `a`, `textarea`],
-      touchActionProperties: `touch-action: manipulation; -ms-touch-action: manipulation;`
-    },
-
-    resizeServiceDefaults: {
-      debounceTimeout: 200,
-      heightSensitive: true,
-      widthSensitive: true,
-      injectionFactories: [`view`, `component`]
     }
   }
 
   if (environment === `development`) {
-    ENV.APP.LOG_RESOLVER = true
-    ENV.APP.LOG_ACTIVE_GENERATION = true
-    ENV.APP.LOG_TRANSITIONS = true
-    ENV.APP.LOG_TRANSITIONS_INTERNAL = true
-    ENV.APP.LOG_VIEW_LOOKUPS = true
+    ENV.APP.LOG_TRANSITIONS = false
   }
 
   if (environment === `test`) {
@@ -60,6 +38,7 @@ module.exports = function(environment) {
     ENV.APP.LOG_VIEW_LOOKUPS = false
 
     ENV.APP.rootElement = `#ember-testing`
+    ENV.APP.autoboot = false
   }
 
   if (environment === `production`) {

@@ -29,9 +29,20 @@ source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
   configuration and an optional data-directory environment override. Optional
   OAuth credentials now come from the environment. Removed unused local physics
   dependency references and the extracted-item inventory demonstration.
-- Omitted the stale root lockfile; regenerate it with the recovered toolchain.
+- Replaced the stale legacy lockfile with a current npm-workspace dependency lock.
+- Migrated to Electron 44.7, Ember / Ember CLI 7.3, PixiJS 8.22, Viewport 6,
+  Socket.IO 4 and Vite 8.3. Removed retired Electron compilation, native fibers,
+  Git-branch packages and obsolete UI addons; retained Babel 7 for upstream
+  Ember build-plugin compatibility.
+- Added build-time Flow compilation, a direct Electron launcher, contained local
+  asset protocols, portable preload configuration and an explicit missing-data
+  screen. Migrated Ember templates, local GUI data loading and Pixi texture,
+  viewport and shader APIs.
+- Added engine, converter, protocol, UI and actual WebGL rendering regression
+  checks, plus a current Node 24 build workflow. The synthetic renderer check
+  verifies atlas and filtered sprite pixels without original game assets.
 - Documented known implementation gaps and the first offline playable checkpoint.
-  No playable release or successful clean Electron build is claimed.
+  A successful development build does not establish a playable game release.
 
 ## 2019-12-06
 

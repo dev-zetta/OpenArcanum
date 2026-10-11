@@ -70,8 +70,8 @@ export default class ClientEngine extends ClientNetwork {
    */
   getWindowRect(): Object {
     return {
-      width: window.innerWidth * window.devicePixelRatio,
-      height: window.innerHeight * window.devicePixelRatio
+      width: window.innerWidth,
+      height: window.innerHeight
     }
   }
 

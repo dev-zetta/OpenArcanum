@@ -1,7 +1,7 @@
 
 const parser = require('socket.io-msgpack-parser');
 
-const io = require('socket.io');
+import { Server } from 'socket.io'
 
 
 /**
@@ -16,7 +16,7 @@ export default class Socket {
    * @param options
    */
   constructor(server: Object, options: Object) {
-    this.socket = io(server, {
+    this.socket = new Server(server, {
       ...options,
      parser: parser
     });

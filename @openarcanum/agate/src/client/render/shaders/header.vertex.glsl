@@ -1,14 +1,5 @@
-#version 300 es
-
-precision mediump float;
-
-uniform mat3 projectionMatrix;
-
-in vec2 aVertexPosition;
-in vec2 aTextureCoord;
-
+in vec2 aPosition;
 out vec2 vTextureCoord;
-
-
-
-
+uniform vec4 uInputSize;
+uniform vec4 uOutputFrame;
+uniform vec4 uOutputTexture;

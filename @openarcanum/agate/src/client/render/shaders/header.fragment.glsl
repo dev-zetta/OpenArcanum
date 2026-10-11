@@ -1,13 +1,15 @@
 #version 300 es
 
-precision mediump float;
-uniform float     iTime;
-uniform vec2      iResolution;
-uniform sampler2D uSampler;
+uniform float iTime;
+uniform vec2 iResolution;
+uniform sampler2D uTexture;
+#define uSampler uTexture
 in vec2 vTextureCoord;
-uniform vec4 inputSize;
-uniform vec4 outputFrame;
+// Shared with the high-precision vertex shader; precisions must match at link time.
+uniform highp vec4 uInputSize;
+uniform highp vec4 uOutputFrame;
+#define inputSize uInputSize
+#define outputFrame uOutputFrame
 uniform vec2 iMouse;
 uniform vec2 iWorldPosition;
-layout(location = 0) out vec4 outFragColor;
-
+out vec4 outFragColor;

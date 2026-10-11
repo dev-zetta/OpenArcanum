@@ -6,11 +6,11 @@ An independent engine reimplementation of **Arcanum: Of Steamworks and Magick Ob
 
 ## Current state
 
-The source includes an Electron application shell, an Ember user interface, AGate rendering and entity infrastructure, asset-conversion tools, and client UI scripts. Historical demos show earlier builds of this work. The published tree still needs dependency recovery, reproducible build instructions and runtime validation.
+The source includes an Electron application shell, an Ember user interface, AGate rendering and entity infrastructure, asset-conversion tools, and client UI scripts. Historical demos show earlier builds of this work. The development toolchain has been migrated to current Electron, Ember and PixiJS releases. A source checkout can build and open the existing UI without retail assets; playable game behavior and complete campaign compatibility remain unfinished.
 
 | Area | Present in the source | Work remaining |
 | --- | --- | --- |
-| Application and rendering | Electron/Ember integration, PixiJS-based engine code, scene and entity infrastructure | Restore and validate a clean installation, launch and rendering path. |
+| Application and rendering | Electron/Ember integration, PixiJS-based engine code, scene and entity infrastructure | Validate original map loading and complete the game startup path with converted assets. |
 | User interface | Character, inventory, dialogue, map and other window code | Connect and test each interface against complete gameplay behavior. |
 | Assets | Conversion code and loaders for converted formats | Restore a documented, complete conversion pipeline and validate its output against original game data. |
 | Gameplay | Models, scripts and partial systems | Complete and verify movement, combat, AI, dialogue/quests, progression and persistence together. |
@@ -29,38 +29,41 @@ The `asset-db` directory retains client scripts; proprietary game archives, conv
 | Path | Purpose |
 | --- | --- |
 | `app/` | Ember application, components, templates and UI integration. |
-| `ember-electron/` | Electron entry points and packaging configuration. |
+| `ember-electron/` | Electron main/preload, local resource protocols and startup checks. |
 | `@openarcanum/agate/` | Local AGate engine package: rendering, entities, resources and supporting systems. |
 | `@openarcanum/asset-converter/` | Partial MES/dialogue-message, spell-metadata and rule-table conversion tools. |
 | `@openarcanum/asset-db/scripts/` | Retained client UI scripts; converted retail data must be supplied locally. |
 | `docs/` | Development notes and project history. |
 
-See [DEVELOPMENT](docs/DEVELOPMENT.md) for recovery work, [HISTORY](docs/HISTORY.md) for the project timeline, [CHANGELOG](CHANGELOG.md) for changes, and [AUTHORS](AUTHORS.md) for credits.
+See [DEVELOPMENT](docs/DEVELOPMENT.md) for development instructions, [HISTORY](docs/HISTORY.md) for the project timeline, [CHANGELOG](CHANGELOG.md) for changes, and [AUTHORS](AUTHORS.md) for credits.
 
-## Development and recovery
+## Development
 
-The preserved manifests target a legacy stack: **Node.js 10, Electron 8, Ember 3 and PixiJS 5**. Dependencies include native modules, local packages and Git-hosted packages. Installing the latest Node.js does not by itself make this tree compatible with a current toolchain.
-
-The following commands describe the historical package workflow. **They are an unvalidated recovery reference, not a tested quickstart.** A fresh installation, build and launch of the source-only publication have not been established.
+Use **Node.js 24.11 or newer in the Node 24 LTS line** and npm 11 or newer. The root lockfile covers the application, AGate and converter npm workspaces; separate installs inside the packages are unnecessary.
 
 ```sh
-# At the repository root:
-npm install
+npm ci
+npm run build       # compile the Flow-annotated engine and Ember UI
+npm start           # rebuild and open Electron
+# Or, after building:
+npm run start:built
 
-# Install dependencies of the local engine package as well:
-cd @openarcanum/agate
-npm install
-cd ../..
-
-# Root package scripts:
-npm start       # ember electron
-npm run build   # ember build
-npm test        # ember test
+npm test            # engine, converter and local protocol regression tests
+npm run test:ui     # QUnit UI tests inside Electron; builds development UI
+npm run build       # restore production UI after UI tests
+npm run smoke       # hidden Electron startup check; needs a graphical display
+npm run smoke:renderer # synthetic atlas/shader pixel checks in Electron/WebGL
+# Or run every validation step in the right order:
+npm run check
 ```
 
-These commands also require compatible dependency versions and locally converted assets. Set `OPENARCANUM_DATA_PATH` or edit `config.json`; paths resolve against the project directory. The optional YouTube integration reads environment credentials; see `.env.example`. The old Ember-generated tests do not establish game correctness. Follow [DEVELOPMENT](docs/DEVELOPMENT.md) for the current state and record successful environments and reproduction steps when contributing.
+The current stack is Electron 44.7, Ember/Ember CLI 7.3, PixiJS 8.22 and Vite 8.3. Babel uses the latest compatible version 7 because the current Ember build plugins require it. Exact versions are pinned in [package.json](package.json) and [package-lock.json](package-lock.json).
 
-Useful early contributions include making installation reproducible, completing portable configuration, validating converters, documenting data requirements and establishing a small playable scene before extending gameplay.
+A fresh source checkout shows the game-data requirements instead of trying to start an incomplete world. Set `OPENARCANUM_DATA_PATH` or edit `config.json` to point to your locally converted data. Runtime paths resolve against the project directory, and the included GUI scripts use their own configured path. Finding the expected files does not establish that their contents are valid or that the game is playable.
+
+See [DEVELOPMENT](docs/DEVELOPMENT.md) for setup, tests, known gameplay gaps and Electron compatibility mode, and [DEPENDENCIES](docs/DEPENDENCIES.md) for the upgrade decisions and remaining upstream advisories. The optional historical YouTube integration reads environment credentials; see `.env.example`.
+
+Useful next contributions include validating the conversion pipeline against original game data and establishing a small offline playable scene before extending gameplay.
 
 ## History and archival links
 

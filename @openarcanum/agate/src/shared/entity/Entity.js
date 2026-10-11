@@ -193,13 +193,6 @@ export default class Entity extends GameObject {
   }
 
   /**
-   * Drop all components.
-   */
-  removeAllComponents() {
-    return this.manager.removeAllComponentsFromEntity(this)
-  }
-
-  /**
    * Update a component field by field, NOT recursively. If the component
    * does not exists, this method create it silently.
    *

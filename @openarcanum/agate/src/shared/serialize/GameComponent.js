@@ -3,10 +3,6 @@
 import Serializable from '../serialize/Serializable'
 
 export default class GameComponent extends Serializable {
-  static get netScheme() {
-    return {}
-  }
-
   constructor() {
     super()
 

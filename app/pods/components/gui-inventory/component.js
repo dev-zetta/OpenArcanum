@@ -1,10 +1,10 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 import GuiWidget from '../gui-widget'
 //const Muuri = requireNode(`muuri`)
 
-import { classNames } from '@ember-decorators/component'
-import { inject as service } from '@ember/service'
+import { service } from '@ember/service'
 
-@classNames(``)
 class GuiInventory extends GuiWidget {
   @service
   droppable
@@ -136,4 +136,4 @@ class GuiInventory extends GuiWidget {
   }
 }
 
-export default GuiInventory
+export default setComponentTemplate(template, GuiInventory)

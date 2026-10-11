@@ -2,10 +2,10 @@
 import type GameMap from './GameMap'
 import Sector from './Sector'
 
-const LRU = require(`lru-cache`)
+import { LRUCache } from 'lru-cache'
 // https://www.npmjs.com/package/lru-cache
 
-export default class Cache extends LRU {
+export default class Cache extends LRUCache {
   map: GameMap
 
   /**
@@ -15,13 +15,7 @@ export default class Cache extends LRU {
   constructor(map: GameMap) {
     const options = {
       max: 500,
-      length: function(n, key) {
-        return n * 2 + key.length
-      },
-      dispose: function(key, n) {
-        n.close()
-      },
-      maxAge: 1000 * 60 * 60
+      ttl: 1000 * 60 * 60
     }
 
     super(options)
@@ -34,7 +28,7 @@ export default class Cache extends LRU {
    * @param sector
    */
   add(sector: Sector) {
-    this.set(sector, sector.id)
+    this.set(sector.id, sector)
   }
 
   /**

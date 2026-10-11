@@ -1,18 +1,15 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 import GuiWidget from '../gui-widget'
 
-const { desktopCapturer } = require(`electron`)
-const fs = require(`fs`)
 
-import moment from 'moment'
 
-import {action} from '@ember/object'
-import {inject as service} from '@ember/service'
+import { action, computed } from '@ember/object'
+import { service } from '@ember/service'
 
 // TODO https://github.com/youtube/api-samples/blob/master/javascript/upload_video.js
 
 class GuiScreenRecord extends GuiWidget {
-  @service
-  moment
 
   @service
   google
@@ -25,6 +22,11 @@ class GuiScreenRecord extends GuiWidget {
   downloadUrl = ``
   downloadName = ``
   authUrl = ``
+
+  @computed('uploading', 'youTube', 'localVideoPath')
+  get uploadDisabled() {
+    return this.uploading || !this.youTube || !this.localVideoPath
+  }
 
   default = {
     size: [`100%`, `100%`]
@@ -50,55 +52,11 @@ class GuiScreenRecord extends GuiWidget {
   }
 
   async initRecorder() {
-    return new Promise((resolve, reject) => {
-      desktopCapturer.getSources(
-        {types: [`window`, `screen`]},
-        (error, sources) => {
-          if (error) {
-            throw error
-          }
-          for (let i = 0; i < sources.length; ++i) {
-            if (sources[i].name === `OpenArcanum`) {
-              let supportedConstraints = navigator.mediaDevices.getSupportedConstraints()
-              console.log(supportedConstraints)
-
-              navigator.mediaDevices
-                .getUserMedia({
-                  audio: false /*{
-                    mandatory: {
-                      chromeMediaSource: `desktop`,
-                      chromeMediaSourceId: sources[i].id,
-                      //channelCount: 1,
-                     // sampleRate: Math.round(44100 / 4)
-                    }
-                  },*/,
-                  video: {
-                    mandatory: {
-                      //idealFramerate: 10,
-                      maxFrameRate: 15,
-                      chromeMediaSource: `desktop`,
-                      chromeMediaSourceId: sources[i].id,
-                      minWidth: 1280,
-                      maxWidth: 1280,
-                      minHeight: 720,
-                      maxHeight: 720
-                    }
-                  }
-                })
-                .then((stream) => {
-                  this.handleStream(stream)
-                  resolve(stream)
-                })
-                .catch((e) => {
-                  this.handleError(e)
-                  reject(e)
-                })
-              return
-            }
-          }
-        }
-      )
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 15 }, audio: false
     })
+    this.handleStream(stream)
+    return stream
   }
 
   start() {
@@ -116,7 +74,7 @@ class GuiScreenRecord extends GuiWidget {
       }, 500)
 
       console.log(this.mediaRecorder.state)
-    })
+    }).catch(error => this.handleError(error))
   }
 
   stop() {
@@ -135,44 +93,28 @@ class GuiScreenRecord extends GuiWidget {
   }
 
   handleStream(stream) {
-    this.set(`videoName`, `OpenArcanum-${moment().format(`YMMDD-HHmm`)}`)
-    this.set(`localVideoPath`, `/home/maxli/${this.videoName}.mp4`)
-
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    this.set('videoName', `OpenArcanum-${timestamp}.webm`)
+    this.mediaStream = stream
     this.mediaRecorder = new MediaRecorder(stream)
     this.chunks = []
-
-    this.mediaRecorder.onstart = (e) => {
-      this.streamBuffer = fs.createWriteStream(this.localVideoPath)
-      this.streamBuffer.on(`finish`, (e) => {})
-
-      this.fileReader = new FileReader()
-      this.fileReader.addEventListener(`loadend`, e2 => {
-        let data = new Uint8Array(this.fileReader.result)
-        this.streamBuffer.write(data)
-
-        if (this.mediaRecorder.state === `inactive`) {
-          this.streamBuffer.end()
-          this.fileReader = null
-          this.streamBuffer = null
-        }
-      })
+    this.mediaRecorder.ondataavailable = event => {
+      if (event.data.size) this.chunks.push(event.data)
     }
-
-    this.mediaRecorder.onstop = (e) => {
-      let blob = new Blob(this.chunks, {type: `video/mp4` })
-      let url = window.URL.createObjectURL(blob)
-      this.set(`downloadUrl`, url)
-
-      //TODO window.URL.revokeObjectURL(url);
+    this.mediaRecorder.onstop = () => {
+      if (this.downloadUrl) URL.revokeObjectURL(this.downloadUrl)
+      const blob = new Blob(this.chunks, { type: this.mediaRecorder.mimeType })
+      this.set('downloadUrl', URL.createObjectURL(blob))
+      stream.getTracks().forEach(track => track.stop())
     }
+  }
 
-    this.mediaRecorder.ondataavailable = (e) => {
-      this.chunks.push(e.data)
-
-      if (this.streamBuffer) {
-        this.fileReader.readAsArrayBuffer(e.data)
-      }
-    }
+  willDestroyElement() {
+    clearInterval(this.intervalObj)
+    if (this.mediaRecorder?.state === 'recording') this.mediaRecorder.stop()
+    this.mediaStream?.getTracks().forEach(track => track.stop())
+    if (this.downloadUrl) URL.revokeObjectURL(this.downloadUrl)
+    super.willDestroyElement(...arguments)
   }
 
   handleError(e) {
@@ -230,4 +172,4 @@ class GuiScreenRecord extends GuiWidget {
   }
 }
 
-export default GuiScreenRecord
+export default setComponentTemplate(template, GuiScreenRecord)

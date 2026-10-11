@@ -3,10 +3,9 @@
 //var liquidfun = requireNode('liquidfun')
 
 const fs = require(`fs`)
+const path = require('node:path')
 const util = require(`util`)
 const mime = require(`mime-types`)
-const parseJson = require(`parse-json`)
-const writeJsonFile = require(`write-json-file`)
 const find = require(`find`)
 const StreamZip = require(`node-stream-zip`) // https://github.com/antelle/node-stream-zip
 
@@ -510,7 +509,7 @@ export default class AssetLoader {
         return null
       }
 
-      return parseJson(data.toString(`binary`))
+      return JSON.parse(data.toString('utf8').replace(/^\uFEFF/, ''))
     } catch (err) {
       lle(filePath, err)
       return null
@@ -525,7 +524,8 @@ export default class AssetLoader {
    */
   async saveJsonFile(filePath: string, object: Object) {
     try {
-      return await writeJsonFile(filePath, object, { indent: 2 })
+      await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
+      await fs.promises.writeFile(filePath, `${JSON.stringify(object, null, 2)}\n`, 'utf8')
     } catch (err) {
       lle(err.message)
       return null

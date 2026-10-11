@@ -1,11 +1,14 @@
-import { moduleFor, test } from 'ember-qunit';
+import { module, test } from 'qunit'
+import { setupTest } from 'ember-qunit'
 
-moduleFor('route:index', 'Unit | Route | index', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | index', function(hooks) {
+  setupTest(hooks)
 
-test('it exists', function(assert) {
-  let route = this.subject();
-  assert.ok(route);
-});
+  test('entry route redirects through the current router service', function(assert) {
+    const route = this.owner.lookup('route:index')
+    let destination
+    route.router.replaceWith = name => { destination = name }
+    route.beforeModel()
+    assert.strictEqual(destination, 'ingame')
+  })
+})

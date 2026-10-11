@@ -88,12 +88,14 @@ export default class Renderer extends PixiRenderer {
   }
 
   updateShader(shader) {
+    // Only our custom filters use the Shadertoy-style engine uniforms.
+    // Pixi's built-in filters manage their own uniform groups.
+    if (!shader.uniforms || !('iTime' in shader.uniforms)) return
     let screen = this.renderer.screen
     shader.uniforms[`iResolution`] = [screen.width, screen.height]
     shader.uniforms[`iTime`] = this.lastTimestamp / 1000
 
-    const { interaction } = this.renderer.plugins
-    const { global } = interaction.mouse
+    const { global } = this.renderer.events.pointer
 
     const { position } = this.stage
     shader.uniforms[`iMouse`] = [global.x, global.y]
@@ -115,6 +117,7 @@ export default class Renderer extends PixiRenderer {
 
   async loadShaders() {
     let dataUrl = AGate.getAppPath(`shader`)
+    if (!this.gameEngine.assetLoader.isFileExists(dataUrl)) return []
     let files = await this.gameEngine.assetLoader.findFiles(
       dataUrl,
       `.fragment.glsl`

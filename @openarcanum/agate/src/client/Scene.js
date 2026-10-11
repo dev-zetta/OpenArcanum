@@ -188,11 +188,13 @@ export default class Scene {
     //
     // let myCustomContext = canvas.getContext(`webgl2`, contextCreationConfig)
 
-    this.pixi = new PIXI.Application({
+    this.pixi = new PIXI.Application()
+    await this.pixi.init({
       ...this.client.getWindowRect(),
       autoStart: false,
-      view: canvas,
-      transparent: true,
+      canvas,
+      backgroundAlpha: 0,
+      preference: 'webgl',
       resolution: window.devicePixelRatio || 1,
       resizeTo: window
     })
@@ -206,9 +208,12 @@ export default class Scene {
     this.camera = new Camera(this.renderer.viewport)
 
     let stage = this.renderer.stage
-    stage.interactive = true
+    stage.eventMode = 'static'
 
     this.resizeViewport(this.pixi.screen.width, this.pixi.screen.height)
+    this.pixi.renderer.on('resize', (width, height) => {
+      this.resizeViewport(width, height)
+    })
 
     //this.isoGroup = this.add.group()
     this.cursorPos = new Point3()
@@ -406,7 +411,7 @@ export default class Scene {
    * @param height
    */
   resizeViewport(width: number, height: number) {
-
+    this.renderer.viewport.resize(width, height)
   }
 
   /**

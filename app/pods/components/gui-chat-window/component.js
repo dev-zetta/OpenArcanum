@@ -1,3 +1,5 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 import GuiWidget from '../gui-widget'
 
 //requireNode('converse.js/dist/converse.min.js')
@@ -62,4 +64,4 @@ class GuiChatWindow extends GuiWidget {
   }
 }
 
-export default GuiChatWindow
+export default setComponentTemplate(template, GuiChatWindow)

@@ -1,12 +1,15 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
+import { utils as runtimeUtils } from 'open-arcanum/lib/runtime'
 /* global AGate */
 
-const Utils = AGate.Utils
+const Utils = runtimeUtils
 
 import GuiWidget from '../gui-widget'
-import { classNames } from '@ember-decorators/component'
 
-@classNames(`dialog-bubble`)
 class GuiDialogBubble extends GuiWidget {
+  classNames = ['gui-widget', 'gui-dialog-bubble', 'dialog-bubble']
+
   /**
    *
    * @type {null}
@@ -116,4 +119,4 @@ class GuiDialogBubble extends GuiWidget {
   }
 }
 
-export default GuiDialogBubble
+export default setComponentTemplate(template, GuiDialogBubble)

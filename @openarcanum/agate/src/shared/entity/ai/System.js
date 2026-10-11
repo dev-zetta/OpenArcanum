@@ -28,29 +28,6 @@ export default class System {
   /**
    *
    */
-  loadActions() {
-    /*Utils.loadScripts(`shared/entity/ai/actions`, (name, script) => {
-      let action = script.action
-
-      let object = {
-        scores: {}
-      }
-
-      for (let key in action) {
-        let property = action[key]
-
-        if (Utils.isFunction(property)) {
-          object.scores[key] = property
-        }
-      }
-
-      this.actions.set(name, object)
-    })*/
-  }
-
-  /**
-   *
-   */
   loadActors() {
     for (let key in Actors) {
       this.newActor(key)

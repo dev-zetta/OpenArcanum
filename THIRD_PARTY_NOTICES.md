@@ -14,9 +14,10 @@ those notices or grant rights to original Arcanum assets.
 | Lance-derived engine/network/serialization code | AGate client, server, synchronization, world and serialization modules | Apache-2.0; [upstream license](licenses/Lance-Apache-2.0.txt), [upstream project](https://github.com/lance-gg/lance). These modules have been modified and reorganized for OpenArcanum. |
 
 Other installed dependencies are obtained through package manifests and retain
-their own licenses. Vendored build files needed by the legacy runtime are kept
-with their source/notice files; dependency directories and third-party Git
-histories are not imported as first-party project history.
+their own licenses. Recovered dat.gui, draggable-shim and Pixi-filter vendor
+copies remain with their source/notices for provenance; the current active
+libraries are resolved through npm and the root lockfile. Dependency directories
+and third-party Git histories are not imported as first-party project history.
 
 The original converter's GPLv3-or-later copyright notice is retained at
 [`@openarcanum/asset-converter/LICENSE`](%40openarcanum/asset-converter/LICENSE).

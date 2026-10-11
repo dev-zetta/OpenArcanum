@@ -319,9 +319,6 @@ export default class GameEngine {
    *
    * @param {Serializer} serializer - the serializer
    */
-  registerClasses(serializer) {}
-
-
   /**
    * Register Game Object Classes
    * @param serializer

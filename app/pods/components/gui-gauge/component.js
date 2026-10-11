@@ -1,4 +1,7 @@
-const Utils = AGate.Utils
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
+import { utils as runtimeUtils } from 'open-arcanum/lib/runtime'
+const Utils = runtimeUtils
 
 import GuiWidget from '../gui-widget'
 import { computed } from '@ember/object'
@@ -136,4 +139,4 @@ class GuiGauge extends GuiWidget {
   }
 }
 
-export default GuiGauge
+export default setComponentTemplate(template, GuiGauge)

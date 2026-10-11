@@ -1,20 +1,20 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 import GuiWidget from '../gui-widget'
 
-import { className, attribute } from '@ember-decorators/component'
 
 class GuiGroup extends GuiWidget {
-  @className(`active`)
-  @className(`disabled`)
-  @attribute
+  classNameBindings = ['active', 'disabled']
+
+
+
+
   bubble = false
 
-  @attribute
   active = false
 
-  @attribute
   disabled = false
 
-  @attribute
   onClick = null
 
   /**
@@ -66,4 +66,4 @@ class GuiGroup extends GuiWidget {
   }*/
 }
 
-export default GuiGroup
+export default setComponentTemplate(template, GuiGroup)

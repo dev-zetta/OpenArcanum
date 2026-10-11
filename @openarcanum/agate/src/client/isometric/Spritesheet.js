@@ -6,7 +6,7 @@ import Utils from '../../shared/misc/Utils'
 
 export default class Spritesheet {
 
-  baseTexture: PIXI.BaseTexture
+  baseTexture: PIXI.TextureSource
   textures: Object
   data: Object
   _frames: Object
@@ -21,7 +21,7 @@ export default class Spritesheet {
   constructor(baseTexture, data) {
     /**
      * Reference to ths source texture
-     * @type {PIXI.BaseTexture}
+     * @type {PIXI.TextureSource}
      */
     this.baseTexture = baseTexture
 
@@ -91,7 +91,7 @@ export default class Spritesheet {
   _processFrames() {
 
     if (this.resolution !== 1) {
-      this.baseTexture.setResolution(this.resolution)
+      this.baseTexture.resolution = this.resolution
     }
 
     for (let key in this._frames) {
@@ -135,7 +135,7 @@ export default class Spritesheet {
 
         //  Check to see if the sprite is trimmed
         if (data.trimmed !== false && data.spriteSourceSize) {
-          trim = new Rectangle(
+          trim = new PIXI.Rectangle(
             Math.floor(data.spriteSourceSize.x) / this.resolution,
             Math.floor(data.spriteSourceSize.y) / this.resolution,
             Math.floor(rect.w) / this.resolution,
@@ -151,17 +151,17 @@ export default class Spritesheet {
           }
         }
 
-        this.textures[key] = new PIXI.Texture(
-          this.baseTexture,
+        this.textures[key] = new PIXI.Texture({
+          source: this.baseTexture,
           frame,
           orig,
           trim,
-          data.rotated ? 2 : 0,
-          anchor
-        )
+          rotate: data.rotated ? 2 : 0,
+          defaultAnchor: anchor
+        })
 
         // lets also add the frame to pixi's global cache for 'from' and 'fromLoader' functions
-        PIXI.Texture.addToCache(this.textures[key], key)
+        PIXI.Cache.set(key, this.textures[key])
       }
     }
 
@@ -199,11 +199,11 @@ export default class Spritesheet {
     meta: Object
   ): PIXI.Spritesheet {
 
-    let baseTexture = PIXI.BaseTexture.getFromCache(key)
+    const sourceKey = `agate:source:${key}`
+    let baseTexture = PIXI.Cache.has(sourceKey) ? PIXI.Cache.get(sourceKey) : null
     if (!baseTexture) {
-      baseTexture = new PIXI.BaseTexture(image, {})
-      baseTexture.cacheId = key
-      PIXI.BaseTexture.addToCache(baseTexture, key)
+      baseTexture = new PIXI.ImageSource({ resource: image, scaleMode: 'nearest' })
+      PIXI.Cache.set(sourceKey, baseTexture)
     }
 
     let sheet = new Spritesheet(baseTexture, meta)

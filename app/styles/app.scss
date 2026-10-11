@@ -1,6 +1,6 @@
 /*@import url("gui-images.css");
 @import url("fonts.css");*/
-@import "ember-bootstrap/bootstrap";
+@import "bootstrap/scss/bootstrap";
 @import "theme";
 
 .gui-widget {
@@ -158,4 +158,10 @@ html {
   /*background-size: inherit;*/
 }
 
-@import "pod-styles";
+@import "components";
+
+.screen, screen, page { display: block; width: 100%; height: 100%; }
+vbox { display: flex; flex-direction: column; }
+hbox { display: flex; flex-direction: row; gap: 0.5rem; }
+.app-status { position: absolute; inset: 2rem; overflow: auto; pointer-events: auto; padding: 2rem; background: #231f1b; color: #efefef; max-width: 52rem; height: fit-content; border: 1px solid #a38642; }
+.app-status code { overflow-wrap: anywhere; color: #f1cd31; }

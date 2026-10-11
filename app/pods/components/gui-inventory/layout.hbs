@@ -1,0 +1,9 @@
+{{yield}}
+
+{{#each this.widget.components as |child|}}
+
+      {{#component (ensure-safe-component (widget-component child.componentName)) parentWidget=this widget=child}}
+        <div class="item-content"></div>
+      {{/component}}
+
+{{/each}}

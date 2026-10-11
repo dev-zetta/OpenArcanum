@@ -1,0 +1,6 @@
+{{#unless this.widget.sprite}}
+  <button type="button" class="btn btn-primary" disabled={{this.disabled}} {{on "click" this.click}}>
+    {{this.widget.options.label}}
+  </button>
+{{/unless}}
+{{yield}}

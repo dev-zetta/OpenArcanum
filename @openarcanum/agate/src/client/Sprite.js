@@ -588,7 +588,7 @@ export default class Sprite {
         break
     }
 
-    sprite.interactive = true
+    sprite.eventMode = 'static'
 
     if (this.meta.flipped && this.type !== Gfx.Types.Facade) {
       //this.sprite.originX = 0.5;

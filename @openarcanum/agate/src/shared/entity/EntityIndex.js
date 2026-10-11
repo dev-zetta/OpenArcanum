@@ -1,8 +1,5 @@
 import KDTree from '../misc/KDTree'
 
-// https://www.npmjs.com/package/kdgrass
-const kdgrass = require(`kdgrass`)
-
 export class EntityIndex {
   constructor() {
     this.index = new KDTree(64)

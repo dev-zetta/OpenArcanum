@@ -1,4 +1,5 @@
 import GameComponent from '../../../shared/serialize/GameComponent'
+import PIXI from '../../libs/PIXI'
 
 export default class PixiRenderableComponent extends GameComponent {
   constructor(options) {
@@ -13,11 +14,10 @@ export default class PixiRenderableComponent extends GameComponent {
   createRenderable() {
     let sprite
     if (this.options.assetName) {
-      sprite = new PIXI.Sprite(
-        PIXI.loader.resources[this.options.assetName].texture
-      )
+      sprite = new PIXI.Sprite(PIXI.Texture.from(this.options.assetName))
     } else if (this.options.spriteURL) {
-      sprite = new PIXI.Sprite.fromImage(this.options.spriteURL)
+      // Pixi 8 accepts loaded texture keys here, not asynchronous URLs.
+      sprite = new PIXI.Sprite(PIXI.Texture.from(this.options.spriteURL))
     }
 
     if (this.options.width) {

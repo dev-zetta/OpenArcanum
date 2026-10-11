@@ -1,5 +1,4 @@
-import ShopifyDraggable from '@shopify/draggable'
-const { Droppable, Plugins } = ShopifyDraggable
+import { Droppable } from '@shopify/draggable'
 
 // https://github.com/Shopify/draggable/tree/master/src/Draggable
 
@@ -50,7 +49,7 @@ export default class MyDroppable extends Droppable {
   }
 
   destroy() {
-    this.draggable.destroy()
+    super.destroy()
   }
 
   addDropzone(element) {

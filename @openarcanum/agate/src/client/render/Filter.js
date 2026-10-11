@@ -20,9 +20,18 @@ export class Filter extends PIXI.Filter {
     fragShader = fragShader.replace(`#include header`, header_fragment)
     fragShader = fragShader.replace(`#include default`, default_fragment)
 
-    //const program = new PIXI.Program(vertShader, fragShader)
+    super({
+      glProgram: PIXI.GlProgram.from({ vertex: vertShader, fragment: fragShader }),
+      resources: {
+        engineUniforms: {
+          iTime: { value: 0, type: 'f32' },
+          iResolution: { value: [0, 0], type: 'vec2<f32>' },
+          iMouse: { value: [0, 0], type: 'vec2<f32>' },
+          iWorldPosition: { value: [0, 0], type: 'vec2<f32>' }
+        }
+      }
+    })
 
-    //super(program)
-    super(vertShader, fragShader)
+    this.uniforms = this.resources.engineUniforms.uniforms
   }
 }

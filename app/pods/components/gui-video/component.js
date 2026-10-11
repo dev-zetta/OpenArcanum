@@ -1,10 +1,13 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 /* global AGate */
 
 import GuiWidget from '../gui-widget'
 
 import { action } from '@ember/object'
 
-let videojs = requireNode(`video.js`)
+import videojs from 'video.js'
+import { scheduleOnce } from '@ember/runloop'
 
 //@tagName(`video`)
 //@classNames(`video-js`)
@@ -134,7 +137,7 @@ class GuiVideo extends GuiWidget {
     }
 
     const scheduledObserver = function() {
-      Ember.run.scheduleOnce(`render`, this, observer)
+      scheduleOnce(`render`, this, observer)
     }
 
     this._addPlayerObserver(property, this, scheduledObserver)
@@ -304,4 +307,4 @@ class GuiVideo extends GuiWidget {
   waiting() {}
 }
 
-export default GuiVideo
+export default setComponentTemplate(template, GuiVideo)

@@ -1,20 +1,23 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
+import { utils as runtimeUtils } from 'open-arcanum/lib/runtime'
 import GuiWidget from '../gui-widget'
-import { attribute, classNames, className } from '@ember-decorators/component'
 import {  action, computed } from '@ember/object'
 
-let jsPanel = requireNode(`jspanel4/dist/jspanel`)
+import { jsPanel } from 'jspanel4'
 
-const Utils = AGate.Utils
+const Utils = runtimeUtils
 
-@classNames(``)
 class GuiWindow extends GuiWidget {
-  @className(`has-toolbar`)
+  classNameBindings = ['hasToolbar:has-toolbar']
+  attributeBindings = ['dataId:data-id', 'tooltip:title', 'isDraggable:draggable']
+
+
   @computed
   get hasToolbar() {
     return this.getOption(`toolbar`)
   }
 
-  @attribute(`draggable`)
   @computed
   get isDraggable() {
     return this.getOption(`toolbar`)
@@ -164,4 +167,4 @@ class GuiWindow extends GuiWidget {
   }
 }
 
-export default GuiWindow
+export default setComponentTemplate(template, GuiWindow)

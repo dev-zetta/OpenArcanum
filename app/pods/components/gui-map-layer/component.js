@@ -1,44 +1,27 @@
-/* global L */
-import GuiWidget from '../gui-widget'
-import { action, computed } from '@ember/object'
+import Component, { setComponentTemplate } from '@ember/component'
+import L from 'leaflet'
+import template from './layout.hbs'
 
-import leaflet from 'ember-leaflet'
-
-// https://stackoverflow.com/questions/43826338/leaflet-custom-url-custom-tiles
-
-class GuiMapLayer extends leaflet.TileLayer {
-  constructor() {
-    super(...arguments)
-
-    this.RawLayer = L.TileLayer.extend({
-      getTileUrl(coords) {
-        const {x, y} = coords
-        //if (x < 0 || x > 8 || y > -1 || y < -8) return ``
-
-        let invertedY = Math.abs(8 + y)
-
-        let i = invertedY * 8 + (x + 1)
-        let url = this._url.replace(`{i}`, i.toString().padStart(3, `0`))
-        //console.error(coords, invertedY, i, this)
-
-        return url
-      }
-    })
-  }
-
-  /**
-   *
-   */
-  didInsertElement() {
-    super.didInsertElement(...arguments)
-  }
-
-  createLayer() {
-    return new this.RawLayer(
-      ...this.get(`requiredOptions`),
-      this.get(`options`)
-    )
+export class ArcanumTileLayer extends L.TileLayer {
+  getTileUrl({ x, y }) {
+    const index = Math.abs(8 + y) * 8 + (x + 1)
+    return this._url.replace('{i}', index.toString().padStart(3, '0'))
   }
 }
 
-export default GuiMapLayer
+class GuiMapLayer extends Component {
+  didInsertElement() {
+    super.didInsertElement(...arguments)
+    if (this.map) {
+      this.layer = new ArcanumTileLayer(this.url, this.options || {})
+      this.layer.addTo(this.map)
+    }
+  }
+
+  willDestroyElement() {
+    this.layer?.remove()
+    super.willDestroyElement(...arguments)
+  }
+}
+
+export default setComponentTemplate(template, GuiMapLayer)

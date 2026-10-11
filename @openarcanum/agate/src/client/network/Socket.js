@@ -1,4 +1,4 @@
-import io from 'socket.io-client'
+import { io } from 'socket.io-client'
 
 const parser = require('socket.io-msgpack-parser');
 

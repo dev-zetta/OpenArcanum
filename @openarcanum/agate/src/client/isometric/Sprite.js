@@ -112,7 +112,7 @@ export default class IsoSprite extends PIXI.Sprite {
 
   set texture(texture) {
     if (Utils.isString(texture)) {
-      let tex = PIXI.Texture.getFromCache(texture)
+      let tex = PIXI.Cache.get(texture)
 
       if (!tex) {
         lll(`Texture not in cache!`, texture)
@@ -121,12 +121,10 @@ export default class IsoSprite extends PIXI.Sprite {
       texture = tex
     }
 
-    if (texture) {
-      this.anchor.x = texture.defaultAnchor.x
-      this.anchor.y = texture.defaultAnchor.y
+    super.texture = texture || PIXI.Texture.EMPTY
+    if (this.anchor && texture && texture.defaultAnchor) {
+      this.anchor.copyFrom(texture.defaultAnchor)
     }
-
-    super.texture = texture
   }
 
   setTexture(key) {
@@ -526,6 +524,6 @@ export default class IsoSprite extends PIXI.Sprite {
     SUBTRACT:       28,
     */
 
-    this.blendMode = PIXI.BLEND_MODES[mode]
+    this.blendMode = String(mode).toLowerCase()
   }
 }

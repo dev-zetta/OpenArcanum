@@ -38,22 +38,21 @@ export default class PixiRenderer extends BaseRenderer {
   async init() {
     await super.init()
 
-    let interaction = this.renderer.plugins.interaction
-
-
     this.viewport = new PIXI.Viewport({
       screenWidth: window.innerWidth,
       screenHeight: window.innerHeight,
       worldWidth: 1000,
       worldHeight: 1000,
 
-      interaction
+      events: this.renderer.events,
+      // AGate advances the viewport from its own render scheduler.
+      noTicker: true
     })
 
     this.pixi.stage.addChild(this.viewport)
 
 
-    this.viewport.on("click", (event) => {
+    this.viewport.on("pointertap", (event) => {
       if (event.target) {
         this.onDisplayObjectClick(event.target)
       }
@@ -66,10 +65,6 @@ export default class PixiRenderer extends BaseRenderer {
       .pinch()
       .wheel()
       .decelerate()
-
-    this.cull = new PIXI.Cull.Simple()
-    this.cull.addList(this.viewport.children)
-    this.cull.cull(this.viewport.getVisibleBounds())
 
     // default layers
     this.layers = {
@@ -96,13 +91,6 @@ export default class PixiRenderer extends BaseRenderer {
       return // assets might not have been loaded yet
     }
 
-    /*if (this.viewport.dirty) {
-      this.cull.cull(this.viewport.getVisibleBounds())
-      this.viewport.dirty = false
-    }*/
-
-
-
     for (let objId of Object.keys(this.sprites)) {
       let objData = this.gameEngine.world.objects[objId]
       let sprite = this.sprites[objId]
@@ -115,7 +103,8 @@ export default class PixiRenderer extends BaseRenderer {
       }
     }
 
-    this.renderer.render(this.pixi.stage)
+    this.viewport.update(dt)
+    this.renderer.render({ container: this.pixi.stage })
   }
 
   /**
@@ -172,8 +161,9 @@ export default class PixiRenderer extends BaseRenderer {
   }
 
   newFilter(name, options) {
-    let filter = new PIXI.Filters2[name](options)
-    return  filter
+    const FilterType = PIXI.Filters2[name]
+    if (!FilterType) throw new Error(`Unknown Pixi filter: ${name}`)
+    return new FilterType(options)
   }
 
 }

@@ -1,0 +1,22 @@
+{{yield}}
+{{#if this.authUrl}}
+  {{gui-google-auth parentWidget=this authUrl=this.authUrl onAuthCode=this.onAuthCode}}
+{{/if}}
+<vbox>
+  <hbox>
+    <button type="button" class="btn btn-primary" {{on "click" this.toggleRecorder}}>
+      {{if this.recording "Stop" "Record"}}
+      {{#if this.recordTime}}<strong>{{this.recordTime}}s</strong>{{/if}}
+    </button>
+    {{#if this.downloadUrl}}
+      <a class="btn btn-info" href={{this.downloadUrl}} download={{this.videoName}}>Download</a>
+      <button type="button" class="btn btn-info" disabled={{this.uploadDisabled}} title="YouTube upload integration is unavailable in this development build" {{on "click" this.upload}}>
+        {{if this.uploading "Uploading..." "Upload"}}
+      </button>
+    {{/if}}
+  </hbox>
+  {{#if this.uploading}}
+    <progress value={{this.uploadProgress}} max="100" aria-label="Upload progress"></progress>
+  {{/if}}
+  {{#if this.localVideoPath}}<p>Video saved at: {{this.localVideoPath}}</p>{{/if}}
+</vbox>

@@ -1,8 +1,7 @@
-import DS from 'ember-data'
+import Model, { attr, hasMany, belongsTo } from '@ember-data/model'
 import { computed } from '@ember/object'
 
 
-const { Model, attr, hasMany, belongsTo } = DS
 
 // https://andycrum.github.io/ember-data-model-maker/
 
@@ -19,6 +18,7 @@ export default Model.extend({
   style: attr(),
   prototype: attr(), // class/es
   visible: attr(),
+  value: attr(),
   animation: attr(),
   events: attr(),
   listeners: attr(),
@@ -26,6 +26,6 @@ export default Model.extend({
 
   options: attr(),
 
-  parent: belongsTo(`gui-widget`, { inverse: `components`}),
-  components: hasMany(`gui-widget`, { inverse: `parent`})
+  parent: belongsTo(`gui-widget`, { async: false, inverse: `components` }),
+  components: hasMany(`gui-widget`, { async: false, inverse: `parent` })
 })

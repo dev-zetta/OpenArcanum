@@ -1,65 +1,37 @@
-/* global L */
+import { setComponentTemplate } from '@ember/component'
 import GuiWidget from '../gui-widget'
-import { action, computed } from '@ember/object'
+import L from 'leaflet'
+import { ArcanumTileLayer } from '../gui-map-layer/component'
+import template from './layout.hbs'
 
 class GuiMapView extends GuiWidget {
-  default = {
-    //sprite: 'Worldmap'
-  }
-
-  crs = L.CRS.Simple
-  lat = 0
-  lng = 0
-  zoom = 0
-
-  emberConfLocation = [0, 0]
-  hotel = [2000, 2000]
-
-  @computed
-  get tileSize() {
-    return L.point(250, 250)
-  }
-
-  @computed
-  get bounds() {
-    let w = 2000
-    let h = 2000
-
-    let southWest = L.CRS.Simple.unproject({ x: 0, y: h })
-    let northEast = L.CRS.Simple.unproject({ x: w, y: 0})
-
-    let bounds = new L.LatLngBounds(southWest, northEast)
-    return bounds
-  }
-
-  /**
-   *
-   */
   didInsertElement() {
-    super.didInsertElement()
+    super.didInsertElement(...arguments)
+    const bounds = new L.LatLngBounds(
+      L.CRS.Simple.unproject({ x: 0, y: 2000 }),
+      L.CRS.Simple.unproject({ x: 2000, y: 0 })
+    )
+    this.map = L.map(this.element.querySelector('.leaflet-container'), {
+      crs: L.CRS.Simple, attributionControl: false,
+      maxBounds: bounds, maxBoundsViscosity: 0.5,
+      center: [0, 0], zoom: 0
+    })
+    this.layer = new ArcanumTileLayer('asset://worldmap/SmallMapChunks{i}.bmp', {
+      tms: true, bounds, tileSize: L.point(250, 250), noWrap: true,
+      minZoom: 0, maxZoom: 10, minNativeZoom: 0, maxNativeZoom: 0,
+      updateWhenIdle: false, keepBuffer: 20
+    }).addTo(this.map)
   }
 
-  /**
-   *
-   */
   updateWidgetAttrs() {
-    super.updateWidgetAttrs()
-
-    let element = this.get(`element`)
-    if (element) {
-      let map = element.querySelector(`.leaflet-container`)
-
-      let size = this.getSize()
-      map.style.width = `${size.width}px`
-      map.style.height = `${size.height}px`
-    }
+    super.updateWidgetAttrs(...arguments)
+    if (this.map) this.map.invalidateSize()
   }
 
-  @action
-  onLoad(e) {
-    this.map = e.target
-    console.error(this.map)
+  willDestroyElement() {
+    this.map?.remove()
+    super.willDestroyElement(...arguments)
   }
 }
 
-export default GuiMapView
+export default setComponentTemplate(template, GuiMapView)

@@ -1,3 +1,5 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 import GuiWidget from '../gui-widget'
 
 class GuiNumberSpinner extends GuiWidget {
@@ -68,4 +70,4 @@ class GuiNumberSpinner extends GuiWidget {
   }
 }
 
-export default GuiNumberSpinner
+export default setComponentTemplate(template, GuiNumberSpinner)

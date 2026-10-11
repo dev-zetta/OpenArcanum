@@ -1,0 +1,26 @@
+// Stable component scopes replace the removed ember-component-css addon.
+// Keep each component stylesheet beside its JavaScript and layout.
+@use "../pods/components/game-render/styles" as game-render;
+@use "../pods/components/gui-button/styles" as gui-button;
+@use "../pods/components/gui-chat-window/styles" as gui-chat-window;
+@use "../pods/components/gui-checkbox/styles" as gui-checkbox;
+@use "../pods/components/gui-dialog-bubble/styles" as gui-dialog-bubble;
+@use "../pods/components/gui-draggable/styles" as gui-draggable;
+@use "../pods/components/gui-gauge/styles" as gui-gauge;
+@use "../pods/components/gui-google-auth/styles" as gui-google-auth;
+@use "../pods/components/gui-group/styles" as gui-group;
+@use "../pods/components/gui-icon/styles" as gui-icon;
+@use "../pods/components/gui-image/styles" as gui-image;
+@use "../pods/components/gui-inventory/styles" as gui-inventory;
+@use "../pods/components/gui-inventory-item/styles" as gui-inventory-item;
+@use "../pods/components/gui-inventory-slot/styles" as gui-inventory-slot;
+@use "../pods/components/gui-map-layer/styles" as gui-map-layer;
+@use "../pods/components/gui-map-view/styles" as gui-map-view;
+@use "../pods/components/gui-number-spinner/styles" as gui-number-spinner;
+@use "../pods/components/gui-property-gauge/styles" as gui-property-gauge;
+@use "../pods/components/gui-screen-record/styles" as gui-screen-record;
+@use "../pods/components/gui-text/styles" as gui-text;
+@use "../pods/components/gui-video/styles" as gui-video;
+@use "../pods/components/gui-webview/styles" as gui-webview;
+@use "../pods/components/gui-widget/styles" as gui-widget;
+@use "../pods/components/gui-window/styles" as gui-window;

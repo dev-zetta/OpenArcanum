@@ -1,11 +1,12 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 import GuiWidget from '../gui-widget'
 
-import { className, attribute } from '@ember-decorators/component'
 import { action } from '@ember/object'
 
 class GuiButton extends GuiWidget {
-  @className(`active`)
-  disabled = false
+  classNameBindings = ['active', 'disabled']
+
 
   bubble = false
   active = false
@@ -13,7 +14,6 @@ class GuiButton extends GuiWidget {
   //onClick = null
   toggled = false
 
-  @attribute
   onClick = null
 
   didInsertElement() {
@@ -37,6 +37,7 @@ class GuiButton extends GuiWidget {
    */
   @action
   click(e) {
+    e?.stopPropagation()
     super.click(...arguments)
 
     let action2 = this.get(`onClick`)
@@ -100,4 +101,4 @@ class GuiButton extends GuiWidget {
   }
 }
 
-export default GuiButton
+export default setComponentTemplate(template, GuiButton)

@@ -1,11 +1,11 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 import GuiWidget from '../gui-widget'
-import { observes } from '@ember-decorators/object'
 
 class GuiDraggable extends GuiWidget {
   x = 0
   y = 0
 
-  @observes(`x`, `y`)
   positionChanged() {
     //AGate.Utils.logError('func')
     let x = this.get(`x`)
@@ -51,6 +51,7 @@ class GuiDraggable extends GuiWidget {
       x: `${e.clientX + parseInt(xy[0])}`,
       y: `${e.clientY + parseInt(xy[1])}`
     })
+    this.positionChanged()
   }
 
   windowDragOver(e) {
@@ -65,4 +66,4 @@ class GuiDraggable extends GuiWidget {
   didDestroyElement() {}
 }
 
-export default GuiDraggable
+export default setComponentTemplate(template, GuiDraggable)

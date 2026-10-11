@@ -1,3 +1,7 @@
+@use "sass:color";
+@use "sass:map";
+@use "sass:math";
+
 /*!
 * Neon Pingendo template (https://templates.pingendo.com)
 * Based on: Bootstrap v4.0.0-beta (https://getbootstrap.com)
@@ -35,7 +39,7 @@ $theme-colors: (
 $body-bg: #111;
 
 $body-color: #efefef;
-$body-color-inverse: invert($body-color) !default;
+$body-color-inverse: color.invert($body-color) !default;
 $link-color: #f1cd31;
 
 $link-hover-color:      white;
@@ -57,7 +61,7 @@ $border-width: 													1px;
 $border-radius: 												0.75rem;
 $border-radius-lg: 											$border-radius * 1.2;
 $border-radius-sm: 											$border-radius * .4;
-$component-active-color :								map-get($theme-colors,"dark");
+$component-active-color :								map.get($theme-colors,"dark");
 
 // Buttons
 $input-btn-padding-x-lg:    						1.1rem;
@@ -69,23 +73,23 @@ $card-bg: 															rgba(#333,.5);
 
 // Breadcrumb
 $breadcrumb-bg: 												transparent !default;
-$breadcrumb-active-color:       				map-get($theme-colors,"light");
+$breadcrumb-active-color:       				map.get($theme-colors,"light");
 
 // Carousel
 $carousel-caption-width:      					100% !default;
 $carousel-indicator-height:							6px !default;
 
 //Images
-$thumbnail-border-color:      					map-get($theme-colors,"primary");
+$thumbnail-border-color:      					map.get($theme-colors,"primary");
 
 // Forms
 $form-group-margin-bottom:       0rem;
 
 // Nav tabs
-$nav-tabs-border-color:									map-get($theme-colors,"primary");
+$nav-tabs-border-color:									map.get($theme-colors,"primary");
 $nav-tabs-link-hover-border-color:      transparent;
 $nav-tabs-link-active-color:  					$component-active-color;
-$nav-tabs-link-active-bg:               map-get($theme-colors,"primary");
+$nav-tabs-link-active-bg:               map.get($theme-colors,"primary");
 $nav-tabs-link-active-border-color:     $nav-tabs-border-color;
 
 // Nav pills
@@ -96,32 +100,32 @@ $navbar-light-color:                		rgba(black,.6);
 
 // Pagination
 $pagination-bg:                        	$body-bg;
-$pagination-border-color:              	map-get($theme-colors,"dark");
+$pagination-border-color:              	map.get($theme-colors,"dark");
 $pagination-hover-bg:                  	$body-bg;
 $pagination-hover-border-color:        	$pagination-border-color;
 $pagination-active-color:              	$component-active-color;
-$pagination-active-bg:                 	map-get($theme-colors,"primary");
-$pagination-active-border-color:       	map-get($theme-colors,"dark");
+$pagination-active-bg:                 	map.get($theme-colors,"primary");
+$pagination-active-border-color:       	map.get($theme-colors,"dark");
 
 // List group
 $list-group-bg:                  				$body-bg;
-$list-group-border-color:        				map-get($theme-colors,"dark");
+$list-group-border-color:        				map.get($theme-colors,"dark");
 $list-group-hover-bg:                 	$body-bg;
 $list-group-active-color:             	$component-active-color;
 $list-group-action-color:             	$link-color;
-$list-group-active-border-color:      	map-get($theme-colors,"dark");
-$list-group-action-hover-color:       	map-get($theme-colors,"light");
+$list-group-active-border-color:      	map.get($theme-colors,"dark");
+$list-group-action-hover-color:       	map.get($theme-colors,"light");
 $list-group-action-active-color:      	$body-color !default;
 $list-group-action-active-bg:         	transparent;
 
 // Horizontal rule
-$hr-border-color: 											rgba(map-get($theme-colors,"primary"),.75);
+$hr-border-color: 											rgba(map.get($theme-colors,"primary"),.75);
 
 // Tables
-$table-accent-bg:               				rgba(map-get($theme-colors,"light"),.05);
-$table-inverse-bg:              				rgba(map-get($theme-colors,"light"),.5);
-$table-hover-bg:                				rgba(map-get($theme-colors,"light"),.1);
-$table-border-color:            				map-get($theme-colors,"dark");
+$table-accent-bg:               				rgba(map.get($theme-colors,"light"),.05);
+$table-inverse-bg:              				rgba(map.get($theme-colors,"light"),.5);
+$table-hover-bg:                				rgba(map.get($theme-colors,"light"),.1);
+$table-border-color:            				map.get($theme-colors,"dark");
 
 $font-size-base: 0.85rem;
 
@@ -129,11 +133,11 @@ $text-black: #000;
 $text-white: #fff;
 
 @function color-yiq($color) {
-  $r: red($color);
-  $g: green($color);
-  $b: blue($color);
+  $r: color.channel($color, "red", $space: rgb);
+  $g: color.channel($color, "green", $space: rgb);
+  $b: color.channel($color, "blue", $space: rgb);
 
-  $yiq: (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+  $yiq: math.div(($r * 299) + ($g * 587) + ($b * 114), 1000);
 
   @if ($yiq >= 150) {
     @return $text-black;
@@ -158,7 +162,7 @@ html,body {
     width:100%;
     height: 100%;
     content: ' ';
-    background: linear-gradient($body-bg, transparentize($body-bg, 0.2),transparentize($body-bg, 0.8),transparentize($body-bg, 0.2), $body-bg);
+    background: linear-gradient($body-bg, color.adjust($body-bg, $alpha: -0.2),color.adjust($body-bg, $alpha: -0.8),color.adjust($body-bg, $alpha: -0.2), $body-bg);
 	}
 }
 
@@ -174,7 +178,7 @@ html,body {
     width:100%;
     height: 100%;
     content: ' ';
-    background: linear-gradient($body-bg, transparentize($body-bg, 0.2),transparentize($body-bg, 0.8));
+    background: linear-gradient($body-bg, color.adjust($body-bg, $alpha: -0.2),color.adjust($body-bg, $alpha: -0.8));
 	}
 }
 
@@ -190,7 +194,7 @@ html,body {
     width:100%;
     height: 100%;
     content: ' ';
-    background: linear-gradient(transparentize($body-bg, 0.8),transparentize($body-bg, 0.2), $body-bg);
+    background: linear-gradient(color.adjust($body-bg, $alpha: -0.8),color.adjust($body-bg, $alpha: -0.2), $body-bg);
 	}
 }
 
@@ -203,7 +207,7 @@ html,body {
     padding-top:50px;
     padding-bottom:20px;
 	  bottom:0px;
-		background: linear-gradient(transparent 10%, transparentize($body-bg, 0) 100%);
+		background: linear-gradient(transparent 10%, color.adjust($body-bg, $alpha: -0) 100%);
 	}
 
 	.carousel-control-next, .carousel-control-prev {
@@ -217,11 +221,11 @@ html,body {
 
 mark {
   &.primary {
-  background-color: map-get($theme-colors,"primary");
+  background-color: map.get($theme-colors,"primary");
   color: black;
   }
   &.secondary {
-  background-color: map-get($theme-colors,"secondary");
+  background-color: map.get($theme-colors,"secondary");
   color: white;
   }
 }

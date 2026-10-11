@@ -1,21 +1,25 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 /* global AGate */
 
 import GuiWidget from '../gui-widget'
 
-import { attribute } from '@ember-decorators/component'
-import { tagName } from '@ember-decorators/component'
 
-@tagName(`webview`)
 class GuiWebview extends GuiWidget {
+  tagName = 'webview'
+  attributeBindings = ['dataId:data-id', 'tooltip:title', 'src']
+
   default = {
     type: `webview`,
     size: [300, 200]
   }
 
-  @attribute(`src`)
   src = ``
 
   onWillNavigate = null
+  onLoadingStart = null
+  onLoadingStop = null
+  onDidNavigate = null
 
   /*constructor() {
     super(...arguments)
@@ -24,7 +28,7 @@ class GuiWebview extends GuiWidget {
   didReceiveAttrs() {
     super.didReceiveAttrs(...arguments)
 
-    this.set(`src`, this.get(`url`)) // TODO
+    this.set(`src`, this.get(`authUrl`) || this.get(`url`) || `about:blank`)
   }
 
   didInsertElement() {
@@ -34,16 +38,16 @@ class GuiWebview extends GuiWidget {
     let webview = this.get(`element`)
 
     webview.addEventListener(`did-start-loading`, (...args) =>
-      this.onLoadingStart(...args)
+      this.onLoadingStart?.(...args)
     )
     webview.addEventListener(`did-stop-loading`, (...args) =>
-      this.onLoadingStop(...args)
+      this.onLoadingStop?.(...args)
     )
     webview.addEventListener(`will-navigate`, (...args) =>
-      this.onWillNavigate(...args)
+      this.onWillNavigate?.(...args)
     )
     webview.addEventListener(`did-navigate`, (...args) =>
-      this.onDidNavigate(...args)
+      this.onDidNavigate?.(...args)
     )
     webview.addEventListener(`close`, (...args) => this.onClose(...args))
   }
@@ -58,34 +62,6 @@ class GuiWebview extends GuiWidget {
     return webview.loadURL(...arguments)
   }
 
-  onLoadingStart(e) {
-    let callback = this.get(`onLoadingStart`)
-    if (callback) {
-      callback(e)
-    }
-  }
-
-  onLoadingStop(e) {
-    let callback = this.get(`onLoadingStop`)
-    if (callback) {
-      callback(e)
-    }
-  }
-
-  onWillNavigate(e) {
-    let callback = this.get(`onWillNavigate`)
-    if (callback) {
-      callback(e)
-    }
-  }
-
-  onDidNavigate(e) {
-    let callback = this.get(`onDidNavigate`)
-    if (callback) {
-      callback(e)
-    }
-  }
-
   onClose() {
     let webview = this.get(`element`)
     webview.src = `about:blank`
@@ -96,4 +72,4 @@ class GuiWebview extends GuiWidget {
   }
 }
 
-export default GuiWebview
+export default setComponentTemplate(template, GuiWebview)

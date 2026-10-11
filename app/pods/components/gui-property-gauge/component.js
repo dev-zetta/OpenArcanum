@@ -1,3 +1,5 @@
+import { setComponentTemplate } from '@ember/component'
+import template from './layout.hbs'
 import GuiWidget from '../gui-widget'
 
 class GuiPropertyGauge extends GuiWidget {
@@ -96,4 +98,4 @@ class GuiPropertyGauge extends GuiWidget {
   }
 }
 
-export default GuiPropertyGauge
+export default setComponentTemplate(template, GuiPropertyGauge)
