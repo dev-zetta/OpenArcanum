@@ -26,9 +26,9 @@ class GuiWidget extends Component {
   get tooltip() { return this.get('widget.options.tooltip') }
 
 
-  @computed(`widget`)
+  @computed(`widget.id`, `widget.name`)
   get dataId() {
-    return this.get(`widget.id`) || 0
+    return this.getId() || 0
   }
 
   @service
@@ -234,10 +234,9 @@ class GuiWidget extends Component {
    * @returns {*}
    */
   createChild(definition) {
-    let model = this.createChildModel(definition)
-
-    this.get(`widget.components`).pushObject(model)
-    return model
+    // Setting the parent updates the synchronous inverse relationship. Modern
+    // Ember Data arrays have no prototype-extension pushObject method.
+    return this.createChildModel(definition)
   }
 
   /**
@@ -277,7 +276,7 @@ class GuiWidget extends Component {
     let methods = widget.getMethods()
     if (methods && Utils.isFunction(methods[method])) {
       methods[method].apply(widget, args)
-      Utils.logError(`Calling user component method ${method}`)
+      console.debug(`Calling user component method ${method}`)
     }
     //}
   }
@@ -433,7 +432,7 @@ class GuiWidget extends Component {
    *
    */
   getId() {
-    return this.get(`widget.id`)
+    return this.get(`widget.name`) || this.get(`widget.id`)
   }
 
   /**
@@ -1048,7 +1047,7 @@ class GuiWidget extends Component {
       let listener = listeners[name]
 
       this.listenEvent(name, (...args) => {
-        Utils.logError(`calling listener ${name}`)
+        console.debug(`Calling listener ${name}`)
         listener.apply(this, args)
       })
     }
@@ -1056,7 +1055,7 @@ class GuiWidget extends Component {
     {
       for (let name of this.MethodListeners) {
         this.listenComponentEvent(this.getId(), name, (...args) => {
-          Utils.logError(`calling method listener ${name}`)
+          console.debug(`Calling method listener ${name}`)
           this[name](...args)
         })
       }

@@ -340,7 +340,7 @@ export default class GameEngine {
     //await this.engine.init()
 
     //if (this.options.server) {
-      await this.createServer()
+      if (this.options.standaloneMode !== true) await this.createServer()
     //}
   }
 
@@ -350,7 +350,8 @@ export default class GameEngine {
    * @param canvas
    * @returns {Promise<ClientEngine>}
    */
-  async createClient(canvas: HTMLCanvasElement): Promise<ClientEngine> {
+  async createClient(canvas: HTMLCanvasElement, options: Object = {}): Promise<ClientEngine> {
+    this.options = { ...this.options, ...options }
     await this.init()
 
     this.events.on(`Client:Created`, this.onClientCreated, this)
@@ -359,9 +360,9 @@ export default class GameEngine {
     await this.client.create(canvas)
     await this.load()
 
-    setTimeout(() => {
-      this.client.events.emit('Game:Start')
-    }, 5000)
+    if (this.options.standaloneMode === true) {
+      await this.client.startOffline(this.options.mapId)
+    }
 
     return this.client
   }

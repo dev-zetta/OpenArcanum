@@ -20,6 +20,7 @@
     "start": "npm run build && node scripts/electron-launch.cjs",
     "start:built": "node scripts/electron-launch.cjs",
     "smoke": "node scripts/electron-launch.cjs --smoke",
+    "smoke:game": "node scripts/electron-launch.cjs --smoke-game",
     "test": "node --test --test-isolation=none ember-electron/*.test.cjs @openarcanum/agate/tests/*.test.cjs @openarcanum/asset-converter/lib/__tests__/*.test.js",
     "check": "npm test && npm run test:ui && npm run build && npm run smoke && npm run smoke:renderer",
     "smoke:renderer": "node @openarcanum/agate/tests/renderer-smoke.cjs",

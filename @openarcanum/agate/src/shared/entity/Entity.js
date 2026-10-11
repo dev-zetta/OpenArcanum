@@ -139,11 +139,8 @@ export default class Entity extends GameObject {
    * @returns {string | *}
    */
   static componentToName(component: Object): string {
-    let name = Utils.isString(component)
-      ? component
-      : component.name
-      ? component.name
-      : component.constructor.name
+    const name = Utils.isString(component) ? component :
+      (component.componentName || component.name || component.constructor.name)
     return Utils.camelCase(name)
   }
 

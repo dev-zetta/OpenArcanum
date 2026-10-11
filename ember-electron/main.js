@@ -14,17 +14,18 @@ const uiRoot = path.join(projectRoot, 'dist')
 const appUrl = 'serve://app/'
 const smoke = process.argv.includes('--smoke')
 const uiTest = process.argv.includes('--ui-test')
-const automated = smoke || uiTest
+const gameSmoke = process.argv.includes('--smoke-game')
+const automated = smoke || uiTest || gameSmoke
 const loadUrl = uiTest ? `${appUrl}tests/index.html` : appUrl
 const option = name => {
   const prefix = `${name}=`
   const argument = process.argv.find(value => value.startsWith(prefix))
   return argument ? argument.slice(prefix.length) : null
 }
-const defaultTimeout = uiTest ? 60000 : 15000
-const configuredTimeout = Number(option('--ui-test-timeout') || option('--smoke-timeout') || defaultTimeout)
+const defaultTimeout = gameSmoke ? 120000 : uiTest ? 60000 : 15000
+const configuredTimeout = Number(option('--game-smoke-timeout') || option('--ui-test-timeout') || option('--smoke-timeout') || defaultTimeout)
 const smokeTimeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : defaultTimeout
-const smokeReport = option('--ui-test-report') || option('--smoke-report')
+const smokeReport = option('--game-smoke-report') || option('--ui-test-report') || option('--smoke-report')
 const errors = []
 const messages = []
 const failedRequests = []
@@ -32,6 +33,7 @@ let mainWindow
 let smokeFinished = false
 let smokeTimer
 let smokeSettleTimer
+let gameSmokeStarted = false
 
 app.setName('OpenArcanum')
 if (automated) {
@@ -56,10 +58,10 @@ function finishSmoke(renderer = null, reason = null) {
   clearTimeout(smokeSettleTimer)
   if (uiTest && renderer && (!renderer.qunit || renderer.qunit.total === 0)) reason = 'QUnit completed without any assertions'
   if (uiTest && renderer && renderer.qunit && renderer.qunit.failed > 0) reason = 'QUnit reported failing assertions'
-  let ok = Boolean(renderer) && errors.length === 0 && !reason
+  let ok = Boolean(renderer) && errors.length === 0 && failedRequests.length === 0 && !reason
   const report = {
     ok,
-    mode: uiTest ? 'ui-test' : 'smoke',
+    mode: uiTest ? 'ui-test' : gameSmoke ? 'game-smoke' : 'smoke',
     reason,
     versions: { electron: process.versions.electron, node: process.versions.node, chrome: process.versions.chrome },
     application: { url: loadUrl, uiRoot, dataPath: config.dataPath, dataDirectoryExists: fs.existsSync(config.dataPath) },
@@ -79,7 +81,8 @@ function finishSmoke(renderer = null, reason = null) {
       ok = report.ok = false
     }
   }
-  process.stdout.write(`${uiTest ? 'OPENARCANUM_UI_TEST' : 'OPENARCANUM_SMOKE'} ${JSON.stringify(report)}\n`, () => app.exit(ok ? 0 : 1))
+  const prefix = uiTest ? 'OPENARCANUM_UI_TEST' : gameSmoke ? 'OPENARCANUM_GAME_SMOKE' : 'OPENARCANUM_SMOKE'
+  process.stdout.write(`${prefix} ${JSON.stringify(report)}\n`, () => app.exit(ok ? 0 : 1))
 }
 
 async function serveLocal(request, settings) {
@@ -111,7 +114,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
-    show: !automated,
+    show: !automated || process.argv.includes('--show'),
     title: 'OpenArcanum',
     backgroundColor: '#191611',
     autoHideMenuBar: true,
@@ -125,7 +128,7 @@ function createWindow() {
       webviewTag: false,
       nodeIntegrationInWorker: false,
       backgroundThrottling: !automated,
-      additionalArguments: uiTest ? ['--ui-test'] : smoke ? ['--smoke'] : []
+      additionalArguments: uiTest ? ['--ui-test'] : gameSmoke ? ['--smoke-game'] : smoke ? ['--smoke'] : []
     }
   })
 
@@ -175,7 +178,27 @@ ipcMain.on('openarcanum:renderer-error', (event, error) => {
   if (mainWindow && event.sender === mainWindow.webContents) recordError(error.kind || 'renderer', error)
 })
 ipcMain.on('openarcanum:renderer-ready', (event, renderer) => {
-  if (!smoke || uiTest || smokeFinished || !mainWindow || event.sender !== mainWindow.webContents) return
+  if ((!smoke && !gameSmoke) || uiTest || smokeFinished || !mainWindow || event.sender !== mainWindow.webContents) return
+  if (gameSmoke) {
+    if (gameSmokeStarted) return
+    gameSmokeStarted = true
+    const { runGameSmoke } = require('./game-smoke.cjs')
+    if (process.argv.includes('--show')) mainWindow.focus()
+    runGameSmoke(mainWindow.webContents, { timeout: smokeTimeout - 1000, testInput: process.argv.includes('--show') }).then(async result => {
+      const screenshot = option('--game-screenshot')
+      if (screenshot) {
+        const file = path.resolve(screenshot)
+        fs.mkdirSync(path.dirname(file), { recursive: true })
+        fs.writeFileSync(file, (await mainWindow.webContents.capturePage()).toPNG())
+        result.screenshot = file
+      }
+      finishSmoke(result, result.error || null)
+    }).catch(error => {
+      recordError('game-smoke', error)
+      finishSmoke(null, 'Game session check failed')
+    })
+    return
+  }
   // Give errors from initial rendering a short opportunity to surface.
   smokeSettleTimer = setTimeout(() => finishSmoke(renderer), 400)
 })

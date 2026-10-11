@@ -102,7 +102,7 @@ export default class Sector {
    * @returns {*}
    */
   getTile(x: number, y: number): Object {
-    if (!this.tiles) {
+    if (!this.tiles || !this.tiles[y]) {
       return null
     }
 
@@ -212,8 +212,8 @@ export default class Sector {
     let data = await this.assetLoader.loadJsonFile(`${path}/Sector.json`)
     ///lll(`...Loaded`)
 
-    if (!data.tiles) {
-      return
+    if (!data || !Array.isArray(data.tiles)) {
+      throw new Error(`Invalid or missing converted sector: ${path}/Sector.json`)
     }
 
     this.tiles = data.tiles
@@ -222,7 +222,7 @@ export default class Sector {
     this.id = Sector.makeId(x, y)
 
     this.lights = data.lights
-    this.roofs = data.roofs
+    this.roofs = data.roofs || data.roof || []
 
     this.events.emit(`Sector:Loading`, this)
 

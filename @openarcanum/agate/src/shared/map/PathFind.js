@@ -32,93 +32,30 @@ export default class PathFind {
    * @param end
    */
   findPath(start: Location, end: Location) {
-    let map = this.map
+    const map = this.map
+    const tilesX = map.width * Sector.Width
+    const tilesY = map.height * Sector.Height
+    if (![start.x, start.y, end.x, end.y].every(Number.isInteger) ||
+        start.x < 0 || start.y < 0 || end.x < 0 || end.y < 0 ||
+        start.x >= tilesX || end.x >= tilesX || start.y >= tilesY || end.y >= tilesY ||
+        map.isTileBlocked(end.x, end.y)) return []
 
-    //console.log(`${start} - ${end}`)
-
-    let distance = start.distanceTo(end)
-    let range = distance + Math.round(distance / 2)
-
-    let tilesX = map.width * Sector.Width
-    let tilesY = map.height * Sector.Height
-
-    let reversed = start[0] > end[0] || start[1] > end[1]
-    if (reversed) {
-      let t = start
-      start = end
-      end = t
-    }
-
-    let startX = start.x - range
-    let startY = start.y - range
-    let endX = end.x + range
-    let endY = end.y + range
-
-    if (startX < 0) {
-      //endX += range + startX
-      startX = 0
-
-    }
-
-    if (startY < 0) {
-      //endY += range + startY
-      startY = 0
-    }
-
-
-
-    if (endX >= tilesX) {
-      endX = tilesX - 1
-    }
-
-    if (endY >= tilesY) {
-      endY = tilesY - 1
-    }
-
-    //console.log(Math.abs(endX - startX) + 1, Math.abs(endY - startY) + 1)
-    let width = Math.abs(endX - startX) + 1
-    let height = Math.abs(endY - startY) + 1
-    this.grid = new PF.Grid(width, height)
-
-
-
-    // Set blocked tiles to the grid
-    for (let y = startY; y < endY; y++) {
-      for (let x = startX; x < endX; x++) {
-        if (map.isTileBlocked(x, y)) {
-          this.grid.setWalkableAt(x - startX, y - startY, false)
-        }
+    // Cover both directions and every boundary cell. Empty/unloaded tiles remain
+    // blocked; an object click must never force a wall or void to be walkable.
+    const range = Math.max(8, Math.ceil(start.distanceTo(end) / 2))
+    const startX = Math.max(0, Math.min(start.x, end.x) - range)
+    const startY = Math.max(0, Math.min(start.y, end.y) - range)
+    const endX = Math.min(tilesX - 1, Math.max(start.x, end.x) + range)
+    const endY = Math.min(tilesY - 1, Math.max(start.y, end.y) + range)
+    this.grid = new PF.Grid(endX - startX + 1, endY - startY + 1)
+    for (let y = startY; y <= endY; y++) {
+      for (let x = startX; x <= endX; x++) {
+        this.grid.setWalkableAt(x - startX, y - startY, !map.isTileBlocked(x, y))
       }
     }
-
-    this.grid.setWalkableAt(start.x - startX, start.y - startY, true) // target and start must be walkable
-    this.grid.setWalkableAt(end.x - startX, end.y - startY, true)
-
-    //console.log(start, end);
-    //console.log(start[0] - startX, start[1] - startY, end[0] - startX, end[1] - startY);
-
-    let path = this.finder.findPath(
-      start.x - startX,
-      start.y - startY,
-      end.x - startX,
-      end.y - startY, // start[0] % width, start[1] % height, end[0] % width, end[1] % height
-      this.grid
-    )
-
-    if (reversed) {
-      path.reverse()
-    }
-
-    let result = []
-    for (let point of path) {
-      result.push(new Location(point[0] + startX, point[1] += startY))
-    }
-
-    if (result.length === 0) {
-      //lll('Path not found', start, end, path)
-    }
-
-    //lll(`Found`, start, end, result)
-    return result
+    this.grid.setWalkableAt(start.x - startX, start.y - startY, true)
+    return this.finder.findPath(start.x - startX, start.y - startY,
+      end.x - startX, end.y - startY, this.grid)
+      .map(point => new Location(point[0] + startX, point[1] + startY))
   }
 }

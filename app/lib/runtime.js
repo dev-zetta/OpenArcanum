@@ -31,18 +31,44 @@ export function getDataStatus(configuration = getRuntimeConfig(), requireNode = 
   const fs = requireNode('node:fs')
   const path = requireNode('node:path')
   const scriptsPath = configuration.scriptsPath || path.join(dataPath, 'scripts')
-  const required = ['gui/gui-images.css', 'gui/gui-images.json']
+  const mapId = configuration.developmentMap || 'Bates Mansion Lev 2'
+  const required = ['gui/gui-images.css', 'gui/gui-images.json', '16086.json']
   const missing = required.filter(name => !fs.existsSync(path.join(dataPath, name)))
   if (!fs.existsSync(path.join(scriptsPath, 'client/gui'))) missing.push(`${scriptsPath}/client/gui`)
   const archivePath = path.join(dataPath, 'archives')
   const archives = fs.existsSync(archivePath) && fs.statSync(archivePath).isDirectory()
     ? fs.readdirSync(archivePath).filter(name => name.toLowerCase().endsWith('.zip')) : []
-  if (!archives.length) missing.push('archives/*.zip')
+  const archiveNames = new Set(archives.map(name => name.toLowerCase()))
+  for (const name of ['Prototypes.zip', 'Gfx.zip', 'Gfx-tiles.zip', `${mapId}.zip`]) {
+    if (!archiveNames.has(name.toLowerCase())) missing.push(`archives/${name}`)
+  }
   return {
     ready: missing.length === 0,
     dataPath,
+    mapId,
     message: missing.length
       ? `Converted data is missing: ${missing.join(', ')}.`
-      : 'Converted data files were found. Their contents and campaign compatibility have not been validated.'
+      : 'Converted files for the local map checkpoint were found. Their contents and campaign compatibility have not been validated.'
   }
+}
+
+// GUI sprite metadata supplies frame geometry; the adjacent stylesheet holds
+// the original converted images. Load both before showing authored widgets.
+export function loadGuiStylesheet(url, document = globalThis.document) {
+  const existing = document.querySelector('link[data-arcanum-gui-assets]')
+  if (existing?.href === url && existing.ready) return existing.ready
+  existing?.remove()
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = url
+  link.dataset.arcanumGuiAssets = 'true'
+  link.ready = new Promise((resolve, reject) => {
+    link.addEventListener('load', () => resolve(link), { once: true })
+    link.addEventListener('error', () => {
+      link.remove()
+      reject(new Error('The converted GUI image stylesheet could not be loaded.'))
+    }, { once: true })
+  })
+  document.head.append(link)
+  return link.ready
 }

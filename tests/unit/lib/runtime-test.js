@@ -7,14 +7,15 @@ module('Unit | local data readiness', function() {
       '/project/scripts/client/gui',
       '/converted/gui/gui-images.css',
       '/converted/gui/gui-images.json',
-      '/converted/archives'
+      '/converted/archives',
+      '/converted/16086.json'
     ])
     const requireNode = name => name === 'node:path'
       ? { join: (...parts) => parts.join('/') }
       : {
         existsSync: path => files.has(path),
         statSync: () => ({ isDirectory: () => true }),
-        readdirSync: () => ['arcanum.zip']
+        readdirSync: () => ['Bates Mansion Lev 2.zip', 'Prototypes.zip', 'Gfx.zip', 'Gfx-tiles.zip']
       }
     const status = getDataStatus({ dataPath: '/converted', scriptsPath: '/project/scripts' }, requireNode)
     assert.true(status.ready)

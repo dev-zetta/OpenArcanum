@@ -2,6 +2,8 @@
 
 import ClientNetwork from './network/ClientNetwork'
 import Scene from './Scene'
+import World from './World'
+import Location from '../shared/Location'
 import Manager from './Gui'
 import Renderer from './Renderer'
 import Utils from './Utils'
@@ -39,6 +41,8 @@ export default class ClientEngine extends ClientNetwork {
     super(gameEngine, options)
     this.guiManager = new Manager(gameEngine)
     this.player = null
+    this.ready = false
+    this.runtimeError = null
 
     this.events.on(`Map:Loading`, this.onMapLoading, this)
     this.events.on(`Map:Loaded`, this.onMapLoaded, this)
@@ -53,6 +57,148 @@ export default class ClientEngine extends ClientNetwork {
 
     this.addCommandEvaluators(`Player`, PlayerLogic)
 
+  }
+
+  async startOffline(mapId: string) {
+    if (!mapId) throw new Error('Offline startup requires a converted map ID')
+    this.world = new World(this.gameEngine, { id: 'offline' })
+    this.gameEngine.world = this.world
+    await this.world.init()
+    this.map = await this.world.loadMap(mapId)
+    await this.scene.mapReady
+    const location = this.map.getStartLocation()
+    if (this.map.isTileBlocked(location)) throw new Error('Converted map start tile is blocked')
+    this.player = await this.world.addPlayer(location)
+    await this.scene.addEntity(this.player, this.map.objectGroup)
+    this.scene.sortGroup(this.map.objectGroup)
+    this.scene.setCameraLocation(location)
+    await this.world.start()
+    this.ready = true
+    await this.start()
+    this.events.emit('Player:Joined', this.player)
+    return this
+  }
+
+  onRuntimeError(error: Error) {
+    this.runtimeError = error.message
+    this.ready = false
+    if (this.movement) {
+      this.movement.reject(error)
+      this.movement = null
+    }
+    this.events.emit('Game:Error', error)
+    console.error(error)
+  }
+
+  stop() {
+    this.stopped = true
+    this.ready = false
+    if (this.scene) this.scene.stop()
+    if (this.movement) {
+      this.movement.reject(new Error('Client stopped during movement'))
+      this.movement = null
+    }
+  }
+
+  getDevelopmentState() {
+    const map = this.map
+    const sectors = map ? map.getActiveSectors() : []
+    let tiles = 0, renderedTiles = 0, roofs = 0, roofRows = 0, lights = 0, renderedEntities = 0
+    for (const sector of sectors) {
+      sector.inspectTiles(tile => {
+        if (tile && tile.type) tiles++
+        if (tile && tile.sprite && tile.sprite.iso.parent) renderedTiles++
+      })
+      roofRows += sector.roofs ? sector.roofs.length : 0
+      roofs += sector.roofs ? sector.roofs.flat().filter(roof => roof != null).length : 0
+      lights += sector.lights ? sector.lights.length : 0
+    }
+    const duplicateSourceIds = []
+    if (this.world) {
+      for (const entity of this.world.entityManager.entities.values()) {
+        const visual = entity.visual && entity.visual.classes.current
+        if (visual && visual.sprite && visual.sprite.iso.parent) renderedEntities++
+        if (entity.sourceId) duplicateSourceIds.push(entity.sourceId)
+      }
+    }
+    const sprite = this.player && this.player.visual.classes.current.sprite
+    const center = this.scene && this.scene.renderer.viewport.center
+    return {
+      ready: this.ready, running: this.ready && !this.scene.stopped,
+      frameCount: this.scene ? this.scene.frameCount : 0,
+      error: this.runtimeError || (this.scene && this.scene.error),
+      map: map ? { id: map.id, width: map.width, height: map.height } : null,
+      sectors: sectors.length, tiles, renderedTiles,
+      entities: this.world ? this.world.entityManager.entities.size : 0,
+      prototypes: this.world ? this.world.entityManager.prototypes.size : 0,
+      renderedEntities, duplicateSourceIds, roofs, roofRows, lights,
+      player: this.player ? { id: this.player.id, type: this.player.base.type,
+        location: Location.transformToRaw(this.player.base.location),
+        spritePosition: sprite ? [sprite.iso.x, sprite.iso.y] : null,
+        rendered: !!(sprite && sprite.iso.parent), moving: !!this.movement } : null,
+      camera: center ? [center.x, center.y] : null,
+      unsupported: ['campaign', 'NPC AI', 'combat', 'dialogue', 'quests', 'inventory rules',
+        'party', 'magic', 'save/load', 'network play', 'roof rendering', 'lighting']
+    }
+  }
+
+  async movePlayerTo(destination: Location | Array<number>): Promise<Object> {
+    if (!this.ready || this.options.standaloneMode !== true) throw new Error('Offline player is not ready')
+    if (this.movement || this.preparingMovement) throw new Error('Player is already moving')
+    const target = new Location(Location.transformToRaw(destination))
+    const start = new Location(Location.transformToRaw(this.player.base.location))
+    if (start.equals(target)) return { path: [Location.transformToRaw(start)] }
+    const path = this.map.pathFind.findPath(start, target)
+    if (!path.length) throw new Error(`No walkable path to ${target.x},${target.y}`)
+    if (path.length === 1) return { path: path.map(p => Location.transformToRaw(p)) }
+    this.preparingMovement = true
+    try {
+      const visual = this.player.visual.classes.current
+      const direction = String(Location.velocityToDirection(Location.calculateVelocity(path[0], path[1])))
+      visual.animation = 'Walk'
+      visual.stage = direction
+      await visual.sprite.change(visual)
+      if (!this.ready || this.stopped) throw new Error('Client stopped during movement preparation')
+      return await new Promise((resolve, reject) => {
+        this.movement = { path, index: 1, elapsed: 0, resolve, reject }
+      })
+    } finally {
+      this.preparingMovement = false
+    }
+  }
+
+  advancePlayerMovement(dt: number) {
+    const movement = this.movement
+    if (!movement) return
+    movement.elapsed += Math.max(0, dt)
+    const sprite = this.player.visual.classes.current.sprite
+    while (movement.elapsed >= 1000 && movement.index < movement.path.length) {
+      const previous = movement.path[movement.index - 1]
+      const next = movement.path[movement.index]
+      this.map.moveEntity(this.player, previous, next)
+      this.player.base.location.set([next.x, next.y])
+      movement.index++
+      movement.elapsed -= 1000
+    }
+    if (movement.index >= movement.path.length) {
+      const last = movement.path.length - 1
+      sprite.stage = String(Location.velocityToDirection(
+        Location.calculateVelocity(movement.path[last - 1], movement.path[last])))
+      sprite.setPosition(this.player.base.location.x * 40, this.player.base.location.y * 40)
+      this.movement = null
+      const visual = this.player.visual.classes.current
+      visual.animation = 'Stand'
+      sprite.change(visual).then(() => movement.resolve({ path: movement.path.map(p => Location.transformToRaw(p)) }),
+        error => { movement.reject(error); this.onRuntimeError(error) })
+      return
+    }
+    const previous = movement.path[movement.index - 1]
+    const next = movement.path[movement.index]
+    const fraction = movement.elapsed / 1000
+    sprite.stage = String(Location.velocityToDirection(Location.calculateVelocity(previous, next)))
+    sprite.setFrame(sprite.frame)
+    sprite.setPosition((previous.x + (next.x - previous.x) * fraction) * 40,
+      (previous.y + (next.y - previous.y) * fraction) * 40)
   }
 
   /**
@@ -106,6 +252,7 @@ export default class ClientEngine extends ClientNetwork {
    * @returns {Promise<void>}
    */
   async onStartGame() {
+    if (this.options.standaloneMode === true) return
     await this.start()
     await this.connect()
   }
@@ -133,7 +280,15 @@ export default class ClientEngine extends ClientNetwork {
    *
    * @param state
    */
-  step(state: StepState) {
+  step(state: StepState, dt: number) {
+    if (this.options.standaloneMode === true) {
+      if (!this.ready || !this.world) return
+      this.advancePlayerMovement(dt)
+      this.world.entityManager.update(state, dt)
+      this.world.stepCount++
+      this.updateEntities()
+      return
+    }
     if (!this.world) {
       return
     }
@@ -202,7 +357,6 @@ export default class ClientEngine extends ClientNetwork {
    */
   onSceneCreated(scene: Scene) {
     this.events.emit(`Client:Created`, this)
-    this.scene.start()
   }
 
   /**
@@ -241,6 +395,16 @@ export default class ClientEngine extends ClientNetwork {
    * @param gameObject
    */
   onObjectClick(gameObject: Object) {
+    if (!gameObject) return
+    if (this.options.standaloneMode === true) {
+      if (gameObject.data && gameObject.data.type === 'Tile') {
+        this.movePlayerTo(gameObject.data.location).catch(error => {
+          this.events.emit('Player:MovementRejected', error.message)
+          console.warn(error.message)
+        })
+      }
+      return
+    }
     lll(gameObject)
     if (gameObject.data) {
       let data = gameObject.data
@@ -282,7 +446,7 @@ export default class ClientEngine extends ClientNetwork {
     lll(`Client: Sending command`, path, command)
 
     let result = this.evaluateCommand(path, command)
-    let {source, action, data} = result
+    let {source, name, action, data} = result
 
     if (action) {
       this.sendRequest(action, data)

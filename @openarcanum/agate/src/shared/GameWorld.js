@@ -104,7 +104,7 @@ export default class GameWorld {
    * @returns {GameMap}
    */
   mapFactory(options: Object): GameMap {
-    return new GameMap(this, options)
+    return new GameMap(this, options.id)
   }
 
   /**
@@ -126,12 +126,9 @@ export default class GameWorld {
    */
   async loadMap(id: string): Promise<?GameMap> {
     let path = AGate.getDataPath(id)
-    const map = this.maps.get(id)
-
-    const loaded = await map.load(path)
-    if (!loaded) {
-      return null
-    }
+    const map = this.maps.get(id) || this.addMap({ id })
+    await map.load(path)
+    return map
   }
 
 
@@ -185,7 +182,12 @@ export default class GameWorld {
     let id = `0` // AGate.Utils.getFileBase(path)
     let entity = await this.entityManager.newEntity(id, player)
 
-    this.gameEngine.addDynamicEntityToWorld(entity)
+    const map = this.findMapByLocation(location)
+    if (!map) throw new Error('Player requires a loaded map')
+    entity.map = map
+    const sector = map.getSectorFromLocation(entity.base.location)
+    if (!sector) throw new Error('Player start sector is not loaded')
+    sector.addEntity(entity)
     return entity
   }
 
@@ -200,6 +202,7 @@ export default class GameWorld {
 
     let data = await this.assetLoader.loadJsonFile(path)
 
+    if (!data || !data.Base) throw new Error(`Missing converted actor: ${file}`)
     return data
   }
 

@@ -20,18 +20,26 @@ export default class ApplicationAdapter extends Adapter {
       }
     }
     const records = new Map()
-    const visit = (id, definition, parent = null) => {
+    const visit = (id, definition, parent = null, name = id) => {
       const { components = {}, parent: _parent, ...attributes } = definition
+      // Authored scripts historically use arrows as widget methods. The local
+      // script format revives them with widget `this`, just as the original GUI
+      // loader did. Runtime-generated callbacks retain their lexical closures.
+      for (const key of ['events', 'listeners', 'methods']) {
+        if (attributes[key] && typeof attributes[key] !== 'string') {
+          attributes[key] = runtime.Utils.objectToJson(attributes[key])
+        }
+      }
       const children = Object.entries(components || {})
       records.set(id, {
         type: 'gui-widget', id,
-        attributes,
+        attributes: { ...attributes, name },
         relationships: {
           parent: { data: parent ? { type: 'gui-widget', id: parent } : null },
-          components: { data: children.map(([id]) => ({ type: 'gui-widget', id })) }
+          components: { data: children.map(([childId]) => ({ type: 'gui-widget', id: `${id}.${childId}` })) }
         }
       })
-      for (const [childId, child] of children) visit(childId, child, id)
+      for (const [childId, child] of children) visit(`${id}.${childId}`, child, id, childId)
     }
     for (const [id, definition] of definitions) if (!definition.parent) visit(id, definition)
     this.records = records

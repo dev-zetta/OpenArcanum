@@ -20,7 +20,9 @@ export default class DroppableService extends Service {
       return instance
     }
 
-    instance = new Droppable(element, {
+    // Slot-only inventories register individual dropzones after construction.
+    // Current Draggable accepts an empty container list, but rejects null.
+    instance = new Droppable(element ? element : [], {
       /*plugins: [],
       sensors: [],
       classes: [],

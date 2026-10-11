@@ -1,13 +1,19 @@
 import Component, { setComponentTemplate } from '@ember/component'
 import { service } from '@ember/service'
-import { action } from '@ember/object'
-import { getAGate, getDataStatus } from 'open-arcanum/lib/runtime'
+import { action, computed } from '@ember/object'
+import { getAGate, getDataStatus, loadGuiStylesheet } from 'open-arcanum/lib/runtime'
 import template from './layout.hbs'
 
 class GameRender extends Component {
   @service store
 
   classNames = ['game-render']
+  attributeBindings = ['runtimeState:data-runtime-state']
+
+  @computed('running', 'starting', 'error')
+  get runtimeState() {
+    return this.starting ? 'starting' : this.error ? 'error' : this.running ? 'running' : 'ready'
+  }
   widgets = null
   running = false
   starting = false
@@ -34,8 +40,20 @@ class GameRender extends Component {
       const runtime = getAGate()
       const widgets = await this.store.query('gui-widget', { filter: { type: 'window' } })
       const canvas = this.element.querySelector('canvas')
-      this.client = await runtime.createEngine().createClient(canvas)
-      if (this.isDestroying || this.isDestroyed) return
+      await loadGuiStylesheet(runtime.getAppUrl('gui/gui-images.css'))
+      this.gameEngine = runtime.createEngine()
+      this.client = await this.gameEngine.createClient(canvas, {
+        standaloneMode: true,
+        mapId: this.dataStatus.mapId
+      })
+      if (this.isDestroying || this.isDestroyed) {
+        this.client.stop()
+        return
+      }
+      this.onRuntimeError = error => {
+        if (!this.isDestroying && !this.isDestroyed) this.set('error', error.message)
+      }
+      this.client.events.on('Game:Error', this.onRuntimeError)
       const manager = this.getManager()
       manager.setRootWidget(this)
       manager.setMouseSprite('cursor')
@@ -43,6 +61,8 @@ class GameRender extends Component {
       this.onWindowResize = () => this.client.emitUI('window.resize')
       window.addEventListener('resize', this.onWindowResize)
     } catch (error) {
+      this.gameEngine?.client?.stop()
+      console.error('Game startup failed', error)
       if (!this.isDestroying && !this.isDestroyed) this.set('error', error.message)
     } finally {
       if (!this.isDestroying && !this.isDestroyed) this.set('starting', false)
@@ -51,6 +71,11 @@ class GameRender extends Component {
 
   willDestroyElement() {
     window.removeEventListener('resize', this.onWindowResize)
+    const client = this.client || this.gameEngine?.client
+    if (client) {
+      if (this.onRuntimeError) client.events.off('Game:Error', this.onRuntimeError)
+      client.stop()
+    }
     super.willDestroyElement(...arguments)
   }
 }

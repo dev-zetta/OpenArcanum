@@ -112,7 +112,7 @@ export default class GameMap {
    * @param path
    * @returns {Promise<boolean>}
    */
-  async load(path: string): boolean {
+  async load(path: string): Promise<boolean> {
     this.path = path
     this.name = ``
     this.isLoading = true
@@ -120,9 +120,12 @@ export default class GameMap {
 
     this.events.emit(`Map:Loading`, this)
 
-    Utils.logError(`Loading map: ${path}`)
+    console.info(`Loading map: ${path}`)
     let data = await this.assetLoader.loadJsonFile(`${path}/Map.json`)
 
+    if (!data || !Number.isInteger(data.width) || !Number.isInteger(data.height) || data.width < 1 || data.height < 1) {
+      throw new Error(`Invalid or missing converted map: ${path}/Map.json`)
+    }
     this.width = data.width
     this.height = data.height
     this.center = new Location([(this.width / 2) * 64, (this.height / 2) * 64])
@@ -146,6 +149,7 @@ export default class GameMap {
     this.isLoaded = true
 
     this.events.emit(`Map:Loaded`, this)
+    return true
   }
 
   /**
@@ -156,7 +160,8 @@ export default class GameMap {
    */
   async loadSector(x: number, y: number): Promise<Sector> {
     let sector = new Sector(this)
-    await sector.load(this.getSectorPath(y, x), y, x)
+    // The original converter writes Sector/y/x; world coordinates stay x/y.
+    await sector.load(this.getSectorPath(y, x), x, y)
     return sector
   }
 
@@ -167,7 +172,7 @@ export default class GameMap {
    * @returns {Promise<void>}
    */
   async loadEntities(path: string, target: Function | Object) {
-    lle(`Loading entities...`)
+    console.debug(`Loading entities: ${path}`)
 
     let entityTypes = await this.assetLoader.findDirs(`${path}/`)
 
@@ -238,28 +243,17 @@ export default class GameMap {
       return true
     }
 
-    if (tile.blocked) {
+    if (!tile.type || tile.blocked) {
       return true
     }
 
-    let entities = sector.getTileEntities(tile, [ Enums.Entity.Wall, Enums.Entity.Portal, Enums.Entity.Npc])
-
-    for (let id in entities) {
-      const entity = entities[id]
-      switch (entity.base.type) {
-        case Enums.Entity.Portal: {
-          return false
-        }
-        case Enums.Entity.Npc: {
-          return false
-        }
-        case Enums.Entity.Wall: {
-          return true
-        }
-        default: {
-
-        }
-      }
+    const entities = sector.getTileEntities(tile, [Enums.Entity.Wall, Enums.Entity.Portal,
+      Enums.Entity.Npc, Enums.Entity.Pc, Enums.Entity.Scenery, Enums.Entity.Container])
+    for (const entity of Object.values(entities)) {
+      if (entity.base.flags.hasAny(['Inventory', 'Off', 'Destroyed', 'NoBlock'])) continue
+      // Until portal state and interactions are implemented, a closed/unknown
+      // portal and occupied object tiles are conservatively nonwalkable.
+      return true
     }
 
     return false

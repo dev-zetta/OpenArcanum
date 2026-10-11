@@ -148,6 +148,9 @@ export default class Manager {
 
 
     for (let key in Systems) {
+      // The offline map checkpoint animates visuals, but does not activate the
+      // legacy two-GUID AI/combat experiment as campaign behavior.
+      if (gameEngine.options.standaloneMode === true && key !== 'Render') continue
       let system = Systems[key]
       lll(`Adding entity system: ${key}`)
       this.addSystem(new system(this.gameEngine, this))
@@ -621,7 +624,7 @@ export default class Manager {
 
     for (let [name, system] of this.systems) {
       if (this.updateCounter % system.frequency > 0) {
-        break
+        continue
       }
 
       this.cleanDirtyEntities()
@@ -713,8 +716,9 @@ export default class Manager {
     let entity = this.entityPool.aquire(this)
 
     if (this.entities.get(id)) {
-      lle('Duplicate entity id', entity)
-      id = '!' + id
+      console.warn(`Duplicate converted entity ID ${id}; retaining both records`)
+      entity.sourceId = id
+      do { id = '!' + id } while (this.entities.has(id))
     }
 
     entity.id = id
@@ -722,15 +726,11 @@ export default class Manager {
     if (data[`Base`]) {
       let prototypeId = data[`Base`].prototype
 
-      if (!data[`Base`].type) {
-        //lll('invalid entity type')
-        data[`Base`].type = `Wall` // TODO
-      }
 
       if (prototypeId) {
         let prototype: ?Prototype = this.prototypes.get(`${prototypeId}`)
         if (!prototype) {
-          lle(`Invalid prototype: ${prototype}`)
+          throw new Error(`Missing converted prototype: ${prototypeId}`)
         } else {
           prototype.extendEntity(entity, data)
         }

@@ -168,7 +168,7 @@ class Manager {
    * @param widget
    */
   addWidget(widget) {
-    console.error(`Adding widget ${widget.get(`widget.id`)}`)
+    console.debug(`Adding widget ${widget.get(`widget.id`)}`)
     this.widgets.set(widget.get(`widget.id`), widget)
   }
 
@@ -192,7 +192,7 @@ class Manager {
     }
 
     for (let [key, value] of children) {
-      if (!value.children) console.error(`shit`)
+      if (!value.children) continue
 
       let widget = this.findWidget(id, value.children)
       if (widget) {

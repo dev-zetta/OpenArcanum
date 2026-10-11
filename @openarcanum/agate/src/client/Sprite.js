@@ -28,6 +28,7 @@ export default class Sprite {
   variant: number
 
   animated: boolean
+  loading: boolean
   variants: Array<string>
   stages: Object
   data: any
@@ -44,6 +45,7 @@ export default class Sprite {
     this.scene = scene
     this.totalElapsed = 0
     this.animated = false
+    this.loading = false
     this.frame = 0
 
     let sprite = new IsoSprite(this.scene.isometric)
@@ -131,13 +133,16 @@ export default class Sprite {
     }
 
     let descriptor = await this.scene.loadAsset(key, `atlas`, options)
+    // Parallel sprite instances must share the canonical descriptor, including
+    // the spritesheet assigned after the image promise resolves.
+    descriptor = this.assetLoader.getCachedAsset(key) || descriptor
 
+    if (!descriptor) throw new Error(`Missing atlas: ${key}`)
     if (descriptor.spritesheet) {
-      lll(`Huh?`)
       return descriptor.spritesheet
     }
 
-    descriptor = Sprite.createSpritesheet(descriptor)
+    if (!descriptor.spritesheet) descriptor = Sprite.createSpritesheet(descriptor)
     return descriptor.spritesheet
   }
 
@@ -199,6 +204,17 @@ export default class Sprite {
    * @param source
    */
   async load(source: Object): Promise<void> {
+    // Keep the last complete texture while metadata and direction atlases load.
+    // Advancing the old Walk sheet here could select an invalid Stand frame.
+    this.loading = true
+    try {
+      await this.loadFrames(source)
+    } finally {
+      this.loading = false
+    }
+  }
+
+  async loadFrames(source: Object): Promise<void> {
     let dataPath = AGate.getDataPath(`Gfx/2D`)
 
     let path = ``
@@ -232,13 +248,18 @@ export default class Sprite {
     this.stageKey = stageKey
     this.frameKey = frameKey
 
+    if (this.type === Gfx.Types.Tile) {
+      if (!this.getSpritesheetByKey('tiles')?.textures[this.frameKey]) {
+        throw new Error(`Missing tile atlas frame: ${this.frameKey}`)
+      }
+      return
+    }
     let spritePath = `${dataPath}/${this.path}`
     //console.log(`Loading: ${spritePath}`);
 
     let meta = await this.assetLoader.loadJsonFile(`${spritePath}/Meta.json`)
     if (!meta) {
-      lll(`Unable to load sprite: ${`${spritePath}/Meta.json`}`)
-      return
+      throw new Error(`Missing converted sprite: ${spritePath}/Meta.json`)
     }
 
     if (this.type === Gfx.Types.Tile) {
@@ -276,28 +297,17 @@ export default class Sprite {
       }
 
       let stagePath = `${variantPath}/${stageName}`
-      let promise = this.scene.loadAsset(
-        assetKey,
-        `atlas`,
-        {
-          texture: `${stagePath}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
-          data: `${stagePath}/Stage.json`,
-          stageName
-        },
-        this
-      )
-
-      /*let promise = this.loadSpritesheet(assetKey, {
+      this.stages[stageName].spritesheet = await this.loadSpritesheet(assetKey, {
         texture: `${stagePath}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
         data: `${stagePath}/Stage.json`,
-        flippedX: this.flipped
-      })*/
-
-      //promises.push(promise) // TODO: spritesheets are not used in any way
+        stageName
+      })
     }
 
     //return Promise.all(promises)
     this.variants[this.variant] = this.stages
+    if (!this.spritesheet) throw new Error(`Missing sprite direction: ${this.path}/${this.stage}`)
+    this.setFrame(this.frame)
   }
 
   /**
@@ -430,6 +440,7 @@ export default class Sprite {
    * @param speed
    */
   update(elapsed: number, speed: number = 1.0) {
+    if (this.loading) return
     const spritesheet = this.spritesheet
     if (!spritesheet || spritesheet.totalFrames <= 2) {
       //this.setFrame(this.frame)
@@ -496,9 +507,10 @@ export default class Sprite {
    * @returns {Promise<void>}
    */
   async change(data: Object) {
-    lll(`changin sprite`, data)
+    console.debug(`Changing sprite animation`, data.animation)
 
     //lle(this.path, this.stages)
+    this.frame = 0
     await this.load(data)
 
     //lle(this.path, this.stages)
@@ -566,7 +578,7 @@ export default class Sprite {
     z: number = 0,
     offset: Object = null
   ) {
-    this.offset = new Vec2(offset.x, offset.y)
+    this.offset = new Vec2(offset ? offset.x : 0, offset ? offset.y : 0)
 
     //if (this.type === Gfx.Types.Tile)
     //  console.log(x, y, z, offset)

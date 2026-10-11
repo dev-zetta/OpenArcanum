@@ -7,8 +7,9 @@ const { spawn } = require('node:child_process')
 const projectRoot = path.resolve(__dirname, '..')
 const args = process.argv.slice(2)
 const uiTest = args.includes('--ui-test')
-const automated = uiTest || args.includes('--smoke')
-const resultPrefix = uiTest ? 'OPENARCANUM_UI_TEST' : 'OPENARCANUM_SMOKE'
+const gameSmoke = args.includes('--smoke-game')
+const automated = uiTest || gameSmoke || args.includes('--smoke')
+const resultPrefix = uiTest ? 'OPENARCANUM_UI_TEST' : gameSmoke ? 'OPENARCANUM_GAME_SMOKE' : 'OPENARCANUM_SMOKE'
 let receivedReport = false
 let outputTail = ''
 
@@ -17,7 +18,7 @@ function reportLaunchFailure(message, code = null, signal = null) {
   receivedReport = true
   const report = {
     ok: false,
-    mode: uiTest ? 'ui-test' : 'smoke',
+    mode: uiTest ? 'ui-test' : gameSmoke ? 'game-smoke' : 'smoke',
     reason: message,
     renderer: null,
     exitCode: code,
@@ -27,6 +28,7 @@ function reportLaunchFailure(message, code = null, signal = null) {
     failedRequests: []
   }
   const reportArg = args.find(value => value.startsWith('--ui-test-report=')) ||
+    args.find(value => value.startsWith('--game-smoke-report=')) ||
     args.find(value => value.startsWith('--smoke-report='))
   if (reportArg) {
     try {

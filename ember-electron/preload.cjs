@@ -62,7 +62,7 @@ window.addEventListener('unhandledrejection', event => reportError('unhandledrej
 process.on('uncaughtException', error => reportError('node-uncaught-exception', error))
 process.on('unhandledRejection', error => reportError('node-unhandled-rejection', error))
 
-if (process.argv.includes('--smoke') && !uiTest) {
+if ((process.argv.includes('--smoke') || process.argv.includes('--smoke-game')) && !uiTest) {
   window.addEventListener('DOMContentLoaded', () => {
     const timer = setInterval(() => {
       const marker = document.querySelector('[data-app-ready]')

@@ -46,44 +46,65 @@ source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
   Electron user-namespace permissions without disabling Chromium's sandbox.
 - Added an explicit SwiftShader mode for synthetic rendering checks on headless
   runners while retaining the default GPU rendering check for local development.
+- Restored an explicit offline Bates Mansion Lev 2 scene with awaited sector,
+  prototype, texture and controlled-actor loading; bypassed the unfinished server.
+  Fixed sector archive coordinate ordering, duplicate source-ID preservation,
+  prototype component identity and inventory-only art handling.
+- Added animated click-to-walk movement with tile, wall and void rejection,
+  occupancy updates and safe Walk-to-Stand atlas changes. Original gameplay rules
+  and campaign systems remain unfinished.
+- Gave offline simulation its own elapsed-frame timing, excluding startup time
+  and retaining delayed movement updates; guarded movement preparation against
+  stopped clients and kept the network scheduler separate.
+- Unified the viewport and renderer's Pixi module instance so native pointer
+  hit testing works; paused sprite updates during asynchronous animation changes
+  to prevent the previous Walk frame leaking into a single-frame Stand atlas.
+- Repaired legacy GUI callback binding, nested widget IDs, dynamic child creation,
+  stylesheet loading and slot-only inventory drag initialization. Startup and
+  later runtime failures now surface with their original error details.
+- Added a local real-data scene smoke check with movement, native mouse input,
+  delayed-error monitoring and optional private diagnostics. Kept converted game
+  assets, reports and screenshots under the ignored local-data directory.
+- Removed a subsequently discovered commented login block from affected published
+  history, retaining a private backup and updating canonical history links.
 - Documented known implementation gaps and the first offline playable checkpoint.
   A successful development build does not establish a playable game release.
 
 ## 2019-12-06
 
-- **Electron / AGate:** Reworked AI evaluators and actions and client controls and startup; revised entities, world and render updates and exported distribution files. ([`4ee0f24f`](https://github.com/dev-zetta/OpenArcanum/commit/4ee0f24f4dcb0d4c9f808783776c4aa10b7fa5ce))
+- **Electron / AGate:** Reworked AI evaluators and actions and client controls and startup; revised entities, world and render updates and exported distribution files. ([`594b8771`](https://github.com/dev-zetta/OpenArcanum/commit/594b8771665f2f2d6dafa89d8a65b8e3cd8fe761))
 
 ## 2019-07-12
 
-- **Electron / AGate:** Revised server join and request handling and client command evaluation; reorganized render filters and shaders and entity-manager startup. ([`bc6810b2`](https://github.com/dev-zetta/OpenArcanum/commit/bc6810b295035d8428c95a3f27e793d00fb69f1d))
+- **Electron / AGate:** Revised server join and request handling and client command evaluation; reorganized render filters and shaders and entity-manager startup. ([`bbc10cf4`](https://github.com/dev-zetta/OpenArcanum/commit/bbc10cf490301cc0d4ce1b0e683a96a3ae32b90c))
 
 ## 2019-07-03
 
-- **Electron / AGate:** Revised frame synchronization, movement and waypoints, entity updates, serialization and sprite and scene rendering. ([`4d5114b5`](https://github.com/dev-zetta/OpenArcanum/commit/4d5114b5acfe68028360114b52860a9947db5b73))
+- **Electron / AGate:** Revised frame synchronization, movement and waypoints, entity updates, serialization and sprite and scene rendering. ([`ffb09bbe`](https://github.com/dev-zetta/OpenArcanum/commit/ffb09bbe9c45de116dbdf6591a392739b595f832))
 
 ## 2019-06-28
 
-- **Electron / AGate:** Reworked entity management around components, pools, events and messaging. ([`1de1ac3e`](https://github.com/dev-zetta/OpenArcanum/commit/1de1ac3eac1578d371fba625e5f39b3f3b858d61))
+- **Electron / AGate:** Reworked entity management around components, pools, events and messaging. ([`d30b5494`](https://github.com/dev-zetta/OpenArcanum/commit/d30b54943adcbcdc11ff81a013fe10adff9f11da))
 
 ## 2019-06-23
 
-- **Electron / AGate:** Introduced PIXI integration and revised Lance-derived client, server and network code. ([`9c7e4436`](https://github.com/dev-zetta/OpenArcanum/commit/9c7e443610701f4131f39813087b2123cc8d7782))
+- **Electron / AGate:** Introduced PIXI integration and revised Lance-derived client, server and network code. ([`1a7f5182`](https://github.com/dev-zetta/OpenArcanum/commit/1a7f5182b8852c157ec4a4ef2e40f5b8c330a754))
 
 ## 2019-06-14
 
-- **Electron / AGate:** Integrated Lance networking and reorganized rendering and keyboard-control infrastructure. ([`7fa285a0`](https://github.com/dev-zetta/OpenArcanum/commit/7fa285a0262a6900c5d3c163dacb8569a3bd7f0a))
+- **Electron / AGate:** Integrated Lance networking and reorganized rendering and keyboard-control infrastructure. ([`232170ab`](https://github.com/dev-zetta/OpenArcanum/commit/232170ab5ee5cc31e8368cd6f3e793613339f571))
 
 ## 2019-06-12
 
-- **Electron / AGate:** Reworked entity and component organization, IDs, player-selection logic and sector caching; revised client and server startup. ([`10f86c98`](https://github.com/dev-zetta/OpenArcanum/commit/10f86c987f430ab4e24305f9db87c4dfa9b37414))
+- **Electron / AGate:** Reworked entity and component organization, IDs, player-selection logic and sector caching; revised client and server startup. ([`29b9d3b2`](https://github.com/dev-zetta/OpenArcanum/commit/29b9d3b2fbf621c3fecda85730136edbd34b0b1f))
 
 ## 2019-06-02
 
-- **Electron / AGate:** Moved AGate into the @openarcanum/agate package, added Flow configuration and reorganized engine, components, prototypes and rendering code. ([`53c97b6a`](https://github.com/dev-zetta/OpenArcanum/commit/53c97b6abba4503e2bee0cf280df46a9fdd77872))
+- **Electron / AGate:** Moved AGate into the @openarcanum/agate package, added Flow configuration and reorganized engine, components, prototypes and rendering code. ([`bccc3392`](https://github.com/dev-zetta/OpenArcanum/commit/bccc3392adfa2bfc1b3b550cc1eada4fd1dc65fd))
 
 ## 2018-11-26
 
-- **Electron / AGate:** Added Realm database and model integration and entity-backed inventory examples; revised GUI, renderer and asset interfaces. ([`81b5de3a`](https://github.com/dev-zetta/OpenArcanum/commit/81b5de3a56d33d6ce7e5a6b845f63c34fe4ccbb2))
+- **Electron / AGate:** Added Realm database and model integration and entity-backed inventory examples; revised GUI, renderer and asset interfaces. ([`561b0349`](https://github.com/dev-zetta/OpenArcanum/commit/561b03499132a3d5a33227cd29601f1e387b3d07))
 - **Asset database (historical data work; payload excluded):** Continued rule-table and schema cleanup, including factions, level names, item-effect descriptions and module MES tables. Historical converted-data work is excluded from public source publication. ([`5d8a8233`](https://github.com/dev-zetta/OpenArcanum/commit/5d8a8233990b515d7214a9368c6debe65674de3f), [`23729a04`](https://github.com/dev-zetta/OpenArcanum/commit/23729a04c886bf11271b615a227448519232229c))
 
 ## 2018-11-25
@@ -109,7 +130,7 @@ source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
 
 ## 2018-11-13
 
-- **Electron / AGate:** Expanded UI prototypes with bottom panels, chat, debug and video windows; added Electron and integration helpers. ([`d72adcdf`](https://github.com/dev-zetta/OpenArcanum/commit/d72adcdf5e8cd1826feed100db8d8a65093cc6fa))
+- **Electron / AGate:** Expanded UI prototypes with bottom panels, chat, debug and video windows; added Electron and integration helpers. ([`02b8c1e3`](https://github.com/dev-zetta/OpenArcanum/commit/02b8c1e3634591fb4f1c74907c919774416cd75e))
 
 ## 2018-11-12
 

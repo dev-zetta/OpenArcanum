@@ -34,7 +34,7 @@ export default class EventEmitter extends eventemitter3 {
 
     let topics = this._queue[topic]
     if (topics) {
-      console.error(`Delayed call of ${topic}`)
+      console.debug(`Delivering queued event ${topic}`)
       for (let args of topics) {
         fn(...args)
       }

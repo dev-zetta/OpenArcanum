@@ -54,8 +54,15 @@ class BaseRenderer {
     this.lastTimestamp = time
     //this.gameEngine.events.emit(`client__draw`)
 
-    if (this.clientEngine.options.scheduler === `render-schedule`)
-      this.runClientStep(time)
+    if (this.clientEngine.options.scheduler === `render-schedule`) {
+      if (this.clientEngine.options.standaloneMode === true) {
+        // Offline simulation follows rendered elapsed time. The network clock
+        // intentionally drops long gaps while correcting server/client drift.
+        this.clientEngine.step(time, Number.isFinite(dt) ? Math.max(0, dt) : 0)
+      } else {
+        this.runClientStep(time)
+      }
+    }
   }
 
   /**

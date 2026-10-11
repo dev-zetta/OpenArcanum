@@ -6,6 +6,7 @@ import { computed } from '@ember/object'
 // https://andycrum.github.io/ember-data-model-maker/
 
 export default Model.extend({
+  name: attr(`string`),
   type: attr(`string`),
   componentName: computed(`type`, function() {
     let type = this.get(`type`)

@@ -6,14 +6,14 @@ An independent engine reimplementation of **Arcanum: Of Steamworks and Magick Ob
 
 ## Current state
 
-The source includes an Electron application shell, an Ember user interface, AGate rendering and entity infrastructure, asset-conversion tools, and client UI scripts. Historical demos show earlier builds of this work. The development toolchain has been migrated to current Electron, Ember and PixiJS releases. A source checkout can build and open the existing UI without retail assets; playable game behavior and complete campaign compatibility remain unfinished.
+The development toolchain runs on current Electron, Ember and PixiJS releases. A source checkout builds and opens the UI without retail assets. With compatible locally converted data, the offline development scene loads **Bates Mansion Lev 2** and supports animated, click-to-walk player movement. This small checkpoint is under active development; the original campaign remains unfinished.
 
 | Area | Present in the source | Work remaining |
 | --- | --- | --- |
-| Application and rendering | Electron/Ember integration, PixiJS-based engine code, scene and entity infrastructure | Validate original map loading and complete the game startup path with converted assets. |
+| Application and rendering | Electron/Ember integration; offline loading of nine Bates Mansion sectors, 386 map entities and a controlled actor | Roof conversion/rendering, lighting, other maps and original visual fidelity. |
 | User interface | Character, inventory, dialogue, map and other window code | Connect and test each interface against complete gameplay behavior. |
 | Assets | Conversion code and loaders for converted formats | Restore a documented, complete conversion pipeline and validate its output against original game data. |
-| Gameplay | Models, scripts and partial systems | Complete and verify movement, combat, AI, dialogue/quests, progression and persistence together. |
+| Gameplay | Animated player movement and pathfinding that reject blocked tiles, walls and void | Original movement rules, NPC AI, combat, dialogue/quests, inventory rules, progression and persistence. |
 | Networking and tools | Networking dependencies and development/editor infrastructure | Establish working, tested multiplayer and authoring workflows. |
 
 Cross-platform play, co-op, extensive modding, improved visual effects, physics and an integrated editor were historical project goals. Their appearance in old announcements does not mean they are finished in this source tree.
@@ -23,6 +23,8 @@ Cross-platform play, co-op, extensive modding, improved visual effects, physics 
 **The original game's assets are not included.** A usable runtime will require your own copy of Arcanum and locally converted data. This repository does not yet provide a complete, validated process that turns an installation of the original game into a playable OpenArcanum installation.
 
 The `asset-db` directory retains client scripts; proprietary game archives, converted artwork, music, maps and other retail data are excluded from this source-only repository. The source license does not grant rights to the original game or its assets.
+
+Put compatible converted data in **`local-data/`**, which is ignored by Git, or set `OPENARCANUM_DATA_PATH`. The current scene requires `archives/Bates Mansion Lev 2.zip`, `archives/Prototypes.zip`, `archives/Gfx.zip`, `archives/Gfx-tiles.zip`, GUI images/metadata, MES tables and `16086.json`. Original DAT files cannot be used directly. See [local data and scene controls](docs/DEVELOPMENT.md#local-data-and-optional-integrations) for details.
 
 ## Repository layout
 
@@ -53,6 +55,7 @@ npm run test:ui     # QUnit UI tests inside Electron; builds development UI
 npm run build       # restore production UI after UI tests
 npm run smoke       # hidden Electron startup check; needs a graphical display
 npm run smoke:renderer # synthetic atlas/shader pixel checks in Electron/WebGL
+npm run smoke:game -- --show # local-data scene, movement and native mouse input
 # Or run every validation step in the right order:
 npm run check
 ```
@@ -63,7 +66,7 @@ A fresh source checkout shows the game-data requirements instead of trying to st
 
 See [DEVELOPMENT](docs/DEVELOPMENT.md) for setup, tests, known gameplay gaps and Electron compatibility mode, and [DEPENDENCIES](docs/DEPENDENCIES.md) for the upgrade decisions and remaining upstream advisories. The optional historical YouTube integration reads environment credentials; see `.env.example`.
 
-Useful next contributions include validating the conversion pipeline against original game data and establishing a small offline playable scene before extending gameplay.
+Useful next contributions include restoring roof conversion, validating movement against the original game, and connecting a container interaction to real inventory state before extending gameplay.
 
 ## History and archival links
 

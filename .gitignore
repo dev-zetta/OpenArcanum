@@ -36,6 +36,7 @@ libpeerconnection.log
 *.key
 
 # Retail data and converted output are local inputs
+# Assets copied from my_projects, runtime saves and local screenshots stay private.
 /local-data/
 /@openarcanum/asset-db/archives/
 /@openarcanum/asset-db/cache/

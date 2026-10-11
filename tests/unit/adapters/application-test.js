@@ -19,8 +19,8 @@ module('Unit | Adapter | local GUI definitions', function(hooks) {
     const result = await adapter.query(null, null, { filter: { type: 'window' } })
     assert.strictEqual(result.data.length, 1)
     assert.strictEqual(result.data[0].id, 'inventory')
-    assert.deepEqual(result.data[0].relationships.components.data.map(child => child.id), ['title', 'toolbar'])
-    const title = result.included.find(record => record.id === 'title')
+    assert.deepEqual(result.data[0].relationships.components.data.map(child => child.id), ['inventory.title', 'inventory.toolbar'])
+    const title = result.included.find(record => record.id === 'inventory.title')
     assert.strictEqual(title.attributes.value, 'Inventory')
     assert.strictEqual(title.relationships.parent.data.id, 'inventory')
   })
@@ -31,8 +31,21 @@ module('Unit | Adapter | local GUI definitions', function(hooks) {
     assert.strictEqual(windows.length, 1)
     const window = Array.from(windows)[0]
     assert.strictEqual(window.componentName, 'gui-window')
-    assert.deepEqual(Array.from(window.components, child => child.id), ['title', 'toolbar'])
-    assert.strictEqual(store.peekRecord('gui-widget', 'title').parent, window)
+    assert.deepEqual(Array.from(window.components, child => child.id), ['inventory.title', 'inventory.toolbar'])
+    assert.strictEqual(store.peekRecord('gui-widget', 'inventory.title').parent, window)
+  })
+
+  test('repeated local child names retain independent records and authored names', async function(assert) {
+    globalThis.AGate.Utils.loadScripts = (_path, callback) => {
+      callback('skills', { type: 'group', components: { icon: { type: 'image', sprite: 'SkillsIcon' } } })
+      callback('spells', { type: 'group', components: { icon: { type: 'image', sprite: 'SpellsIcon' } } })
+    }
+    const adapter = this.owner.lookup('adapter:application')
+    const records = adapter.loadRecords()
+    assert.strictEqual(records.get('skills.icon').attributes.sprite, 'SkillsIcon')
+    assert.strictEqual(records.get('spells.icon').attributes.sprite, 'SpellsIcon')
+    assert.strictEqual(records.get('skills.icon').attributes.name, 'icon')
+    assert.strictEqual(records.get('spells.icon').relationships.parent.data.id, 'spells')
   })
 
   test('reports an unknown GUI identifier instead of returning a missing record', async function(assert) {

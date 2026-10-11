@@ -22,6 +22,7 @@ export default class AssetLoader {
   constructor() {
     //this.engine = engine
     this.loadedAssets = new Map()
+    this.pendingAssets = new Map()
     this.preloadAssets = []
 
     this.useBlobs = false
@@ -149,7 +150,7 @@ export default class AssetLoader {
    * @returns {Promise<void>}
    */
   async processArchive(file: string, zipId: number) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       lll(`Loading archive: ${file}`)
 
       let zip = new StreamZip({
@@ -189,7 +190,7 @@ export default class AssetLoader {
       })
 
       zip.on(`error`, (err) => {
-        console.log(err)
+        reject(err)
       })
 
       zip.on(`ready`, () => {
@@ -203,6 +204,7 @@ export default class AssetLoader {
    * @returns {Promise<void>}
    */
   async initialize() {
+    if (this.archiveEntries) return
     let path = AGate.getAppPath(`archives/`)
 
     let files = await this.findFiles(path, `.zip`)
@@ -289,7 +291,8 @@ export default class AssetLoader {
    */
   async loadFileFromDisk(src: string, encoding: string) {
     return new Promise((resolve, reject) => {
-      fs.readFile(src, encoding, (err, data) => {
+      fs.readFile(src, encoding || null, (err, data) => {
+        if (err) return reject(err)
         resolve(data)
       })
     })
@@ -365,13 +368,9 @@ export default class AssetLoader {
    * @returns {Promise<*>}
    */
   async loadFileToBlob(src: string): Promise<Blob> {
-    let data = await this.loadFile(src)
-    if (!data) {
-      return new Blob()
-    }
-
-    let blob = this.stringToBlob(data.toString(`binary`))
-    return blob
+    const data = await this.loadFile(src)
+    if (!data) throw new Error(`Missing image: ${src}`)
+    return new Blob([new Uint8Array(data)], { type: mime.lookup(src) || 'application/octet-stream' })
   }
 
   /**
@@ -393,17 +392,9 @@ export default class AssetLoader {
    * @returns {Promise<void>}
    */
   async loadFileToDataUrl(src: string): Promise<string> {
-    let data = await this.loadFile(src, `base64`)
-    if (!data) {
-      lle(`Unable to load file ${src}`)
-      return ``
-    }
-
-    return util.format(
-      `data:%s;base64,%s`,
-      mime.lookup(src),
-      data.toString(`binary`)
-    )
+    const data = await this.loadFile(src)
+    if (!data) throw new Error(`Missing image: ${src}`)
+    return `data:${mime.lookup(src) || 'application/octet-stream'};base64,${Buffer.from(data).toString('base64')}`
   }
 
   /**
@@ -413,61 +404,16 @@ export default class AssetLoader {
    * @returns {Promise<*>}
    */
   async createAndLoadImage(src: string, callback: ?Function = null) {
-    if (Utils.isUndefined(createImageBitmap)) {
-      let image = new Image()
-
-      //image.crossOrigin = true
-      if (this.useBlobs) {
-        //$FlowFixMe
-        image.src = this.loadFileToBlobUrl(src)
-
-        image.onload = () => {
-          URL.revokeObjectURL(image.src)
-
-          if (callback){
-            callback(false, image)
-          }
-
-        }
-
-        image.onerror = () => {
-          URL.revokeObjectURL(image.src)
-
-          if (callback){
-            callback(true, image)
-          }
-
-        }
-      } else {
-        //$FlowFixMe
-        image.src = this.loadFileToDataUrl(src)
-
-        image.onload = () => {
-          if (callback){
-            callback(false, image)
-          }
-
-        }
-
-        image.onerror = () => {
-          if (callback){
-            callback(true, image)
-          }
-
-        }
-      }
-
-      return image
+    let image
+    if (typeof createImageBitmap === 'function') {
+      image = await createImageBitmap(await this.loadFileToBlob(src))
     } else {
-      //console.log(`Fast loading...`)
-      let blob = await this.loadFileToBlob(src)
-      if (!blob) {
-        lle(`Unable to load image: ${src}`)
-        return new Image()
-      }
-
-      return createImageBitmap(blob)
+      image = new Image()
+      image.src = await this.loadFileToDataUrl(src)
+      await image.decode()
     }
+    if (callback) callback(false, image)
+    return image
   }
 
   /**
@@ -561,15 +507,18 @@ export default class AssetLoader {
       return descriptor
     }
 
-    if (target) {
-      this.addToQueue(descriptor, target)
-      return
+    let pending = this.pendingAssets.get(descriptor.key)
+    if (!pending) {
+      pending = this.loadAssetDirect(descriptor).then(loaded => {
+        if (!loaded) throw new Error(`Unable to load asset: ${descriptor.key}`)
+        this.loadedAssets.set(descriptor.key, loaded)
+        return loaded
+      }).finally(() => this.pendingAssets.delete(descriptor.key))
+      this.pendingAssets.set(descriptor.key, pending)
     }
-
-    descriptor = await this.loadAssetDirect(descriptor)
-
-    this.loadedAssets.set(descriptor.key, descriptor)
-
+    const loaded = await pending
+    Object.assign(descriptor, loaded)
+    this.notityTarget(descriptor, target, true)
     return descriptor
   }
 
@@ -598,7 +547,7 @@ export default class AssetLoader {
 
         descriptor.meta = await this.loadJsonFile(descriptor.data)
 
-        if (Utils.isUndefined(descriptor.meta)) {
+        if (!descriptor.meta) {
           Utils.logError(`Unable to load file: ${descriptor.data}`)
           return null
         }

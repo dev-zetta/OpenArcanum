@@ -29,7 +29,7 @@ export class SectorGrid {
     this.cache = new SectorCache(map)
     this.map = map
 
-    this.create(SectorGrid.GridWidth, SectorGrid.GridHeight)
+    this.clear()
 
     const gw = SectorGrid.GridWidth / 2.0
     const gh = SectorGrid.GridHeight / 2.0
@@ -47,7 +47,7 @@ export class SectorGrid {
     const xi = x - this.rangeTopLeft[0]
     const yi = y - this.rangeTopLeft[1]
 
-    if (xi > 0 && yi > 0) {
+    if (xi >= 0 && yi >= 0 && xi < SectorGrid.GridWidth && yi < SectorGrid.GridHeight) {
       return this.sectors[yi][xi]
     } else {
       return this.cache.get(x, y)
@@ -105,7 +105,7 @@ export class SectorGrid {
     let promises = []
     for (let col = y; col < yc; col++) {
       for (let row = x; row < xc; row++) {
-        const isOutside = (col < 0) || (row < 0) || (row > map.width) || (col > map.height)
+        const isOutside = (col < 0) || (row < 0) || (row >= map.width) || (col >= map.height)
 
         let sector = null
 
@@ -143,5 +143,11 @@ export class SectorGrid {
   /**
    *
    */
-  clear() {}
+  clear() {
+    this.cache.clear()
+    this.create(SectorGrid.GridWidth, SectorGrid.GridHeight)
+    this.rangeTopLeft = [0, 0]
+    this.rangeBottomRight = [0, 0]
+    this.sectorsInGrid = []
+  }
 }

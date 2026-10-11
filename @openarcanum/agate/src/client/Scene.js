@@ -56,6 +56,9 @@ export default class Scene {
     //this.renderToTexture = true
     this.customLoader = true
     this.sectors = new Map()
+    this.stopped = true
+    this.frameCount = 0
+    this.error = null
 
     this.events.on(`Map:Loading`, this.onMapLoading, this)
     this.events.on(`Map:Loaded`, this.onMapLoaded, this)
@@ -125,8 +128,11 @@ export default class Scene {
    * @returns {Promise<void>}
    */
   async start() {
+    if (!this.stopped) return
+    this.stopped = false
     this.stats = {
-      lastFrameTime: 0
+      lastFrameTime: null,
+      lastUpdateTime: null
     }
 
     await this.renderer.start()
@@ -141,17 +147,38 @@ export default class Scene {
         return
       }
 
-      global.requestAnimationFrame(renderLoop)
+      this.frameRequest = global.requestAnimationFrame(renderLoop)
 
+      // Start a fresh clock after startup/resume; asset-loading or paused time
+      // must not be counted as movement on the first frame.
+      if (this.stats.lastFrameTime === null) {
+        this.stats.lastFrameTime = timestamp
+        this.stats.lastUpdateTime = timestamp
+      }
       const elapsed = timestamp - this.stats.lastFrameTime
 
       if (elapsed >= timePerFrame) {
-        this.update(timestamp, elapsed)
+        try {
+          this.update(timestamp, timestamp - this.stats.lastUpdateTime)
+          this.stats.lastUpdateTime = timestamp
+          this.frameCount++
+        } catch (error) {
+          this.error = error.message
+          this.stop()
+          this.client.onRuntimeError(error)
+          return
+        }
         this.stats.lastFrameTime = timestamp - (elapsed % timePerFrame)
       }
     }
 
-    global.requestAnimationFrame(renderLoop)
+    this.frameRequest = global.requestAnimationFrame(renderLoop)
+  }
+
+  stop() {
+    this.stopped = true
+    if (this.frameRequest) global.cancelAnimationFrame(this.frameRequest)
+    this.renderer.stop()
   }
 
   /**
@@ -298,7 +325,7 @@ export default class Scene {
 
     this.setCameraLocation(map.getCenterLocation())
 
-    this.addMap(map)
+    this.mapReady = this.addMap(map)
   }
 
   /**
@@ -316,14 +343,8 @@ export default class Scene {
    * @returns {Promise<void>}
    */
   onSectorLoaded(sector: Sector) {
-    const callback = (tile, x, y) => {
-      if (tile.type) {
-        tile.sprite = new Sprite(this)
-        /*await*/ tile.sprite.load(tile)
-      }
-    }
-
-    sector.inspectTiles(callback)
+    // Atlas readiness is awaited by addSector, rather than fire-and-forget
+    // EventEmitter callbacks while the world is still loading.
   }
 
   /**
@@ -338,13 +359,15 @@ export default class Scene {
     if (visualComponent) {
       let visualClasses = visualComponent.classes
 
-      for (let className: string in visualClasses) {
+      for (let className: string of ['current']) {
         if (className.charAt(0) === '_') { // TODO: Hack. Use function to check if prop is private
           continue
         }
 
 
-        let visualClass = visualClasses[className]
+        let visualClass = visualClasses[className] || visualClasses.normal
+        if (!visualClass) continue
+        if (visualClass.sprite) continue
 
         let sprite = new Sprite(this)
         sprite.setData(entity)
@@ -365,8 +388,7 @@ export default class Scene {
    * @param gameObject
    */
   onObjectClick(gameObject: Object) {
-    let color = Math.random() * 0xFFFFFF
-    gameObject.setTint(color)
+    // Selection must not mutate the source art with the old debug tint.
 
     //gameObject.setPipeline(ShaderTest)
   }
@@ -483,16 +505,19 @@ return
    * @param map
    * @param target
    */
-  addMap(map: GameMap /*, target: Object = this*/) {
+  async addMap(map: GameMap /*, target: Object = this*/) {
     lll(`Placing to scene: ${map.path}`)
 
     let rootGroup = this.newGroup()
+    map.rootGroup = rootGroup
+    map.tileGroup = this.newGroup(rootGroup)
+    map.objectGroup = this.newGroup(rootGroup)
 
     let sectors = map.getActiveSectors()
 
     let sortGroups = []
     for (let sector of sectors) {
-      this.addSector(sector, rootGroup)
+      await this.addSector(sector, map.tileGroup, map.objectGroup)
       sortGroups.push(sector.staticGroup)
     }
 
@@ -535,7 +560,7 @@ return
    * @param sector
    * @param target
    */
-  addSector(sector: Sector, target: Object) {
+  async addSector(sector: Sector, target: Object, objectGroup: Object) {
     if (!sector.tiles) {
       lll(`Invalid sector`)
       return
@@ -562,7 +587,11 @@ return
           tile.type &&
           (tile.type == `Facade` || tile.end.category != `BlackYall`)
         ) {
-          this.addSprite(tile.sprite, tileGroup, ay, dx, 0, offset)
+          tile.sprite = new Sprite(this)
+          await tile.sprite.load(tile)
+          this.addSprite(tile.sprite, tileGroup,
+            tile.location.x * Sector.TileWidthHalf,
+            tile.location.y * Sector.TileWidthHalf, 0, offset)
           //tile.sprite.setPipeline('Light2D')
           tile.sprite.setData(tile)
         }
@@ -584,19 +613,10 @@ return
     }
 
     // Add static objects
-    const staticGroup = this.newGroup(target)
+    const staticGroup = objectGroup || this.newGroup(target)
     //target.add(this.staticGroup);
 
-    sector.entities.forEach(entity => {
-      /*let baseComponent = entity.base;
-      let location = new Location(baseComponent.location);
-
-      let tile = this.getTile(location.tileX, location.tileY);
-      if (tile)
-        tile.entities.push(entity);*/
-
-      this.addEntity(entity, staticGroup)
-    })
+    await Promise.all(Array.from(sector.entities.values(), entity => this.addEntity(entity, staticGroup)))
 
     // Sort objects
     //target.scene.sortGroup(this.staticGroup);
@@ -615,6 +635,9 @@ return
    * @param target
    */
   async addEntity(entity: Entity, target: Object) {
+    // Inventory objects carry the owner's world location. They are retained in
+    // the ECS, but their ground graphics must not be displayed on the floor.
+    if (entity.base.flags.hasAny(['Inventory', 'Off', 'Destroyed'])) return
     await this.onNewEntity(entity)
 
     let baseComponent = entity.base
@@ -750,7 +773,8 @@ return
       }
     }
 
-    if (sprite.type === Gfx.Types.Critter || sprite.type === Gfx.Types.UniqueNpc) {
+    if (this.client.options.standaloneMode !== true &&
+        (sprite.type === Gfx.Types.Critter || sprite.type === Gfx.Types.UniqueNpc)) {
       let shader = this.renderer.getShader('GlowFilter')
       if (shader) {
        // shader.uniforms.thickness = 4

@@ -8,6 +8,6 @@ export default class World extends GameWorld {
    * @returns {GameMap}
    */
   mapFactory(options: Object): GameMap {
-    return new GameMap(this, options)
+    return new GameMap(this, options.id)
   }
 }

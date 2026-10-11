@@ -71,7 +71,7 @@ export default class Prototype extends Entity {
           continue
         }
 
-        let key = componentClass.name
+        let key = componentClass.componentName || componentClass.name
         let component = entity.addComponent(componentClass, {}, prototype)
         components[key] = component
 

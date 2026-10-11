@@ -78,8 +78,6 @@ class GuiInventory extends GuiWidget {
     let parentId = this.getId()
     let grid = this.getGrid()
 
-    console.error(`adding`)
-
     for (let id in slots) {
       let slot = slots[id]
 
@@ -96,7 +94,6 @@ class GuiInventory extends GuiWidget {
         position: slot.position,
         events: {
           created() {
-            console.error(`grid`)
             let element = this.get(`element`)
             grid.addDropzone(element)
           }

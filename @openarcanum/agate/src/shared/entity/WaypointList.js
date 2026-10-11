@@ -14,7 +14,7 @@ export default class WaypointList {
   }
 
   set(waypoints) {
-    this.waypoints.clear()
+    this.waypoints.length = 0
 
     for (let waypoint of waypoints) {
       if (!(waypoint instanceof Waypoint)) {

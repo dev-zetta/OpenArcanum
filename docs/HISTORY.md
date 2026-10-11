@@ -52,6 +52,12 @@ directories. A hard-coded OAuth credential was removed from all revisions; the
 current optional integration reads explicitly supplied environment variables.
 The authored GUI scripts remain without the old extracted-item fixture.
 
+A later review on October 11 found an obsolete commented login block in two
+historical GUI script paths. With the maintainer's approval, affected published
+history was rewritten again to remove it. This changed 17 commit hashes, including
+the archived Electron master tip; dates, messages, topology and the 77 original
+historical commits were retained. The private original backup remains separate.
+
 This filtering makes historical snapshots suitable for source publication; it
 does not make every old commit a self-contained reproducible game build.
 Historical asset-database import milestones are described in the changelog even
