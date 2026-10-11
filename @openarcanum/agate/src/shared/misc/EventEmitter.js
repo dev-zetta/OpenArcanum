@@ -75,7 +75,7 @@ export default class EventEmitter extends eventemitter3 {
       return super.emit(topic, ...args)
     } else {
       if (!this._queue[topic]) {
-        console.log(`Queuing call of ${topic}`)
+        //console.log(`Queuing call of ${topic}`)
         this._queue[topic] = [args.slice(1)]
       } else {
         if (this._queue[topic] < 3)

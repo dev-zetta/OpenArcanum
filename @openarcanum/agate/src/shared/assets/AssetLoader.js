@@ -1,4 +1,4 @@
-//@flow
+// @flow
 /* global createImageBitmap */
 //var liquidfun = requireNode('liquidfun')
 
@@ -10,7 +10,7 @@ const writeJsonFile = require(`write-json-file`)
 const find = require(`find`)
 const StreamZip = require(`node-stream-zip`) // https://github.com/antelle/node-stream-zip
 
-import Utils from '../misc/Utils'
+import Utils from '../misc/Utils';
 
 export default class AssetLoader {
   loadedAssets: Map<string, Object>
@@ -18,6 +18,7 @@ export default class AssetLoader {
   useBlobs: boolean
   archives: Array<Object>
   archiveEntries: Map<string, Object>
+  queueRunning: boolean
 
   constructor() {
     //this.engine = engine
@@ -68,6 +69,9 @@ export default class AssetLoader {
     this.startQueue()
   }
 
+  /**
+   *
+   */
    startQueue() {
 
     if (this.queueRunning || this.preloadAssets.length === 0) {
@@ -392,16 +396,15 @@ export default class AssetLoader {
   async loadFileToDataUrl(src: string): Promise<string> {
     let data = await this.loadFile(src, `base64`)
     if (!data) {
-      Utils.logError(`Unable to load file ${src}`)
+      lle(`Unable to load file ${src}`)
       return ``
     }
 
-    let result = util.format(
+    return util.format(
       `data:%s;base64,%s`,
       mime.lookup(src),
       data.toString(`binary`)
     )
-    return result
   }
 
   /**
@@ -422,24 +425,36 @@ export default class AssetLoader {
         image.onload = () => {
           URL.revokeObjectURL(image.src)
 
-          callback(false, image)
+          if (callback){
+            callback(false, image)
+          }
+
         }
 
         image.onerror = () => {
           URL.revokeObjectURL(image.src)
 
-          callback(true, image)
+          if (callback){
+            callback(true, image)
+          }
+
         }
       } else {
         //$FlowFixMe
         image.src = this.loadFileToDataUrl(src)
 
         image.onload = () => {
-          callback(false, image)
+          if (callback){
+            callback(false, image)
+          }
+
         }
 
         image.onerror = () => {
-          callback(true, image)
+          if (callback){
+            callback(true, image)
+          }
+
         }
       }
 
@@ -448,7 +463,7 @@ export default class AssetLoader {
       //console.log(`Fast loading...`)
       let blob = await this.loadFileToBlob(src)
       if (!blob) {
-        Utils.logError(`Unable to load image: ${src}`)
+        lle(`Unable to load image: ${src}`)
         return new Image()
       }
 
@@ -486,9 +501,9 @@ export default class AssetLoader {
   /**
    *
    * @param filePath
-   * @returns {Promise<*>}
+   * @returns {Promise<?string>}
    */
-  async loadJsonFile(filePath: string) {
+  async loadJsonFile(filePath: string): ?string {
     try {
       let data = await this.loadFile(filePath)
       if (!data) {
@@ -497,7 +512,7 @@ export default class AssetLoader {
 
       return parseJson(data.toString(`binary`))
     } catch (err) {
-      Utils.logError(filePath, err)
+      lle(filePath, err)
       return null
     }
   }
@@ -512,11 +527,17 @@ export default class AssetLoader {
     try {
       return await writeJsonFile(filePath, object, { indent: 2 })
     } catch (err) {
-      Utils.logError(err.message)
+      lle(err.message)
       return null
     }
   }
 
+  /**
+   *
+   * @param descriptor
+   * @param target
+   * @param firstTime
+   */
   notityTarget(descriptor, target, firstTime) {
     if (target) {
       target.onResourceLoaded(descriptor, firstTime)
@@ -530,7 +551,7 @@ export default class AssetLoader {
    * @param target
    * @returns {Promise<Object>}
    */
-  async loadAsset(descriptor: Object, target: ?Object) {
+  async loadAsset(descriptor: Object, target: ?Object): Promise<Object> {
     let cached = this.getCachedAsset(descriptor.key)
     if (cached != null) {
       console.log(`Already loaded: ${descriptor.key}`)
@@ -557,7 +578,7 @@ export default class AssetLoader {
    * @param descriptor
    * @returns {Promise<*>}
    */
-  async loadAssetDirect(descriptor) {
+  async loadAssetDirect(descriptor: Object): Promise<Object> {
 
     switch (descriptor.type) {
       case `atlas`:
@@ -628,7 +649,7 @@ export default class AssetLoader {
    * @param pattern
    * @returns {Promise<void>}
    */
-  async findDirs(dir: string, pattern: RegExp) {
+  async findDirs(dir: string, pattern: ?RegExp) {
     return new Promise((resolve) => {
       if (!pattern) {
         pattern = new RegExp(`^[^.]+$`, `i`)
@@ -656,7 +677,7 @@ export default class AssetLoader {
    * @param filter
    * @returns {*}
    */
-  findInArchives(what: string, filter: ?RegExp = null): Object {
+  findInArchives(what: string, filter: ?RegExp = null): ?Object {
     if (!this.archiveEntries) {
       return null
     }

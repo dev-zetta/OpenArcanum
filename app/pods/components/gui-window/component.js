@@ -67,7 +67,7 @@ class GuiWindow extends GuiWidget {
         resizeit: this.getOption(`resizable`),
         contentOverflow: `hidden`,
         callback: (panel) => {
-          panel.style.display = this.isVisible() ? `flex` : `none`
+          panel.style.display = !this.isHidden() ? `flex` : `none`
 
           panel.titlebar.addEventListener(`dblclick`, () => {
             if (panel.status !== `minimized`) {

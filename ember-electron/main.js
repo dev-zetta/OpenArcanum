@@ -4,8 +4,8 @@ const { dirname, join, resolve } = require("path");
 const protocolServe = require("electron-protocol-serve");
 const protocols = require("electron-protocols");
 
-let appPath = resolve("../..");
-let config = require(join(appPath, "config.json"));
+let appPath = resolve(__dirname, "..");
+let config = require(join(appPath, "config/project"))();
 
 //const reload = require('electron-reload')
 //reload(appPath)
@@ -16,7 +16,10 @@ let config = require(join(appPath, "config.json"));
 
 let mainWindow = null;
 // Registering a protocol & schema to serve our Ember application
-protocol.registerStandardSchemes(["serve"], { secure: true });
+protocol.registerSchemesAsPrivileged([
+  {scheme: 'serve', privileges: { standard: true, secure: true }}
+])
+
 protocolServe({
   cwd: join(__dirname || resolve(dirname("")), "..", "ember"),
   app,

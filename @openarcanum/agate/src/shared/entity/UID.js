@@ -2,7 +2,7 @@
  * @module  uid
  */
 
-const uuidv5 = require(`uuid/v5`)
+const uuidv5 = require(`uuid`)
 
 /*
  * UIDGenerator for multi-instance Entity Component System

@@ -1,13 +1,13 @@
 {
-  "dataPath": "/home/maxli/OpenArcanum/@openarcanum/asset-db",
-  "scriptsPath": "/home/maxli/OpenArcanum/@openarcanum/asset-db/scripts",
+  "dataPath": "./local-data",
+  "scriptsPath": "./@openarcanum/asset-db/scripts",
   "appProtocol": "asset://",
 
   "client": {
-    "serverURL": "ws://127.0.0.1:3333"
+    "serverURL": "ws://127.0.0.1:4564"
   },
 
   "server": {
-    "listenPort": 3333
+    "listenPort": 4564
   }
 }

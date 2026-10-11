@@ -21,14 +21,6 @@ export const Entity = new Enum([
   `Trap`
 ])
 
-export const AiState = new Enum([
-  `PreparingToAttack`, // 1
-  `Attacking`, // 2
-  `Moving`, // 4
-  `MovingToWaypoint`, // 8
-  `PlanningToMove` // 16
-])
-
 export const SpriteState = new Enum([
   `Current`,
   `Normal`,

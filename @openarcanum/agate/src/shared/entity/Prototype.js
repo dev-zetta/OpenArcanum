@@ -6,6 +6,7 @@ import Entity from './Entity'
 import type GameEngine from '../GameEngine'
 import Utils from '../misc/Utils'
 import Component from './components/Component'
+import type Manager from './Manager';
 
 //const ClassTransformer = require(`class-transformer`)
 
@@ -485,7 +486,7 @@ export default class Prototype extends Entity {
           Prototype.isValueObject(value) &&
           Prototype.isPrototypeProperty(prop, obj._prototype)
         ) {
-          ll(`rewrapping`, prop, value)
+          lle(`rewrapping`, prop, value)
           obj[prop] = Prototype.wrapComponentToProxy(
             prop,
             value,

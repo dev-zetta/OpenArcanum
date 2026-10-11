@@ -2,27 +2,33 @@
 
 import Utils from '../../misc/Utils'
 import type Action from './Action'
+import Enum from '../../misc/Enum'
+import EventEmitter from '../../misc/EventEmitter'
 
-export default class State {
+export default class State extends EventEmitter {
   counter: number
   actions: Map<string, Action>
+
+  static Flags = new Enum([
+    `PreparingToAttack`, // 1
+    `Attacking`, // 2
+    `Moving`, // 4
+    `MovingToWaypoint`, // 8
+    `PlanningToMove`, // 16,
+    `Running`,
+    `IsDead`
+  ])
 
   /**
    *
    */
-  constructor(counter: number = 0) {}
+  constructor(counter: number = 0) {
+    super()
+  }
 
   init(counter: number = 0) {
     this.counter = counter
     this.actions = new Map()
-  }
-
-  remember() {
-    this._counter = this.counter
-  }
-
-  changed() {
-    return this._counter !== this.counter
   }
 
   // get currentAction(): Action {
@@ -35,6 +41,13 @@ export default class State {
 
   addAction(action: Action) {
     this.actions.set(action.name, action)
+    this.counter++
+  }
+
+  removeAction(action: Action) {
+    action.parent = null
+    this.actions.delete(action.name)
+    this.counter++
   }
 
   /**
@@ -47,7 +60,7 @@ export default class State {
         this.set(state[i])
       }
     } else {
-      this[state.value] = Utils.performance.now()
+      this[state.key] = Utils.performance.now()
       this.counter++
     }
   }
@@ -58,7 +71,7 @@ export default class State {
    * @returns {*}
    */
   has(state: Object): boolean {
-    return this[state.value]
+    return this[state.key]
   }
 
   /**
@@ -71,7 +84,7 @@ export default class State {
         this.remove(state[i])
       }
     } else {
-      delete this[state.value]
+      delete this[state.key]
       this.counter++
     }
   }
@@ -82,7 +95,7 @@ export default class State {
    * @returns {number}
    */
   getElapsed(state: Object): number {
-    return Utils.performance.now() - this[state.value]
+    return Utils.performance.now() - this[state.key]
   }
 
   /**

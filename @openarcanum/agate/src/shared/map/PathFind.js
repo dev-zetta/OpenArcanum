@@ -17,8 +17,8 @@ export default class PathFind {
 
     this.finder = new PF.AStarFinder({
       allowDiagonal: true,
-      dontCrossCorners: true
-      // heuristic: PF.Heuristic.chebyshev
+      dontCrossCorners: true,
+      heuristic: PF.Heuristic.chebyshev
     })
   }
 
@@ -34,9 +34,9 @@ export default class PathFind {
   findPath(start: Location, end: Location) {
     let map = this.map
 
-    console.log(`${start} - ${end}`)
+    //console.log(`${start} - ${end}`)
 
-    let distance = Location.calculateDistance(start, end)
+    let distance = start.distanceTo(end)
     let range = distance + Math.round(distance / 2)
 
     let tilesX = map.width * Sector.Width

@@ -3,12 +3,12 @@ import YouTube from './YouTube'
 
 const Credentials = {
   web: {
-    client_id: `919453027116-snepln6mj9083toh4fc9ig5dgs3ln2ji.apps.googleusercontent.com`,
+    client_id: process.env.OPENARCANUM_GOOGLE_CLIENT_ID || ``,
     project_id: `openarcanum`,
     auth_uri: `https://accounts.google.com/o/oauth2/auth`,
     token_uri: `https://www.googleapis.com/oauth2/v3/token`,
     auth_provider_x509_cert_url: `https://www.googleapis.com/oauth2/v1/certs`,
-    client_secret: `REMOVED_OLD_OAUTH_CLIENT_SECRET`,
+    client_secret: process.env.OPENARCANUM_GOOGLE_CLIENT_SECRET || ``,
     redirect_uris: [`http://localhost/oauth`],
     javascript_origins: [`http://localhost`]
   }
@@ -32,7 +32,7 @@ export default class GoogleApis {
   }
 
   async getAuthUrl(service) {
-    if (!service) {
+    if (!service || !Credentials.web.client_id || !Credentials.web.client_secret) {
       return null
     }
     return service.authorize(Credentials)

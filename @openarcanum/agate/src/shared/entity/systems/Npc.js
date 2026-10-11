@@ -24,11 +24,14 @@ export default class Npc extends System {
    * @param elapsed
    */
   update(entity: Entity, elapsed: number) {
-    // this.limitTo = 'E505FDAE-0E4E-11D4-8F1D-00E02920220C'
+    this.limitTo = [
+      `E505FDB4-0E4E-11D4-8F1D-00E02920220C`,
+      "E505FDB5-0E4E-11D4-8F1D-00E02920220C"
+    ]
 
     super.update(entity, elapsed)
 
-    if (this.limitTo && entity.id !== this.limitTo) {
+    if (this.limitTo && !this.limitTo.includes(entity.id)) {
       return
     }
 
@@ -39,10 +42,14 @@ export default class Npc extends System {
     //  return
     //}
 
+    if (!entity.world) {
+      debugger
+    }
+
     if (state.targetEntity) {
       state.nearbyEntities = []
     } else {
-      state.nearbyEntities = entity.world.getEntitiesInRange({
+      state.nearbyEntities = entity.map.getEntitiesInRange({
         types: [Enums.Entity.Npc, Enums.Entity.Pc],
         center: base.location,
         range: critter.getViewRange(),
@@ -55,7 +62,7 @@ export default class Npc extends System {
     this.processCombat(entity, elapsed)
     this.processMovement(entity, elapsed)
 
-    state.nearbyEntities = null
+    //state.nearbyEntities = null;
   }
 
   /**
@@ -64,11 +71,6 @@ export default class Npc extends System {
    */
   enter(entity: Entity) {
     lll(`NPC enter`, entity)
-
-    entity.onTileEnter = (origin: Location, target: Location) => {
-      //lll('onTileEnter', {origin, target})
-      entity.world.moveEntity(entity, origin, target)
-    }
   }
 
   /**

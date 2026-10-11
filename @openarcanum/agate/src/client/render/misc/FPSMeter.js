@@ -44,15 +44,9 @@ export default function MicroFps(callback, refreshRate = 1) {
   /** computed jitter */
   let jitter = 0
 
-  // use performance.now() or fallback to Date.now() only check on initialization
-  const millis =
-    typeof performance === `object` && `now` in performance
-      ? performance.now.bind(performance)
-      : Date.now.bind(Date)
-
   return function fpsMeterTick() {
     if (frames >= trigger) {
-      const now = millis()
+      const now = performance.now()
       if (lastTimestamp === undefined) lastTimestamp = now
       const elapsed = now - lastTimestamp
 

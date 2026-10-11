@@ -17,7 +17,6 @@ export default class PixiRenderer extends BaseRenderer {
     this.isReady = false
 
     this.stopped = false
-
   }
 
   get stage() {
@@ -147,14 +146,27 @@ export default class PixiRenderer extends BaseRenderer {
     }
   }
 
+  /**
+   *
+   * @param time
+   * @param delta
+   */
   update(time, delta) {
     this.draw(time, delta)
   }
 
+  /**
+   *
+   * @returns {Promise<void>}
+   */
   async start() {
     await super.start()
   }
 
+  /**
+   *
+   * @param object
+   */
   onDisplayObjectClick(object) {
 
   }

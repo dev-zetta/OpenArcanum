@@ -1,5 +1,6 @@
 import EventEmitter from 'eventemitter3'
 import http from 'http'
+import Utils from '../misc/Utils';
 
 /**
  * Measures network performance between the client and the server
@@ -35,13 +36,13 @@ export default class NetworkMonitor {
 
   sendRTTQuery() {
     // todo implement cleanup of older timestamp
-    this.RTTQueries[this.queryIdCounter] = new Date().getTime()
+    this.RTTQueries[this.queryIdCounter] = Utils.getCurrentTimestamp()
     this.clientEngine.socket.emit(`RTTQuery`, this.queryIdCounter)
     this.queryIdCounter++
   }
 
   onReceivedRTTQuery(queryId) {
-    let RTT = new Date().getTime() - this.RTTQueries[queryId]
+    let RTT = Utils.getCurrentTimestamp() - this.RTTQueries[queryId]
 
     this.movingRTTAverageFrame.push(RTT)
     if (this.movingRTTAverageFrame.length > this.movingFPSAverageSize) {
@@ -59,11 +60,6 @@ export default class NetworkMonitor {
   // server
   registerPlayerOnServer(socket) {
     socket.on(`RTTQuery`, this.respondToRTTQuery.bind(this, socket))
-    if (this.server && this.server.options.countConnections) {
-      http
-        .get(`http://ping.games-eu.lance.gg:2000/${this.gameName}`)
-        .on(`error`, () => {})
-    }
   }
 
   respondToRTTQuery(socket, queryId) {

@@ -1,8 +1,8 @@
-const realm = require('realm')
+//const realm = require('realm')
 
-class Realm extends realm {
+class Realm /*extends realm*/ {
   constructor() {
-    super()
+    //super()
   }
 }
 

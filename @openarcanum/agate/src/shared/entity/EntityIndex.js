@@ -1,4 +1,3 @@
-/* global AGate */
 import KDTree from '../misc/KDTree'
 
 // https://www.npmjs.com/package/kdgrass
@@ -35,7 +34,7 @@ export class EntityIndex {
   }
 
   _processIndices(indices) {
-    for (let i = 0; i < indices.lentth; i++) {
+    for (let i = 0; i < indices.length; i++) {
       let index = indices[i]
       let entity = this.cached[index]
       indices[i] = entity

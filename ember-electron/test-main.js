@@ -34,7 +34,9 @@ fs.writeFileSync(
 )
 const emberAppLocation = `serve://dist${indexQuery}`
 
-protocol.registerStandardSchemes(['serve'], { secure: true })
+protocol.registerSchemesAsPrivileged([
+  {scheme: 'serve', privileges: { standard: true, secure: true }}
+  ])
 // The index-electron.html was copied to the tmp directory, so we want all other
 // assets to load from the parent directory of the original file (emberAppDir).
 protocolServe({

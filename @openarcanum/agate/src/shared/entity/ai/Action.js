@@ -1,41 +1,76 @@
 // @flow
 
 import type System from './System'
-import type Evaluator from './Evaluator'
+import type Actor from './Actor'
 import Utils from '../../misc/Utils'
+export { scorer } from './Utils'
 
 export default class Action {
-  evaluator: Evaluator
+  static Impossible = 0.0
+  static Score100 = 1.0
+  static Score50 = 0.5
+  static Score25 = 0.25
+  static NoScore = 0.0
+
+  actor: Actor
+  scheme: Object
   //condition: Function
-  children: Map<string,  Action>
-  parent: Action
+  actions: Map<string, Action>
+  parent: ?Action
   context: Object
   startedAt: number
   stoppedAt: number
 
-  constructor(evaluator: Evaluator, context: Object = {}) {
+  /**
+   *
+   * @param actor
+   * @param scheme
+   * @param context
+   * @param score
+   */
+  constructor(actor: Actor, scheme: Object, context: Object, score: number) {
     //this.scores = []
-    this.evaluator = evaluator
+    this.actor = actor
+    this.scheme = scheme
+    this.score = score
     //this.condition = () => true
-    this.children = new Map()
+    this.actions = new Map()
     this.context = context
     this.parent = null
+
+    lll(`new action`, this.name, score)
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   get name() {
     return this.constructor.name
   }
 
+  /**
+   *
+   * @returns {boolean}
+   */
   get started(): boolean {
     return !!this.startedAt
   }
 
+  /**
+   *
+   * @returns {boolean}
+   */
   get finished(): boolean {
     return !!this.stoppedAt
   }
 
+  /**
+   *
+   * @returns {System}
+   */
   get system(): System {
-    return this.evaluator.system
+    return this.actor.system
   }
 
   // setCondition(callback) {
@@ -46,51 +81,80 @@ export default class Action {
   //   this.condition = callback
   // }
 
-  addChild(action: Action) {
+  /**
+   *
+   * @param action
+   */
+  addAction(action: Action) {
     action.parent = this
-    this.children.set(action.name, action)
+    this.actions.set(action.name, action)
   }
 
+  /**
+   *
+   * @param action
+   */
+  removeAction(action: Action) {
+    action.parent = null
+    this.actions.delete(action.name)
+  }
+
+  /**
+   *
+   * @param msg
+   */
   log(...msg) {
     if (!this._print_debug) return
     lle(...msg)
   }
 
+  // queueAction(name, data) {
+  //   let action = this.system.newAction(name, data)
+  //   this.addChild(action)
+  // }
 
-  queueAction(name, data) {
-    let action = this.system.newAction(name, data)
-    this.addChild(action)
-  }
-
+  /**
+   *
+   * @param context
+   */
   start(context: Object = this.context) {
     this.startedAt = Utils.getCurrentTimestamp()
     this.context = context
-    lll('Start action', this.name)
+    lll(`Start action`, this.name)
 
-    this.onStart(context)
+    let callbacks = this.build(context)
+    for (name in callbacks) {
+      this[name] = callbacks[name].bind(this)
+    }
 
-    if (this.parent) {
+    this.onStart()
+
+    if (this.parent && this.parent.onChildStarted) {
       this.parent.onChildStarted(this)
     }
 
-    for (let [name, action] of this.children) {
+    for (let [name, action] of this.actions) {
       if (!action.started) {
         action.start()
       }
     }
   }
 
-  stop(context: Object = this.context) {
+  /**
+   *
+   */
+  stop() {
     this.stoppedAt = Utils.getCurrentTimestamp()
-    lll('Stop action', this.name)
+    lll(`Stop action`, this.name)
 
-    this.onStop(context)
+    this.onStop()
 
-    if (this.parent) {
+    if (this.parent && this.parent.onChildStopped) {
       this.parent.onChildStopped(this)
     }
 
-    for (let [name, action] of this.children) {
+    for (let [name, action] of this.actions) {
+      //debugger
       if (!action.finished) {
         action.stop()
       }
@@ -98,51 +162,69 @@ export default class Action {
   }
 
   /**
-   *
+   *s
    * @param elapsed
    * @param context
    */
-  update(elapsed: number, context: Object = this.context): boolean {
+  update(elapsed: number): boolean {
     if (this.stoppedAt) {
-      return
-    }
-
-    if (!this.startedAt) {
-      this.start(context)
-    }
-
-    this.onUpdate(elapsed, context)
-
-    let updated = false
-    for (let [name, action] of this.children) {
-
-      updated = action.update(elapsed)
-
-      if (!updated) {
-
-      }
-    }
-
-    if (!updated) {
       return false
     }
 
-    return true
+    if (!this.startedAt) {
+      this.start(this.context)
+    }
+
+    let updated = this.onUpdate(elapsed)
+    if (updated === true) {
+      if (this.scheme.totalActions) {
+        updated = this.actor.updateScheme(
+          this.scheme,
+          this,
+          this.context,
+          elapsed
+        )
+      }
+    } else {
+      lle(`not updated`, this.name)
+    }
+
+    if (updated !== true) {
+      this.stop()
+    }
+
+    //  = false
+    // for (let [name, action] of this.actions) {
+    //   updated = action.update(elapsed)
+    //
+    //   if (!updated) {
+    //   }
+    // }
+    //
+    // if (!updated) {
+    //   return false
+    // }
+
+    return updated
   }
 
-  onChildStarted(action: Action) {
+  /**
+   *
+   * @param action
+   */
+  onChildStarted(action: Action) {}
 
+  /**
+   *
+   * @param action
+   */
+  onChildStopped(action: Action) {}
+
+  /**
+   *
+   * @returns {*}
+   */
+  toString() {
+    return this.name
   }
-
-  onChildStopped(action: Action) {
-
-  }
-
 }
-
-Action.Impossible = -100
-
-Action.Score100 = 100
-Action.Score50 = 50
-Action.Score25 = 25
-Action.NoScore = 0

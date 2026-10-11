@@ -2,106 +2,145 @@
 
 import GameMap from './map/GameMap'
 import type GameEngine from './GameEngine'
+import Location from './Location';
+import Entity from './entity/Entity';
+import AiSystem from './entity/ai/System';
+import Manager from './entity/Manager';
+
+//import SimplePhysicsEngine from './physics/SimplePhysicsEngine'
+import type AssetLoader from './assets/AssetLoader'
+import type EventEmitter from './misc/EventEmitter'
 
 /**
  * This class represents an instance of the game world,
  * where all data pertaining to the current state of the
  * world is saved.
  */
-class GameWorld extends GameMap {
+export default class GameWorld {
+  id: string
+  gameEngine: GameEngine
+  entityManager: Manager
+  aiSystem: AiSystem
+  maps: Map<string, GameMap>
+  settings: Object
+
+  stepCount: number
+
+
   /**
    * Constructor of the World instance
    */
-  constructor(gameEngine: GameEngine) {
-    super(gameEngine)
+  constructor(gameEngine: GameEngine, settings: Object) {
+    this.id = settings.id ? settings.id : 'default'
+
+    this.gameEngine = gameEngine
+    this.settings = settings
+
+    this.aiSystem = new AiSystem(this)
+    this.entityManager = new Manager(gameEngine)
 
     this.stepCount = 0
-    this.objects = new Map()
-    this.playerCount = 0
-    this.idCount = 0
+
+
+    /*this.physicsEngine = new SimplePhysicsEngine({
+  gameEngine: this,
+  collisions: {
+    type: `brute`
+  }
+})*/
+
+    this.events.on(`Map:Loading`, this.onMapLoading, this)
+    this.events.on(`Map:Loaded`, this.onMapLoaded, this)
+    this.events.on(`Map:NewEntity`, this.onNewEntity, this)
+
+
+
+    this.maps = new Map()
   }
 
   /**
-   * Returns all the game world objects which match a criteria
-   * @param {Object} query The query object
-   * @param {Object} [query.id] object id
-   * @param {Object} [query.playerId] player id
-   * @param {Class} [query.instanceType] matches whether `object instanceof instanceType`
-   * @param {Array} [query.components] An array of component names
-   * @param {Boolean} [query.returnSingle] Return the first object matched
-   * @returns {Array | Object} All game objects which match all the query parameters, or the first match if returnSingle was specified
+   *
+   * @returns {AssetLoader}
    */
-  queryObjects(query) {
-    let queriedObjects = []
-
-    // todo this is currently a somewhat inefficient implementation for API testing purposes.
-    // It should be implemented with cached dictionaries like in nano-ecs
-
-    for (let [id, object] of this.objects) {
-      let conditions = []
-
-      // object id condition
-      conditions.push(
-        !(`id` in query) || (query.id !== null && object.id === query.id)
-      )
-
-      // player id condition
-      conditions.push(
-        !(`playerId` in query) ||
-          (query.playerId !== null && object.playerId === query.playerId)
-      )
-
-      // instance type conditio
-      conditions.push(
-        !(`instanceType` in query) ||
-          (query.instanceType !== null && object instanceof query.instanceType)
-      )
-
-      // components conditions
-      if (`components` in query) {
-        query.components.forEach(componentClass => {
-          conditions.push(object.hasComponent(componentClass))
-        })
-      }
-
-      // all conditions are true, object is qualified for the query
-      if (conditions.every(value => value)) {
-        if (query.returnSingle) return object
-        queriedObjects.push(object)
-      }
-    }
-
-    // return a single object or null
-    if (query.returnSingle) {
-      return queriedObjects.length > 0 ? queriedObjects[0] : null
-    }
-
-    return queriedObjects
+  get assetLoader(): AssetLoader {
+    return this.gameEngine.assetLoader
   }
 
   /**
-   * Returns The first game object encountered which matches a criteria.
-   * Syntactic sugar for {@link queryObject} with `returnSingle: true`
-   * @param query See queryObjects
-   * @returns {Object}
+   *
+   * @returns {EventEmitter}
    */
-  queryObject(query) {
-    return this.queryObjects(
-      Object.assign(query, {
-        returnSingle: true
-      })
-    )
+  get events(): EventEmitter {
+    return this.gameEngine.events
   }
+
+  get trace(): Trace {
+    return this.gameEngine.trace
+  }
+
+  /**
+   *
+   * @param location
+   * @returns {*}
+   */
+  findMapByLocation(location: Location): ?GameMap {
+    for (const [id, map] of this.maps) {
+      return map // TODO
+    }
+  }
+
+  /**
+   *
+   * @param id
+   * @returns {GameMap<>}
+   */
+  getMap(id: string): ?GameMap {
+    return this.maps.get(id)
+  }
+
+  /**
+   *
+   * @param options
+   * @returns {GameMap}
+   */
+  mapFactory(options: Object): GameMap {
+    return new GameMap(this, options)
+  }
+
+  /**
+   *
+   * @returns {Promise<*>}
+   * @param options
+   */
+  addMap(options: Object) {
+    const map = this.mapFactory(options)
+    this.maps.set(options.id, map)
+
+    return map
+  }
+
+  /**
+   *
+   * @param id
+   * @returns {Promise<null>}
+   */
+  async loadMap(id: string): Promise<?GameMap> {
+    let path = AGate.getDataPath(id)
+    const map = this.maps.get(id)
+
+    const loaded = await map.load(path)
+    if (!loaded) {
+      return null
+    }
+  }
+
 
   /**
    * Add an object to the game world
    * @param {Object} object object to add
    */
   addObject(object) {
-    this.objects.set(object.id, object)
-    object.world = this
-
-    if (typeof object.onAddToWorld === `function`) { object.onAddToWorld(this) }
+    object.onAddToWorld(this)
   }
 
   /**
@@ -109,25 +148,146 @@ class GameWorld extends GameMap {
    * @param {number} id id of the object to remove
    */
   removeObject(id) {
-    if (typeof object.onRemoveFromWorld === `function`)
-      object.onRemoveFromWorld(this)
-
-    this.objects.remove(id)
-    object.world = null
+      //object.onRemoveFromWorld(this)
   }
 
   /**
-   * World object iterator.
-   * Invoke callback(objId, obj) for each object
    *
-   * @param {function} callback function receives id and object. If callback returns false, the iteration will cease
+   * @returns {*}
    */
-  forEachObject(callback) {
-    for (let id of Object.keys(this.objects)) {
-      let returnValue = callback(id, this.objects[id]) // TODO: the key should be Number(id)
-      if (returnValue === false) break
+  getDynamicEntities(): Map<string, Entity> {
+    return this.entityManager.getDynamicEntities()
+  }
+
+  /**
+   *
+   * @param id
+   * @returns {?Entity}
+   */
+  getDynamicEntity(id: string): ?Entity {
+    return this.entityManager.getDynamicEntity(id)
+  }
+
+  /**
+   *
+   * @param location
+   * @returns {Promise<Entity>}
+   */
+  async addPlayer(location: Location): Promise<Entity> {
+    let player = await this.loadPlayer()
+
+    if (location && player[`Base`]) {
+      player[`Base`].location = Location.transformToRaw(location)
     }
+
+    //await this.sectors.load(location.sectorX, location.sectorY)
+
+    let id = `0` // AGate.Utils.getFileBase(path)
+    let entity = await this.entityManager.newEntity(id, player)
+
+    this.gameEngine.addDynamicEntityToWorld(entity)
+    return entity
+  }
+
+
+  /**
+   *
+   * @returns {Promise<*>}
+   */
+  async loadPlayer(): Entity {
+    let file = `16086.json`
+    let path = AGate.getAppPath(file)
+
+    let data = await this.assetLoader.loadJsonFile(path)
+
+    return data
+  }
+
+
+  /**
+   *
+   * @param settings
+   * @returns {Promise<void>}
+   */
+  async init(settings: Object) {
+    await this.entityManager.loadPrototypes()
+  }
+
+  /**
+   *
+   * @returns {Promise<void>}
+   */
+  async start() {
+    this.entityManager.start()
+  }
+
+  /**
+   *
+   */
+  async update(params: Object) {
+    // if (!this.isLoaded) {
+    //   return
+    // }
+
+    /*let promises = []
+    for (let col = 0; col < this.height; col++) {
+      for (let row = 0; row < this.width; row++) {
+        let sector = this.sectors[col][row]
+        if (!sector) {
+          continue
+        }
+
+        promises.push(sector.update())
+      }
+    }
+
+    await Promise.all(promises)
+*/
+
+    // for each object
+    // - apply incremental bending
+    // - refresh object positions after physics
+    const entities = this.getDynamicEntities()
+    for (const [id, entity] of entities) {
+      if (typeof entity.refreshFromPhysics === `function`) {
+        entity.refreshFromPhysics()
+      }
+
+      this.trace.trace(
+        () =>
+          `object[${entity.id}] after ${
+            state.isReenact ? `reenact` : `step`
+            } : ${entity.toString()}`
+      )
+    }
+
+    await this.entityManager.update()
+  }
+
+
+  /**
+   *
+   * @param map
+   */
+  onMapLoading(map: GameMap) {
+
+  }
+
+  /**
+   *
+   * @param map
+   */
+  onMapLoaded(map: GameMap) {
+
+  }
+
+  /**
+   *
+   * @param map
+   * @param entity
+   */
+  onNewEntity(map: GameMap, entity: Entity) {
+    entity.onAddToWorld(this)
   }
 }
 
-export default GameWorld

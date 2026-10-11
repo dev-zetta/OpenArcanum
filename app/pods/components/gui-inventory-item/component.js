@@ -23,8 +23,10 @@ class GuiInventoryItem extends GuiWidget {
   setEntity(entity) {
     this.entity = entity
 
+    const engine = AGate.engine
+
     let art = entity.Item ? entity.Item.inventory : entity.Visual.current
-    let path = AGate.client.getGfxPath(art)
+    let path = engine.client.getGfxPath(art)
     let url = AGate.getGfxUrl(path)
 
     //console.error(art, builder.toPath(), url)

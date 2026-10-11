@@ -1,11 +1,6 @@
 import DS from 'ember-data'
 import { computed } from '@ember/object'
-/*
-import {
-  fragment
-  //fragmentArray,
-  //array
-} from 'ember-data-model-fragments/attributes';*/
+
 
 const { Model, attr, hasMany, belongsTo } = DS
 

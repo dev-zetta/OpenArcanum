@@ -1,4 +1,5 @@
 import EventEmitter from 'eventemitter3'
+import Utils from './Utils';
 
 const SIXTY_PER_SEC = 1000 / 60
 const LOOP_SLOW_THRESH = 0.3
@@ -38,7 +39,7 @@ export default class Scheduler {
   // this is known to happen during the first 100ms of a touch event
   // on android chrome.  Double-check the game loop using requestAnimationFrame
   nextTickChecker() {
-    let currentTime = new Date().getTime()
+    let currentTime = Utils.getCurrentTimestamp()
     if (currentTime > this.nextExecTime) {
       this.delayCounter++
       this.callTick()
@@ -48,7 +49,7 @@ export default class Scheduler {
   }
 
   nextTick() {
-    let stepStartTime = new Date().getTime()
+    let stepStartTime = Utils.getCurrentTimestamp()
     if (
       stepStartTime >
       this.nextExecTime + this.options.period * LOOP_SLOW_THRESH
@@ -62,7 +63,7 @@ export default class Scheduler {
     this.requestedDelay = 0
     setTimeout(
       this.nextTick.bind(this),
-      this.nextExecTime - new Date().getTime()
+      this.nextExecTime - Utils.getCurrentTimestamp()
     )
   }
 
@@ -80,11 +81,7 @@ export default class Scheduler {
    */
   start() {
     setTimeout(this.nextTick.bind(this))
-    if (
-      typeof window === `object` &&
-      typeof window.requestAnimationFrame === `function`
-    )
-      window.requestAnimationFrame(this.nextTickChecker.bind(this))
+    global.requestAnimationFrame(this.nextTickChecker.bind(this))
     return this
   }
 

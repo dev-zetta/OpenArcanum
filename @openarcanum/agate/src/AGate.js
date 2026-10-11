@@ -5,9 +5,9 @@ import Math from './shared/misc/Math'
 import Database from './shared/realm/Database'
 import EventEmitter from './shared/misc/EventEmitter'
 import WorkerPool from './shared/misc/WorkerPool'
-import ClientEngine from './client/ClientEngine'
+
 import GameEngine from './shared/GameEngine'
-import ServerEngine from './server/ServerEngine'
+
 import AssetLoader from './shared/assets/AssetLoader'
 
 global.lll = console.warn
@@ -23,8 +23,7 @@ class AGateEngine {
   workerPool: WorkerPool
   assetLoader: AssetLoader
   database: Database
-  client: ClientEngine
-  server: ServerEngine
+
   gameOptions: Object
   _engine: GameEngine
 
@@ -132,55 +131,12 @@ class AGateEngine {
   /**
    *
    */
-  createEngine() {
+  createEngine(): GameEngine {
     this._engine = new GameEngine(this, this.gameOptions)
-  }
-
-  async init() {
-    await this.assetLoader.initialize()
-    await this.database.initialize()
-    await this.engine.init()
-
-    if (this.config.server) {
-      await this.createServer()
-    }
+    return this._engine
   }
 
 
-  /**
-   *
-   * @param canvas
-   * @returns {Promise<void>}
-   */
-  async createClient(canvas: HTMLCanvasElement): Promise<*> {
-    await this.init()
-
-    this.engine.events.on(`Client:Created`, this.onClientCreated, this)
-    this.client = new ClientEngine(this.engine, this.gameOptions)
-
-    await this.client.create(canvas)
-    await this.engine.load()
-  }
-
-  /**
-   *
-   */
-  async createServer() {
-    let config = this.getConfig('server')
-    this.server = new ServerEngine(this.engine, {
-      listenPort: config.listenPort,
-      debug: {},
-      updateRate: 6,
-      timeoutInterval: 0 // no timeout
-    })
-
-    return this.server.start()
-  }
-
-  onClientCreated() {
-
-
-  }
 
 
 }

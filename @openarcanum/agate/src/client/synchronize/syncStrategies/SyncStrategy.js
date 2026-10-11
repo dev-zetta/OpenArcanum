@@ -93,13 +93,13 @@ export default class SyncStrategy {
     })
 
     // enforce object implementations of syncTo
-    if (!curObj.__proto__.hasOwnProperty(`syncTo`)) {
-      lle(newObj)
-      throw `GameObject of type ${curObj.class} does not implement the syncTo() method, which must copy the netscheme`
-    }
+    // if (!curObj.__proto__.hasOwnProperty(`syncTo`)) {
+    //   lle(newObj)
+    //   throw `GameObject of type ${curObj.class} does not implement the syncTo() method, which must copy the netscheme`
+    // }
 
     curObj.syncTo(newObj)
-    this.gameEngine.addObjectToWorld(curObj)
+    this.gameEngine.addDynamicEntityToWorld(curObj)
     if (this.clientEngine.options.verbose)
       console.log(`adding new object ${curObj}`)
 
@@ -109,19 +109,21 @@ export default class SyncStrategy {
   // sync to step, by applying bending, and applying the latest sync
   syncStep(stepDesc) {
     // apply incremental bending
-    this.gameEngine.world.forEachObject((id, o) => {
-      if (typeof o.applyIncrementalBending === `function`) {
-        o.applyIncrementalBending(stepDesc)
-        o.refreshToPhysics()
+    let entities = this.clientEngine.world.getDynamicEntities()
+    for (const [id, entity] of entities) {
+      if (typeof entity.applyIncrementalBending === `function`) {
+        entity.applyIncrementalBending(stepDesc)
+        entity.refreshToPhysics()
       }
-    })
+    }
+
 
     // apply all pending required syncs
     while (this.requiredSyncs.length) {
       let requiredStep = this.requiredSyncs[0].stepCount
 
       // if we haven't reached the corresponding step, it's too soon to apply syncs
-      if (requiredStep > this.gameEngine.world.stepCount) return
+      if (requiredStep > this.clientEngine.world.stepCount) {return}
 
       this.gameEngine.trace.trace(
         () => `applying a required sync ${requiredStep}`

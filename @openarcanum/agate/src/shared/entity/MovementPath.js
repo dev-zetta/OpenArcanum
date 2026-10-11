@@ -13,8 +13,8 @@ export default class MovementPath {
   movedDistance: number
   nextTo: boolean
 
-  velocity: Array<number>
-  directionName: string
+  velocity: Location
+  directionName: ?string
 
   /**
    *
@@ -26,6 +26,7 @@ export default class MovementPath {
     this.waypointElapsed = 0
     this.movedDistance = 0
     this.nextTo = false
+    this.directionName = null
   }
 
   get currentWaypoint() {
@@ -38,6 +39,10 @@ export default class MovementPath {
 
   get lastWaypoint() {
     return this.waypoints[this.waypoints.length - 1]
+  }
+
+  valid() {
+    return this.waypoints.length > 0
   }
 
   /**
@@ -63,6 +68,10 @@ export default class MovementPath {
 
   isTargetSame(location) {
     return location.equals(this.lastWaypoint)
+  }
+
+  directionTo(entity) {
+
   }
 
   /**
@@ -104,21 +113,21 @@ export default class MovementPath {
     if (this.currentIndex + 1 >= this.waypoints.length) {
       //if (entity.moved) {
       //
-      this.processVisual(entity, null, null)
+      //this.processVisual(entity, null, null)
       //}
 
       return false
     }
 
-    if (this.nextTo && this.currentIndex + 2 === this.waypoints.length) {
+    if (this.nextTo && (this.currentIndex + 2 === this.waypoints.length)) {
       this.currentIndex++
-      this.processVisual(entity, null, null)
-      lll(
-        `movement finished`,
-        this.currentIndex,
-        this.waypoints.length,
-        this.waypoints
-      )
+      //this.processVisual(entity, null, null)
+      // lll(
+      //   `movement finished`,
+      //   this.currentIndex,
+      //   this.waypoints.length,
+      //   this.waypoints
+      // )
       return false
     }
 
@@ -131,7 +140,6 @@ export default class MovementPath {
     //lll(elapsed, delta, this.velocity)
 
     this.processMovement(entity, delta[0], delta[1])
-    this.processVisual(entity, delta[0], delta[1])
     return true
   }
 
@@ -154,8 +162,7 @@ export default class MovementPath {
       if (location.equals(nextWaypoint)) {
         // we entered to destination waypoint
         const currentWaypoint = this.currentWaypoint
-
-        entity.onTileEnter(currentWaypoint, nextWaypoint)
+        entity.world.moveEntity(entity, currentWaypoint, nextWaypoint)
 
         this.movedDistance++
         this.currentIndex++
@@ -164,40 +171,6 @@ export default class MovementPath {
     }
 
     return moved
-  }
-
-  /**
-   *
-   * @param entity
-   * @param dx
-   * @param dy
-   * @returns {boolean}
-   */
-  processVisual(entity: Entity, dx: ?number, dy: ?number) {
-    let visualClass = entity.visual.getCurrent()
-
-    if (!visualClass) {
-      lll(`visual not found`, entity)
-      return false
-    }
-
-    let sprite = visualClass.sprite
-    if (!sprite || !sprite.isValid()) {
-      //lll('sprite not found', entity)
-      return false
-    }
-
-    sprite.setStage(this.directionName)
-
-    if (dx !== null && dy !== null) {
-      //lll('sprite move', dx, dy)
-      const { location, offset } = entity.base
-      //lll('aaa', sprite.iso.isoPosition, dx, dy, offset)
-      sprite.setPosition(location.x * 40 + offset.x, location.y * 40 + offset.y)
-      //lll('aab', sprite.iso.isoPosition)
-    }
-
-    return true
   }
 
   /**

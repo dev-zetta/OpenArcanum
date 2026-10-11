@@ -2,6 +2,8 @@
 import Serializable from './Serializable'
 import BaseTypes from './BaseTypes'
 import type GameWorld from '../GameWorld'
+import type GameMap from '../map/GameMap'
+import type Manager from '../entity/Manager';
 
 /**
  * GameObject is the base class of all game objects.
@@ -10,9 +12,8 @@ import type GameWorld from '../GameWorld'
  * Game developers will use one of the subclasses such as DynamicObject,
  * or PhysicalObject.
  */
-class GameObject extends Serializable {
-  world: GameWorld
-
+export default class GameObject extends Serializable {
+  map: GameMap
 
   static get netScheme() {
     return {
@@ -50,6 +51,10 @@ class GameObject extends Serializable {
 
   }
 
+  get world(): GameWorld {
+    return this.map.world
+  }
+
   init(params, data) {
     super.init(params, data)
 
@@ -81,14 +86,18 @@ class GameObject extends Serializable {
    * and any other resources that should be created
    * @param {GameWorld} world
    */
-  onAddToWorld(world) {}
+  onAddToWorld(world) {
+
+  }
 
   /**
    * Called after the object is removed from game-world.
    * This is where renderer sub-objects and any other resources should be freed
    * @param {GameWorld} world
    */
-  onRemoveFromWorld(world) {}
+  onRemoveFromWorld(world) {
+   // this.world = null
+  }
 
   /**
    * Formatted textual description of the game object.
@@ -186,4 +195,3 @@ class GameObject extends Serializable {
   destroy() {}
 }
 
-export default GameObject

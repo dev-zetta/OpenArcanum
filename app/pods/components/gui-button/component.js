@@ -16,6 +16,22 @@ class GuiButton extends GuiWidget {
   @attribute
   onClick = null
 
+  didInsertElement() {
+    super.didInsertElement(...arguments);
+    this.element.addEventListener('mouseenter', this.onMouseEnter)
+    this.element.addEventListener('mouseleave', this.onMouseLeave)
+    this.element.addEventListener('mousedown', this.onMouseDown)
+    this.element.addEventListener('mouseup', this.onMouseUp)
+  }
+
+  willDestroyElement() {
+    super.willDestroyElement(...arguments);
+    this.element.removeEventListener('mouseenter', this.onMouseEnter)
+    this.element.removeEventListener('mouseleave', this.onMouseLeave)
+    this.element.removeEventListener('mousedown', this.onMouseDown)
+    this.element.removeEventListener('mouseup', this.onMouseUp)
+  }
+
   /**
    *
    */
@@ -55,25 +71,29 @@ class GuiButton extends GuiWidget {
     this.set(`toggled`, !toggled)
   }
 
-  mouseEnter() {
+  @action
+  onMouseEnter() {
     if (!this.get(`toggled`)) {
       this.changeFrame(2)
     }
   }
 
-  mouseLeave() {
+  @action
+  onMouseLeave() {
     if (!this.get(`toggled`)) {
       this.changeFrame(0)
     }
   }
 
-  mouseDown() {
+  @action
+  onMouseDown() {
     if (!this.get(`toggled`)) {
       this.changeFrame(1)
     }
   }
 
-  mouseUp() {
+  @action
+  onMouseUp() {
     if (!this.get(`toggled`)) {
       this.changeFrame(2)
     }

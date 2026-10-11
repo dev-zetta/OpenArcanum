@@ -1,15 +1,16 @@
 //@flow
-import Evaluator from './Evaluator'
-import Evaluators from './Evaluators'
+import Actor from './Actor'
 import type GameWorld from '../../GameWorld'
 import type Entity from '../Entity'
 import Utils from '../../misc/Utils'
 import Action from './Action'
+import Actions from './actions'
+import * as Actors from './actors'
 
 export default class System {
   world: GameWorld
   actions: Map<string, any>
-  evaluators: Map<string, any>
+  actors: Map<string, any>
 
   /**
    *
@@ -18,10 +19,10 @@ export default class System {
   constructor(world: GameWorld) {
     this.world = world
     this.actions = new Map()
-    this.evaluators = new Map()
+    this.actors = new Map()
 
     this.loadActions()
-    this.loadEvaluators()
+    this.loadActors()
   }
 
   /**
@@ -50,19 +51,19 @@ export default class System {
   /**
    *
    */
-  loadEvaluators() {
-    for (let key in Evaluators) {
-      this.newEvaluator(key)
+  loadActors() {
+    for (let key in Actors) {
+      this.newActor(key)
     }
   }
 
   /**
    *
    * @param type
-   * @returns {Evaluator}
+   * @returns {Actor}
    */
-  getEvaluator(type: string): Evaluator {
-    return this.newEvaluator(type)
+  getActor(type: string): Actor {
+    return this.newActor(type)
   }
 
   /**
@@ -70,133 +71,84 @@ export default class System {
    * @param type
    * @returns {*}
    */
-  newEvaluator(type: string): Evaluator {
+  newActor(type: string): Actor {
     if (!type) {
-      let evaluator = new Evaluator(this)
+      let actor = new Actor(this)
 
-      return evaluator
+      return actor
     }
 
-    let evaluator = this.evaluators.get(type)
+    let actor = this.actors.get(type)
 
-    if (evaluator) {
-      return evaluator
+    if (actor) {
+      return actor
     }
 
-    evaluator = new Evaluator(this)
+    let actorClass = Actors[type]
 
-    let data = Evaluators[type]
+    actor = new actorClass(this)
+
+    let data = Actors[type]
     if (!data) {
-      Utils.logError(`No data for evaluator: ${type}`)
-      return evaluator
+      Utils.logError(`No data for actor: ${type}`)
+      return actor
     }
 
-    for (let key in data.actions) {
-      let actionClass = data.actions[key] //this.actions.get(key)
-      if (!actionClass) {
+    let scheme = actor.scheme
+
+    this.loadActions(scheme)
+
+    this.actors.set(type, actor)
+    return actor
+  }
+
+  /**
+   *
+   * @param scheme
+   * @returns {*}
+   */
+  loadActions(scheme: Object): Object {
+
+    if (!scheme) {
+      return
+    }
+
+
+
+    let actions = new Map()
+    let actionCount = 0
+    for (let actionName in scheme.actions) {
+      let action = Actions[actionName]
+
+      if (!action) {
         Utils.logError(`Unknown action: ${key}`)
         continue
       }
 
-      let options = {}
-      evaluator.addAction(key, actionClass, options)
+      let actionScheme = scheme.actions[actionName]
+      actionScheme.action = action.Action
+      actionScheme.rules = action.Rules
+      this.loadActions(actionScheme)
+
+      actions.set(actionName, actionScheme)
+      actionCount++
     }
 
-    this.evaluators.set(type, evaluator)
-    return evaluator
-  }
-
-  updateEntity(entity: Entity, elapsed: number) {
-    let evaluator = this.getEvaluator(entity.base.type)
-
-    let context = {
-      entity
-    }
-    let evaluation = evaluator.process(context)
-
-
-
-    let { aiState } = entity.critter
-    for (let [name, action] of aiState.actions) {
-      if (action.name === evaluation.name) {
-
-        if (!action.finished) {
-          evaluation.score = Action.Impossible
-        }
-      }
-
-      this.updateAction(action, elapsed)
-    }
-
-    if (evaluation.score > 0 && evaluation.action) {
-      // Call AI action
-      let action = this.newAction(evaluation.action, evaluation.context)
-      this.startAction(action, evaluation.context)
-    }
-
-
+    scheme.actions = actions
+    scheme.totalActions = actionCount
+    return scheme
   }
 
   /**
    *
-   * @param actionClass
-   * @param context
-   */
-  newAction(actionClass: string|Class<Action>, context: Object): Action {
-
-    let { entity } = context
-
-
-    let evaluator = this.getEvaluator(entity.base.type)
-    if (Utils.isString(actionClass )) {
-      actionClass = evaluator.getAction(actionClass)
-    }
-
-
-    if (!actionClass) {
-      lll(`!Action not found`, name)
-      return null
-    }
-
-    lll('new action', actionClass)
-    let action = new actionClass(evaluator, context)
-    return action
-  }
-
-  /**
-   *
-   * @param action
-   * @param context
-   */
-  startAction(action: Action, context: Object) {
-    let { entity } = context
-    let { critter } = entity
-
-    //ll(`action`, action, entity.id)
-    critter.aiState.addAction(action)
-    action.start(context)
-
-  }
-
-  /**
-   *
-   * @param action
+   * @param entity
    * @param elapsed
-   * @returns {boolean}
    */
-  updateAction(action: Action, elapsed: number): boolean {
-    if (action.finished) {
-      this.actions.delete(action.name)
+  updateEntity(entity: Entity, elapsed: number) {
+    let actor = this.getActor(entity.base.type)
 
-      return true
-    }
-
-    let updated = action.update(elapsed)
-
-    if (!updated) {
-      //action.stop()
-    }
-
-    return updated
+    actor.updateEntity(entity, elapsed)
   }
+
+
 }

@@ -351,7 +351,7 @@ class GuiWidget extends Component {
    * @returns {boolean}
    */
   emitOwnEvent(name, ...args) {
-    Utils.log(`emitOwnEvent`, this.getId(), name)
+    //Utils.log(`emitOwnEvent`, this.getId(), name)
     let events = this.getEvents()
     if (events) {
       let method = events[name]
@@ -437,8 +437,8 @@ class GuiWidget extends Component {
   /**
    *
    */
-  isVisible() {
-    return this.get(`widget.visible`)
+  isHidden() {
+    return !this.get(`widget.visible`)
   }
 
   /**
@@ -472,7 +472,7 @@ class GuiWidget extends Component {
    * @param animation
    */
   show() {
-    if (this.isVisible()) {
+    if (!this.isHidden()) {
       return
     }
 
@@ -484,7 +484,7 @@ class GuiWidget extends Component {
    * @param animation
    */
   hide() {
-    if (!this.isVisible()) {
+    if (this.isHidden()) {
       return
     }
 
@@ -496,8 +496,8 @@ class GuiWidget extends Component {
    * @param animation
    */
   toggle() {
-    let visible = this.isVisible()
-    this.setVisibility(!visible)
+    let hidden = this.isHidden()
+    this.setVisibility(!hidden)
   }
 
   /**
@@ -505,7 +505,7 @@ class GuiWidget extends Component {
    * @param animation
    */
   showWithAnim(animation = `show-in`) {
-    if (this.isVisible()) {
+    if (!this.isHidden()) {
       return
     }
 
@@ -519,7 +519,7 @@ class GuiWidget extends Component {
    * @param animation
    */
   hideWithAnim(animation = `show-out`) {
-    if (!this.isVisible()) {
+    if (this.isHidden()) {
       return
     }
 
@@ -533,7 +533,7 @@ class GuiWidget extends Component {
    * @param animation
    */
   toggleWithAnim(animation = [`show-in`, `show-out`]) {
-    let visible = this.isVisible()
+    let visible = !this.isHidden()
     this.startAnimation(visible ? animation[1] : animation[0], {}, () => {
       this.setVisibility(!visible, true)
     })

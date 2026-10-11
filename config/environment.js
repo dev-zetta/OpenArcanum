@@ -1,6 +1,6 @@
 'use strict'
 
-const config = require('../config.json')
+const config = require('./project')()
 
 module.exports = function(environment) {
   let ENV = {

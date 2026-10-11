@@ -1,19 +1,26 @@
 // @flow
 
-import ClientNetwork from './ClientNetwork'
+import ClientNetwork from './network/ClientNetwork'
 import Scene from './Scene'
 import Manager from './Gui'
 import Renderer from './Renderer'
 import Utils from './Utils'
+import EntityUtils from '../shared/entity/Utils'
 import type GameEngine from '../shared/GameEngine'
 import type GameMap from '../shared/map/GameMap'
 import type AssetLoader from '../shared/assets/AssetLoader';
 import type EventEmitter from '../shared/misc/EventEmitter';
 import GfxPathBuilder from '../shared/assets/GfxPathBuilder';
+import Player from '../shared/player/Player'
+import StepState from '../shared/StepState';
+import * as PlayerLogic from './logic/player'
 
 export default class ClientEngine extends ClientNetwork {
-  socket: Object // IO socket from lance
   renderer: Renderer
+  scene: Scene
+  guiManager: Manager
+  player: Player
+  commandEvaluators: Map<string, Object>
 
   /**
    *
@@ -30,9 +37,6 @@ export default class ClientEngine extends ClientNetwork {
     )
 
     super(gameEngine, options)
-    this.gameEngine.client = this
-
-
     this.guiManager = new Manager(gameEngine)
     this.player = null
 
@@ -40,13 +44,15 @@ export default class ClientEngine extends ClientNetwork {
     this.events.on(`Map:Loaded`, this.onMapLoaded, this)
     this.events.on(`Scene:Created`, this.onSceneCreated, this)
     this.events.on(`Object:Click`, this.onObjectClick, this)
+    this.events.on(`Object:Updated`, this.onObjectUpdated, this)
+    this.events.on('Game:Start', this.onStartGame, this)
 
-    // https://github.com/lance-gg/spaaace/blob/master/src/client/SpaaaceClientEngine.js
-    this.networkMonitor.events.on(`RTTUpdate`, (e) => {
-      //this.renderer.updateHUD(e);
-    })
+    this.commandEvaluators = new Map()
 
-    //this.socket.emit('requestRestart');
+    //this.events.on(`player.command`, this.onPlayerCommand, this)
+
+    this.addCommandEvaluators(`Player`, PlayerLogic)
+
   }
 
   /**
@@ -56,15 +62,6 @@ export default class ClientEngine extends ClientNetwork {
   get assetLoader(): AssetLoader {
     return this.gameEngine.assetLoader
   }
-
-  /**
-   *
-   * @returns {EventEmitter}
-   */
-  get events(): EventEmitter {
-    return this.gameEngine.events
-  }
-
 
 
   /**
@@ -86,7 +83,7 @@ export default class ClientEngine extends ClientNetwork {
     lll('Client: Creating gameEngine')
 
 
-    this.scene = new Scene(this, canvas)
+    this.scene = new Scene(this)
     await this.scene.create(canvas)
     await this.guiManager.loadAssets()
 
@@ -97,118 +94,64 @@ export default class ClientEngine extends ClientNetwork {
       //this.scene.resizeViewport(rect.width, rect.height)
     })*/
 
-    /*this.listenUI(`game.reload`, () => {
-      this.start()
-    })*/
-
     this.listenUI('startGameBtn:click', () => {
-      this.onStartGame()
+      this.events.emit('Game:Start')
     })
 
     //this.events.on(`objectAdded`, this.onObjectAdded.bind(this))
   }
 
+  /**
+   *
+   * @returns {Promise<void>}
+   */
   async onStartGame() {
     await this.start()
     await this.connect()
-
-    await this.gameEngine.world.start()
-
-    let entities = this.gameEngine.world.objects
-
-    for (let [id, entity] of entities) {
-      this.onObjectAdded(entity)
-    }
   }
 
-  onObjectAdded(entity) {
-    let dialogWin = this.guiManager.findWidget('dialogWin')
-
-    let { classes } = entity.visual
-    if (!classes) {
-      return
-    }
-
-    let { sprite } = classes.current
-    if (!sprite) {
-      return
-    }
-
-    let position = sprite.getGlobalPosition()
-
-
-    let model = dialogWin.createChild({
-      id: entity.id,
-      type: `text`,
-      position: [position.x, position.y],
-      size: [100, 50],
-      value: `${entity.id}`,
-      style: { background: `rgba(255, 255, 255, 0.8)`},
-      options: {
-
-      }
-    })
-
-
-  }
-
-
+  /**
+   *
+   */
   updateEntities() {
-    let entities = this.gameEngine.world.objects
+    let entities = this.world.getDynamicEntities()
 
     for (let [id, entity] of entities) {
       this.updateEntity(entity)
     }
   }
 
-  updateEntity(entity) {
-    let { classes } = entity.visual
-    if (!classes) {
-      return
-    }
-
-    let { sprite } = classes.current
-    if (!sprite) {
-      return
-    }
-
-    let position = sprite.getGlobalPosition()
-
-    let dialogWin = this.guiManager.findWidget('dialogWin')
-    if (!dialogWin) {
-      return
-    }
-    let widget = dialogWin.getChild(entity.id)
-  if (!widget) {
-    return
+  /**
+   *
+   * @param entity
+   */
+  updateEntity(entity: Entity) {
+    this.guiManager.updateEntityBubble(entity)
   }
 
-    let bubbleWidth = 100
-    let bubbleHeight = 50
+  /**
+   *
+   * @param state
+   */
+  step(state: StepState) {
+    if (!this.world) {
+      return
+    }
 
-    widget.setValue(`${position.x}, ${position.y}`)
-    widget.setPosition(position.x - bubbleWidth /2, position.y - bubbleHeight)
-  }
-
-  step(t, dt, physicsOnly) {
-    super.step(t, dt, physicsOnly)
+    super.step(state)
     this.updateEntities()
   }
-
-
 
   /**
    *
    */
   async start() {
-    lll('Client: Starting gameEngine')
+    lll('Client: Starting')
 
     await this.scene.start()
 
     await super.start()
     //await this.connect()
-
-    lll(`Client - Starting`)
 
     this.events.emit(`Client:Started`, `default`)
 
@@ -221,28 +164,37 @@ export default class ClientEngine extends ClientNetwork {
     //}
 
     //play sound when user fire missle
-    this.events.on(`fireMissile`, () => {
-      lll(`fireM`)
-
-      if (this.renderer.scene) {
-        //this.renderer.scene.soundFX_lasergun.play();
-      }
-    })
+    // this.events.on(`fireMissile`, () => {
+    //   lll(`fireM`)
+    //
+    //   if (this.renderer.scene) {
+    //     //this.renderer.scene.soundFX_lasergun.play();
+    //   }
+    //})
   }
 
   /**
    *
    * @returns {Promise<void>}
    */
-  async connect() {
+  async connect(options: Object = {}) {
     lll('Client: Joining server')
     const config = this.gameEngine.getConfig(`client`)
     this.options.serverURL = config.serverURL
-    await super.connect()
+    await super.connect(options)
 
-    const player = this.player
-    await this.joinServer({playerId: player.id})
+    await this.joinServer({ login: { user: 'test', password: 'test' } })
   }
+
+
+  /**
+   * Disconnect from game server
+   * @returns {*}
+   */
+  disconnect() {
+    return super.disconnect()
+  }
+
 
   /**
    *
@@ -264,12 +216,30 @@ export default class ClientEngine extends ClientNetwork {
    * @param map
    */
   onMapLoaded(map: GameMap) {
-    let location = map.getStartLocation()
 
-    this.addPlayer(map, location)
 
   }
 
+  /**
+   *
+   * @param entity
+   */
+  onObjectAdded(entity) {
+    this.guiManager.addEntityBubble(entity)
+  }
+
+  /**
+   *
+   * @param entity
+   */
+  onObjectUpdated(entity) {
+
+  }
+
+  /**
+   *
+   * @param gameObject
+   */
   onObjectClick(gameObject: Object) {
     lll(gameObject)
     if (gameObject.data) {
@@ -296,20 +266,11 @@ export default class ClientEngine extends ClientNetwork {
    * @param location
    * @returns {Promise<void>}
    */
-  async addPlayer(map, location) {
-    let player = await map.addPlayer(location)
+  async addPlayer(location: Location) {
+    let player = await this.world.addPlayer(location)
     this.player = player
 
-    await this.scene.onPlayerJoined(player, map)
-    this.events.emit(`Player:Joined`, player, map)
-  }
-
-  /**
-   * Disconnect from game server
-   * @returns {*}
-   */
-  disconnect() {
-    return super.disconnect()
+    this.events.emit(`Player:Joined`, player)
   }
 
   /**
@@ -320,7 +281,7 @@ export default class ClientEngine extends ClientNetwork {
   sendCommand(path: string | Array, command: Object) {
     lll(`Client: Sending command`, path, command)
 
-    let result = this.gameEngine.evaluateCommand(path, command)
+    let result = this.evaluateCommand(path, command)
     let {source, action, data} = result
 
     if (action) {
@@ -332,6 +293,45 @@ export default class ClientEngine extends ClientNetwork {
       type: name,
       command
     })
+  }
+
+  /**
+   *
+   * @param name
+   * @param logics
+   */
+  addCommandEvaluators(name: string, logics: Object) {
+    let instances = new Map()
+    for (let name in logics) {
+      let classType = logics[name]
+      instances.set(name, new classType({ engine: this }))
+    }
+
+    this.commandEvaluators.set(name, instances)
+  }
+
+  /**
+   *
+   * @param path
+   * @param command
+   * @returns {{source: string, name: string, action: *, data: *}}
+   */
+  evaluateCommand(path: Array|string, command: Object) {
+    if (Utils.isString(path)) {
+      path = path.split(`:`)
+    }
+
+    let source = path[0]
+    let name = path[1]
+
+    let evaluators = this.commandEvaluators.get(source)
+
+    let evaluator = evaluators.get(name)
+
+    let result = evaluator.onCommand(command)
+
+    lle(`command`, { command, result })
+    return {source, name, action: result.action, data: result.data}
   }
 
 

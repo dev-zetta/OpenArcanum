@@ -1,5 +1,3 @@
-import BaseTypes from '../serialize/BaseTypes'
-
 import NetworkedEventFactory from './NetworkedEventFactory'
 import NetworkedEventCollection from './NetworkedEventCollection'
 import Utils from '../misc/NetworkUtils'

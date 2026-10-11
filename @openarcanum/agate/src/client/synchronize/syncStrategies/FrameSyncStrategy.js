@@ -6,6 +6,7 @@ const defaults = {
 }
 
 export default class FrameSyncStrategy extends SyncStrategy {
+
   constructor(clientEngine, inputOptions) {
     const options = Object.assign({}, defaults, inputOptions)
     super(clientEngine, options)
@@ -17,11 +18,11 @@ export default class FrameSyncStrategy extends SyncStrategy {
   applySync(sync, required) {
     this.needFirstSync = false
     this.gameEngine.trace.debug(() => `framySync applying sync`)
-    let world = this.gameEngine.world
+    const world = this.clientEngine.world
 
     for (let ids of Object.keys(sync.syncObjects)) {
       let ev = sync.syncObjects[ids][0]
-      let curObj = world.objects[ev.objectInstance.id]
+      let curObj = world.getDynamicEntity(ev.objectInstance.id)
       if (curObj) {
         curObj.syncTo(ev.objectInstance)
       } else {
@@ -30,26 +31,27 @@ export default class FrameSyncStrategy extends SyncStrategy {
     }
 
     // destroy objects
-    for (let objId of Object.keys(world.objects)) {
-      let objEvents = sync.syncObjects[objId]
+    const entities = world.getDynamicEntities()
+    for (let [id, entity] of entities) {
+      let objEvents = sync.syncObjects[id]
 
       // if this was a full sync, and we did not get a corresponding object,
       // remove the local object
       if (
         sync.fullUpdate &&
         !objEvents &&
-        objId < this.gameEngine.options.clientIDSpace
+        id < this.gameEngine.options.clientIDSpace
       ) {
-        this.gameEngine.removeObjectFromWorld(objId)
+        this.gameEngine.removeDynamicEntityFromWorld(id)
         continue
       }
 
-      if (!objEvents || objId >= this.gameEngine.options.clientIDSpace) continue
+      if (!objEvents || id >= this.gameEngine.options.clientIDSpace) {continue}
 
       // if we got an objectDestroy event, destroy the object
       objEvents.forEach((e) => {
         if (e.eventName === `objectDestroy`)
-          this.gameEngine.removeObjectFromWorld(objId)
+          this.gameEngine.removeDynamicEntityFromWorld(id)
       })
     }
 

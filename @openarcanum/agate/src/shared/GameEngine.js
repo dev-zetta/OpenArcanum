@@ -1,45 +1,273 @@
 //@flow
-import GameNetwork from './GameNetwork'
 import type AGateEngine from '../AGate'
 
-import * as PlayerLogic from './logic/player'
+
 import type AssetLoader from './assets/AssetLoader'
 import type EventEmitter from './misc/EventEmitter'
 import type Database from './realm/Database'
-import SimplePhysicsEngine from './physics/SimplePhysicsEngine'
-import Entity from './entity/Entity'
 
-export default class GameEngine extends GameNetwork {
+import Entity from './entity/Entity'
+import Utils from '../shared/misc/Utils'
+import GameWorld from './GameWorld';
+
+import Trace from './misc/Trace';
+import StepState from './StepState';
+import ClientEngine from '../client/ClientEngine';
+import ServerEngine from '../server/ServerEngine';
+
+
+/**
+ * EVENTS
+ */
+
+/**
+ * Marks the beginning of a new game step
+ *
+ * @event GameEngine#preStep
+ * @param {Number} stepNumber - the step number
+ * @param {Boolean} isReenact - is this step a re-enactment
+ */
+
+/**
+ * Marks the end of a game step
+ *
+ * @event GameEngine#postStep
+ * @param {Number} stepNumber - the step number
+ * @param {Boolean} isReenact - is this step a re-enactment
+ */
+
+/**
+ * An object has been added to the world
+ *
+ * @event GameEngine#objectAdded
+ * @param {Object} obj - the new object
+ */
+
+/**
+ * An object has been removed from the world
+ *
+ * @event GameEngine#objectDestroyed
+ * @param {Object} obj - the object
+ */
+
+/**
+ * A player has joined
+ *
+ * @event GameEngine#playerJoined
+ * @param {Number} joinTime - epoch of join time
+ * @param {Object} playerDesc - player descriptor
+ * @param {String} playerDesc.playerId - the player ID
+ */
+
+/**
+ * A player has left
+ *
+ * @event GameEngine#playerDisconnected
+ * @param {Number} joinTime - epoch of join time
+ * @param {Number} disconnectTime - epoch of disconnect time
+ * @param {Object} playerDesc - player descriptor
+ * @param {String} playerDesc.playerId - the player ID
+ */
+
+/**
+ * A player has joined on the server
+ *
+ * @event GameEngine#server__playerJoined
+ * @param {Number} joinTime - epoch of join time
+ * @param {Object} playerDesc - player descriptor
+ * @param {String} playerDesc.playerId - the player ID
+ */
+
+/**
+ * A player has left on the server
+ *
+ * @event GameEngine#server__playerDisconnected
+ * @param {Number} joinTime - epoch of join time
+ * @param {Number} disconnectTime - epoch of disconnect time
+ * @param {Object} playerDesc - player descriptor
+ * @param {String} playerDesc.playerId - the player ID
+ */
+
+/**
+ * A synchronization update arrived from the server
+ *
+ * @event GameEngine#syncReceived
+ * @param {Object} sync - the synchronization object
+ */
+
+/**
+ * Marks the beginning of a game step on the client
+ *
+ * @event GameEngine#client__preStep
+ */
+
+/**
+ * Marks the end of a game step on the client
+ *
+ * @event GameEngine#client__postStep
+ */
+
+/**
+ * An input needs to be handled.  Emitted just before the GameEngine
+ * method processInput is invoked.
+ *
+ * @event GameEngine#processInput
+ * @param {Object} input - input descriptor object
+ * @param {String} input.input - describe the input (e.g. "up", "down", "fire")
+ * @param {Number} input.messageIndex - input identifier
+ * @param {Object} input.options - the object which was passed as SendInput's InputOptions parameter
+ * @param {Number} input.step - input execution step
+ * @param {Number} playerId - the player ID
+ */
+
+/**
+ * An input needs to be handled.
+ * This event is emitted on the server only, just before the
+ * general processInput event.
+ *
+ * @event GameEngine#server__processInput
+ * @param {Object} input - input descriptor object
+ * @param {String} input.input - describe the input (e.g. "up", "down", "fire")
+ * @param {Number} input.messageIndex - input identifier
+ * @param {Object} input.options - the object which was passed as SendInput's InputOptions parameter
+ * @param {Number} input.step - input execution step
+ * @param {Number} playerId - the player ID
+ */
+
+/**
+ * Client moved from one room to another
+ *
+ * @event GameEngine#server__roomUpdate
+ * @param {Number} playerId - the player ID
+ * @param {String} from - the room from which the client came
+ * @param {String} to - the room to which the client went
+ */
+
+/**
+ * An input needs to be handled.
+ * This event is emitted on the client only, just before the
+ * general processInput event.
+ *
+ * @event GameEngine#client__processInput
+ * @param {Object} input - input descriptor object
+ * @param {String} input.input - describe the input (e.g. "up", "down", "fire")
+ * @param {Number} input.messageIndex - input identifier
+ * @param {Object} input.options - the object which was passed as SendInput's InputOptions parameter
+ * @param {Number} input.step - input execution step
+ * @param {Number} playerId - the player ID
+ */
+
+/**
+ * Client received a sync from the server
+ *
+ * @event GameEngine#client__syncReceived
+ * @param {Object} sync - sync from the server
+ * @param {Array} syncEvents - array of events in the sync
+ * @param {Number} maxStepCount - highest step in the sync
+ */
+
+/**
+ * Client moved from one room to another
+ *
+ * @event GameEngine#client__roomUpdate
+ * @param {Number} playerId - the player ID
+ * @param {String} from - the room from which the client came
+ * @param {String} to - the room to which the client went
+ */
+
+/**
+ * Client reset the world step
+ *
+ * @event GameEngine#client__stepReset
+ * @param {Object} resetDesc - sync from the server
+ * @param {Number} oldStep - the old step count
+ * @param {Number} newStep - the new step count
+ */
+
+/**
+ * Marks the beginning of a game step on the server
+ *
+ * @event GameEngine#server__preStep
+ * @param {Number} stepNumber - the step number
+ */
+
+/**
+ * Marks the end of a game step on the server
+ *
+ * @event GameEngine#server__postStep
+ * @param {Number} stepNumber - the step number
+ */
+
+/**
+ * User input received on the server
+ *
+ * @event GameEngine#server__inputReceived
+ * @param {Object} input - input descriptor
+ * @param {Object} input.data - input descriptor
+ * @param {String} input.playerId - player that sent the input
+ */
+
+/**
+ * Report slow frame rate on the browser.
+ * The browser did not achieve a reasonable frame rate
+ *
+ * @event GameEngine#client__slowFrameRate
+ */
+
+/**
+ * server has started
+ *
+ * @event GameEngine#start
+ * @param {Number} timestamp - UTC epoch of start time
+ */
+
+
+/**
+ * The GameEngine contains the game logic.  Extend this class
+ * to implement game mechanics.  The GameEngine derived
+ * instance runs once on the server, where the final decisions
+ * are always taken, and one instance will run on each client as well,
+ * where the client emulates what it expects to be happening
+ * on the server.
+ *
+ * The game engine's logic must listen to user inputs and
+ * act on these inputs to change the game state.  For example,
+ * the game engine listens to controller/keyboard inputs to infer
+ * movement for the player/ship/first-person.  The game engine listens
+ * to clicks, button-presses to infer firing, etc..
+ *
+ * Note that the game engine runs on both the server and on the
+ * clients - but the server decisions always have the final say,
+ * and therefore clients must resolve server updates which conflict
+ * with client-side predictions.
+ */
+
+export default class GameEngine {
+  options: Object
+
   assetLoader: AssetLoader
   events: EventEmitter
   database: Database
-  commandEvaluators: Map<string, Object>
+  client: ClientEngine
+  server: ServerEngine
+
+  physicsEngine: ?Object
+  trace: Trace
 
   /**
    *
    */
   constructor(core: AGateEngine, options: Object) {
-    super(options)
+    const defaultOpts = {traceLevel: Trace.TRACE_ERROR}
+    this.options = Object.assign(defaultOpts, options)
+    this.trace = new Trace({traceLevel: this.options.traceLevel})
     this.core = core
 
     this.assetLoader = core.assetLoader
     this.events = core.eventEmitter
     this.database = core.database
-    this.commandEvaluators = new Map()
 
-    /*this.physicsEngine = new SimplePhysicsEngine({
-      gameEngine: this,
-      collisions: {
-        type: `brute`
-      }
-    })*/
 
-    this.events.on(`Map:Loading`, this.onMapLoading, this)
-    this.events.on(`Map:Loaded`, this.onMapLoaded, this)
-
-    //this.events.on(`player.command`, this.onPlayerCommand, this)
-
-    this.addCommandEvaluators(`Player`, PlayerLogic)
   }
 
   /**
@@ -53,97 +281,46 @@ export default class GameEngine extends GameNetwork {
 
   /**
    *
-   * @param name
-   * @param logics
-   */
-  addCommandEvaluators(name: string, logics: Object) {
-    let instances = new Map()
-    for (let name in logics) {
-      let classType = logics[name]
-      instances.set(name, new classType({ engine: this }))
-    }
-
-    this.commandEvaluators.set(name, instances)
-  }
-
-  async init() {
-    await this.initWorld()
-  }
-
-  /**
-   *
    */
   async load() {
-    let path = this.core.getDataPath(`Bates Mansion Lev 2`)
-    return this.world.load(path)
+
   }
 
-  /**
-   *
-   * @param map
-   */
-  onMapLoading(map: GameMap) {}
 
-  /**
-   *
-   * @param map
-   */
-  onMapLoaded(map: GameMap) {}
 
-  /**
-   *
-   * @param path
-   * @param command
-   * @returns {{source: string, name: string, action: *, data: *}}
-   */
-  evaluateCommand(path: string, command: Object) {
-    path = path.split(`:`)
-    let source = path[0]
-    let name = path[1]
-
-    let evaluators = this.commandEvaluators.get(source)
-
-    let evaluator = evaluators.get(name)
-
-    let result = evaluator.onCommand(command)
-
-    console.log(`command`, { command, result })
-    return {source, name, action: result.action, data: result.data}
-  }
 
   /**
    *
    * @param path
    * @param command
    */
-  sendCommand(path: string | Array, command: Object) {
-    lll(`Game: Sending command`, path, command)
-
-    this.events.emit(`${source}.Command`, {
-      type: name,
-      command
-    })
-  }
+  // sendCommand(path: string | Array, command: Object) {
+  //   lll(`Game: Sending command`, path, command)
+  //
+  //   this.events.emit(`${source}.Command`, {
+  //     type: name,
+  //     command
+  //   })
+  // }
 
   //onPlayerCommand({ player: Entity, type: string }: Object) {}
 
-  /* LANCE */
 
-  async initWorld() {
-    await super.initWorld({
-      //worldWrap: true
-    })
-  }
+
 
   /**
-   * Add object to the game world. On the client side, the object may not be created,
-   * if the server copy of this object is already in the game world. This could happen
-   * when the client is using delayed-input, and the RTT is very low.
-   * @param object
+   * Register Game Object Classes
+   *
+   * @example
+   * registerClasses(serializer) {
+   *   serializer.registerClass(Paddle);
+   *   serializer.registerClass(Ball);
+   * }
+   *
+   * @param {Serializer} serializer - the serializer
    */
-  addObjectToWorld(object: Object): Object {
-    return super.addObjectToWorld(object)
-  }
+  registerClasses(serializer) {}
+
 
   /**
    * Register Game Object Classes
@@ -151,71 +328,68 @@ export default class GameEngine extends GameNetwork {
    */
   registerClasses(serializer: Object) {
     serializer.registerClass(Entity)
-    //serializer.registerClass(Missile);
   }
 
-  /**
-   * Start the game. This method runs on both server and client. Extending the
-   * start method is useful for setting up the game's worldSettings attribute,
-   * and registering methods on the event handler.
-   */
-  async start() {
-    await super.start()
-  }
+
+
 
   /**
-   * Single game step.
-   * @param isReenact
-   * @param time
-   * @param delta
-   * @param physicsOnly
-   */
-  step(isReenact: boolean, time: number, delta: number, physicsOnly: boolean) {
-    super.step(isReenact, time, delta, physicsOnly)
-    this.world.update({ time, delta }).then(() => {})
-  }
-
-  /**
-   * Override this function to implement input handling. This method will be called
-   * on the specific client where the input was received, and will also be called on the server
-   * when the input reaches the server. The client does not call this method directly,
-   * rather the client calls ClientEngine#sendInput so that the input is sent to both server and client,
-   * and so that the input is delayed artificially if so configured.
    *
-   The input is described by a short string, and is given an index. The index is used
-   internally to keep track of inputs which have already been applied on the client
-   during synchronization. The input is also associated with the ID of a player.
-   * @param inputData
-   * @param playerId
-   * @param isServer
+   * @returns {Promise<void>}
    */
-  processCommand(inputData: Object, playerId: number, isServer: boolean) {
-    lll(`processCommand`, { inputData, playerId, isServer })
-    super.processCommand(inputData, playerId, isServer)
+  async init() {
+    await this.assetLoader.initialize()
+    //await this.database.initialize()
+    //await this.engine.init()
 
-    // get the player ship tied to the player socket
-    lle(this.world.queryObject)
-    let playerEntity = this.world.queryObject({
-      //playerId: playerId,
-      id: playerId
-      //instanceType: Entity
+    //if (this.options.server) {
+      await this.createServer()
+    //}
+  }
+
+
+  /**
+   *
+   * @param canvas
+   * @returns {Promise<ClientEngine>}
+   */
+  async createClient(canvas: HTMLCanvasElement): Promise<ClientEngine> {
+    await this.init()
+
+    this.events.on(`Client:Created`, this.onClientCreated, this)
+    this.client = new ClientEngine(this, this.options)
+
+    await this.client.create(canvas)
+    await this.load()
+
+    setTimeout(() => {
+      this.client.events.emit('Game:Start')
+    }, 5000)
+
+    return this.client
+  }
+
+  /**
+   *
+   * @returns {Promise<ServerEngine>}
+   */
+  async createServer(): Promise<ServerEngine> {
+    let config = this.getConfig('server')
+    this.server = new ServerEngine(this, {
+      listenPort: config.listenPort,
+      debug: {},
+      updateRate: 6,
+      timeoutInterval: 0 // no timeout
     })
 
+    await this.server.start()
 
-    //(inputData.action, inputData.payload)
-
-    lll(playerEntity)
+    return this.server
   }
 
-  onEntityUpdate(entity) {
-    lll(`onEntityUpdate`, entity._update)
+  onClientCreated() {
+
+
   }
 
-  /**
-   * A synchronization update arrived from the server
-   * @param sync
-   */
-  syncReceived(sync: Object) {
-    super.syncReceived(sync)
-  }
 }

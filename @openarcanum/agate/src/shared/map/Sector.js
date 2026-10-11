@@ -1,15 +1,13 @@
 //@flow
 
 import Location from '../Location'
-import Utils from '../misc/Utils'
-//import * as Enums  from '../entity/Enums'
 
 import type GameMap from './GameMap'
 import type Entity from '../entity/Entity'
 import type GameEngine from '../GameEngine'
 
-import type AssetLoader from '../assets/AssetLoader';
-import type EventEmitter from '../misc/EventEmitter';
+import type AssetLoader from '../assets/AssetLoader'
+import type EventEmitter from '../misc/EventEmitter'
 
 export default class Sector {
   static get TileWidth(): number {
@@ -45,9 +43,6 @@ export default class Sector {
   x: number
   y: number
 
-  onTileLoad: ?Function // switch to events?
-
-
   /**
    *
    * @param map
@@ -56,14 +51,21 @@ export default class Sector {
     this.map = map
     this.gameEngine = map.gameEngine
 
-    this.onTileLoad = null
-    this.onEntityLoad = null
+    //this.onEntityLoad = null
   }
 
+  /**
+   *
+   * @returns {AssetLoader}
+   */
   get assetLoader(): AssetLoader {
     return this.gameEngine.assetLoader
   }
 
+  /**
+   *
+   * @returns {EventEmitter}
+   */
   get events(): EventEmitter {
     return this.gameEngine.events
   }
@@ -93,10 +95,6 @@ export default class Sector {
     return false
   }
 
-
-
-
-
   /**
    *
    * @param x
@@ -112,23 +110,31 @@ export default class Sector {
     return tile
   }
 
-  getTileFromLocation(location) {
+  /**
+   *
+   * @returns {Object}
+   * @param location
+   */
+  getTileFromLocation(location: Location) {
     return this.getTile(location.tileX, location.tileY)
   }
 
   /**
    *
    * @param entity
+   * @param location
    * @returns {boolean}
    */
-  addEntity(entity: Entity) {
+  addEntity(entity: Entity, location: ?Location = null) {
     if (this.entities.has(entity.id)) {
       lll(`Duplicate entity!!! ${entity.id}`, entity)
 
       return false
     }
 
-    let location = entity.base.location
+    if (!location) {
+      location = entity.base.location
+    }
 
     let tile = this.getTileFromLocation(location)
 
@@ -137,13 +143,34 @@ export default class Sector {
     this.entities.set(entity.id, entity)
   }
 
-  getTileEntities(tile, type) {
-    return tile[String(type)]
+  /**
+   *
+   * @param tile
+   * @param types
+   * @returns {*}
+   */
+  getTileEntities(tile: Object, types: Array<string>): Object {
+    let result = {}
+    for (const type of types) {
+      const list = tile[String(type)]
+      if (!list) {
+        continue
+      }
 
+      for (const id in list) {
+        result[id] = list[id]
+      }
+    }
+
+    return result
   }
 
-
-  addEntityToTile(tile, entity) {
+  /**
+   *
+   * @param tile
+   * @param entity
+   */
+  addEntityToTile(tile: Object, entity: Entity) {
     let name = String(entity.base.type)
     if (!tile[name]) {
       tile[name] = {
@@ -156,18 +183,21 @@ export default class Sector {
     //tile[name].count++
   }
 
-  removeEntityFromTile(tile, entity) {
+  /**
+   *
+   * @param tile
+   * @param entity
+   */
+  removeEntityFromTile(tile: Object, entity: Entity) {
     let name = String(entity.base.type)
     if (!tile[name] || !tile[name][entity.id]) {
-      lll('entity not found')
+      lll(`entity not found`)
       return
     }
 
     delete tile[name][entity.id]
     //tile[name].count--
   }
-
-
 
   /**
    *
@@ -180,7 +210,7 @@ export default class Sector {
     lll(`Loading sector: ${path}`)
 
     let data = await this.assetLoader.loadJsonFile(`${path}/Sector.json`)
-    lll(`...Loaded`)
+    ///lll(`...Loaded`)
 
     if (!data.tiles) {
       return
@@ -194,7 +224,7 @@ export default class Sector {
     this.lights = data.lights
     this.roofs = data.roofs
 
-    this.events.emit('Sector:Loading', this)
+    this.events.emit(`Sector:Loading`, this)
 
     for (let ty = 0; ty < Sector.Height; ty++) {
       for (let tx = 0; tx < Sector.Width; tx++) {
@@ -205,9 +235,9 @@ export default class Sector {
 
         tile.location = Location.make(x, y, tx, ty)
 
-        if (this.onTileLoad) {
-          await this.onTileLoad(tile)
-        }
+        // if (this.onTileLoad) {
+        //   await this.onTileLoad(tile)
+        // }
 
         //this.events.emit('Sector:TileLoading', tile)
       }
@@ -216,15 +246,21 @@ export default class Sector {
     this.entities = new Map()
     await this.map.loadEntities(path, this)
 
-    this.events.emit('Sector:Loaded', this)
+    this.events.emit(`Sector:Loaded`, this)
   }
 
   /**
    *
+   * @param callback
    */
-  async update() {
-    if (!this.tiles) {
-      return
+  inspectTiles(callback: Function) {
+    for (let ty = 0; ty < Sector.Height; ty++) {
+      for (let tx = 0; tx < Sector.Width; tx++) {
+        let tile = this.getTile(tx, ty)
+        if (callback(tile, tx, ty) === false) {
+          return
+        }
+      }
     }
   }
 }

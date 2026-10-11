@@ -7,7 +7,7 @@ export default class Event {
     this._callback = callback || null
 
     // Additional filters
-    this._Components = []
+    this._components = []
     this._entity = null
   }
 
@@ -24,7 +24,7 @@ export default class Event {
     }
 
     // Component filters
-    const Comps = this._Components
+    const Comps = this._components
     if (entity && entity.hasAllComponents && Comps.length) {
       if (!entity || !entity.hasAllComponents(Comps)) {
         return false
@@ -58,7 +58,7 @@ export default class Event {
    * @return {Event} This object.
    */
   whereComponent(T) {
-    this._Components.push(T)
+    this._components.push(T)
     return this
   }
 
@@ -67,7 +67,7 @@ export default class Event {
    * @return {Event} This object.
    */
   whereComponents(Components) {
-    this._Components = this._Components.concat(Components)
+    this._components = this._components.concat(Components)
     return this
   }
 }

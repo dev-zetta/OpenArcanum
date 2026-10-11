@@ -338,6 +338,46 @@ class Manager {
     }
   }
 
+  addEntityBubble(entity) {
+    let dialogWin = this.findWidget('dialogWin')
+
+    let { classes } = entity.visual
+    if (!classes) {
+      return
+    }
+
+    let { sprite } = classes.current
+    if (!sprite) {
+      return
+    }
+
+    let position = sprite.getGlobalPosition()
+
+
+    let model = dialogWin.createChild({
+      id: entity.id,
+      type: `dialog-bubble`,
+      position: [position.x, position.y],
+      value: `${entity.id}`,
+      options: {
+
+      }
+    })
+  }
+
+  updateEntityBubble(entity) {
+    let dialogWin = this.findWidget('dialogWin')
+    if (!dialogWin) {
+      return
+    }
+    let widget = dialogWin.getChild(entity.id)
+    if (!widget) {
+      return
+    }
+
+    widget.update(entity)
+  }
+
 
 
 }

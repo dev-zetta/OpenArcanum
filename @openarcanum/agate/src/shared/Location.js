@@ -203,7 +203,7 @@ export default class Location extends Vec2 {
    * @param location
    * @returns {number[]}
    */
-  static calculateNormalize(location: Location): Array<number> {
+  static calculateNormalize(location: Location): Location {
     let length = Location.calculateLength(location)
 
     // Collect a ratio to shrink the x and y coords
@@ -229,7 +229,7 @@ export default class Location extends Vec2 {
    * @param b
    * @returns {Array<number>}
    */
-  static calculateVelocity(a: Location, b: Location): Array<number> {
+  static calculateVelocity(a: Location, b: Location): Location {
     return new Location(b.x - a.x, b.y - a.y) //new Location(Location.calculateNormalizeRaw(b.x - a.x, b.y - a.y))
   }
 
@@ -245,6 +245,10 @@ export default class Location extends Vec2 {
 
   static calculateDistance(a: Location, b: Location): number {
     return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
+  }
+
+  distanceTo(b: Location): number {
+    return Math.max(Math.abs(this.x - b.x), Math.abs(this.y - b.y))
   }
 
   /**
@@ -294,8 +298,11 @@ export default class Location extends Vec2 {
   static velocityToDirection(velocity: Location): string {
     let angle = Math.atan2(velocity.y, velocity.x) //current.angleTo(next);
     let octant = Math.round((8 * angle) / (2 * Math.PI) + 8) % 8
-
-    return Directions[octant]
+    let direction = Directions[octant]
+    if (!direction) {
+      debugger
+    }
+    return direction
   }
 
   getEntityDepth(): number {

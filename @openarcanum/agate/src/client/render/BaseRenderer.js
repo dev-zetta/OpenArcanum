@@ -119,6 +119,10 @@ class BaseRenderer {
    */
   removeObject(obj) {}
 
+  /**
+   *
+   * @returns {Promise<void>}
+   */
   async start() {
 
   }

@@ -32,6 +32,17 @@ export default class Scene {
   client: ClientEngine
   assetLoader: AssetLoader
   renderer: Renderer
+  sectors: Map<String, Object>
+  canvas: HTMLCanvasElement
+
+  stats: Object
+  stopped: boolean
+
+  pixi: PIXI.Application
+  camera: Camera
+
+  isometric: Isometric
+
 
   /**
    *
@@ -44,25 +55,20 @@ export default class Scene {
 
     //this.renderToTexture = true
     this.customLoader = true
+    this.sectors = new Map()
 
     this.events.on(`Map:Loading`, this.onMapLoading, this)
     this.events.on(`Map:Loaded`, this.onMapLoaded, this)
     // this.gameEngine.events.on(`client.started`, super.start, this)
 
     this.events.on(`Sector:Loading`, this.onSectorLoading, this)
+    this.events.on(`Sector:Loaded`, this.onSectorLoaded, this)
 
-    //this.events.on('Map.NewEntity', this.onNewEntity, this)
+    //this.events.on('Map:NewEntity', this.onNewEntity, this)
+    this.events.on('World:NewEntity', this.onNewDynamicEntity, this)
 
     //this.events.on('Player:Joined', this.onPlayerJoined, this)
     this.events.on(`Object:Click`, this.onObjectClick, this)
-  }
-
-  /**
-   *
-   * @returns {HTMLCanvasElement}
-   */
-  get canvas(): HTMLCanvasElement {
-    return this._canvas
   }
 
   /**
@@ -112,13 +118,22 @@ export default class Scene {
     }*/
 
     this.renderer.update(time, delta)
-
-
   }
 
-
+  /**
+   *
+   * @returns {Promise<void>}
+   */
   async start() {
+    this.stats = {
+      lastFrameTime: 0
+    }
+
     await this.renderer.start()
+
+    const frameRate = 30
+    const timePerFrame = 1000 / frameRate
+   // lle(timePerFrame)
 
     let renderLoop = (timestamp) => {
       if (this.stopped) {
@@ -126,16 +141,17 @@ export default class Scene {
         return
       }
 
-      this.lastTimestamp = this.lastTimestamp || timestamp
-      this.update(timestamp, timestamp - this.lastTimestamp)
-      this.lastTimestamp = timestamp
+      global.requestAnimationFrame(renderLoop)
 
-      window.requestAnimationFrame(renderLoop)
+      const elapsed = timestamp - this.stats.lastFrameTime
+
+      if (elapsed >= timePerFrame) {
+        this.update(timestamp, elapsed)
+        this.stats.lastFrameTime = timestamp - (elapsed % timePerFrame)
+      }
     }
 
-    window.requestAnimationFrame(renderLoop)
-
-
+    global.requestAnimationFrame(renderLoop)
   }
 
   /**
@@ -157,20 +173,20 @@ export default class Scene {
 
     // This is used to set a game canvas-based offset for the 0, 0, 0 isometric coordinate - by default
     // this point would be at screen coordinates 0, 0 (top left) which is usually undesirable.
-    this._canvas = canvas
+    this.canvas = canvas
 
-    let contextCreationConfig = {
-      alpha: false,
-      depth: true,
-      antialias: true,
-      premultipliedAlpha: true,
-      stencil: true,
-      preserveDrawingBuffer: false,
-      failIfMajorPerformanceCaveat: false,
-      powerPreference: `default`
-    }
-
-    let myCustomContext = canvas.getContext(`webgl2`, contextCreationConfig)
+    // let contextCreationConfig = {
+    //   alpha: false,
+    //   depth: true,
+    //   antialias: true,
+    //   premultipliedAlpha: true,
+    //   stencil: true,
+    //   preserveDrawingBuffer: false,
+    //   failIfMajorPerformanceCaveat: false,
+    //   powerPreference: `default`
+    // }
+    //
+    // let myCustomContext = canvas.getContext(`webgl2`, contextCreationConfig)
 
     this.pixi = new PIXI.Application({
       ...this.client.getWindowRect(),
@@ -257,7 +273,6 @@ export default class Scene {
   onMapLoading(map: GameMap) {
     lll(`Scene: onMapLoading`)
 
-    map.onNewEntity = async (entity) => this.onNewEntity(entity)
   }
 
   /**
@@ -283,16 +298,27 @@ export default class Scene {
 
   /**
    *
-   * @param tile
+   * @param sector
    * @returns {Promise<void>}
    */
-  onSectorLoading(sector) {
-    sector.onTileLoad = async (tile) => {
+  onSectorLoading(sector: Sector) {
+
+  }
+
+  /**
+   *
+   * @param sector
+   * @returns {Promise<void>}
+   */
+  onSectorLoaded(sector: Sector) {
+    const callback = (tile, x, y) => {
       if (tile.type) {
         tile.sprite = new Sprite(this)
-        await tile.sprite.load(tile)
+        /*await*/ tile.sprite.load(tile)
       }
     }
+
+    sector.inspectTiles(callback)
   }
 
   /**
@@ -346,13 +372,15 @@ export default class Scene {
    * @param map
    * @returns {Promise<void>}
    */
-  async onPlayerJoined(player, map) {
-    await this.onNewEntity(player)
+  async onNewDynamicEntity(entity) {
+    await this.onNewEntity(entity)
 
-    const {location} = player.base
-    const sector = map.getSector(location.sectorX, location.sectorY)
+    // const {location} = entity.base
+    // const sector = entity.world.getSector(location.sectorX, location.sectorY)
+    //
+    // const resources = this.getSectorResources(sector.id)
 
-    this.addEntity(player, sector.staticGroup)
+    this.addEntity(entity, this.renderer.stage)
 
     //this.sortGroup(map.rootGroup)
   }
@@ -372,7 +400,13 @@ export default class Scene {
     this.renderer.stage.moveCenter(center.x, center.y)
   }
 
+  /**
+   *
+   * @param width
+   * @param height
+   */
   resizeViewport(width: number, height: number) {
+
   }
 
   /**
@@ -395,11 +429,12 @@ export default class Scene {
    * @param tiles
    */
   highlightTiles(tiles: Array<Object>) {
+return
     let color = Math.random() * 0xFFFFFF
 
 
     for (let location of tiles) {
-      let tile = this.gameEngine.world.getTile(
+      let tile = this.client.world.getTile(
         location.y,
         location.x
       )
@@ -412,6 +447,11 @@ export default class Scene {
     }
   }
 
+  /**
+   *
+   * @param parent
+   * @returns {Container}
+   */
   newGroup(parent) {
     if (!parent) {
       parent = this.renderer.stage
@@ -425,6 +465,10 @@ export default class Scene {
     return container
   }
 
+  /**
+   *
+   * @param group
+   */
   sortGroup(group) {
     group.sortChildren()
   }
@@ -460,7 +504,25 @@ export default class Scene {
 
     //sortGroups(sortGroups)
 
-    map.rootGroup = rootGroup
+    // map.rootGroup = rootGroup
+  }
+
+  /**
+   *
+   * @param sector
+   * @param resources
+   */
+  setSectorResource(sector: Sector, resources: Object) {
+    this.sectors.set(sector.id, resources)
+  }
+
+  /**
+   *
+   * @param id
+   * @returns {Object}
+   */
+  getSectorResources(id: string): Object {
+    return this.sectors.get(id)
   }
 
   /**
@@ -475,7 +537,7 @@ export default class Scene {
     }
 
     // Add tiles
-    sector.tileGroup = this.newGroup(target)
+    const tileGroup = this.newGroup(target)
 
     let ax = sector.x * Sector.Width * Sector.TileHeight
     let ay = sector.y * Sector.Height * Sector.TileHeight
@@ -495,7 +557,7 @@ export default class Scene {
           tile.type &&
           (tile.type == `Facade` || tile.end.category != `BlackYall`)
         ) {
-          this.addSprite(tile.sprite, sector.tileGroup, ay, dx, 0, offset)
+          this.addSprite(tile.sprite, tileGroup, ay, dx, 0, offset)
           //tile.sprite.setPipeline('Light2D')
           tile.sprite.setData(tile)
         }
@@ -517,7 +579,7 @@ export default class Scene {
     }
 
     // Add static objects
-    sector.staticGroup = this.newGroup(target)
+    const staticGroup = this.newGroup(target)
     //target.add(this.staticGroup);
 
     sector.entities.forEach(entity => {
@@ -528,13 +590,18 @@ export default class Scene {
       if (tile)
         tile.entities.push(entity);*/
 
-      this.addEntity(entity, sector.staticGroup)
+      this.addEntity(entity, staticGroup)
     })
 
     // Sort objects
     //target.scene.sortGroup(this.staticGroup);
 
-    this.sortGroup(sector.staticGroup)
+    this.sortGroup(staticGroup)
+
+    this.setSectorResource(sector, {
+      tileGroup,
+      staticGroup,
+    })
   }
 
   /**
@@ -542,7 +609,9 @@ export default class Scene {
    * @param entity
    * @param target
    */
-  addEntity(entity: Entity, target: Object) {
+  async addEntity(entity: Entity, target: Object) {
+    await this.onNewEntity(entity)
+
     let baseComponent = entity.base
     let location = baseComponent.location
 
@@ -727,7 +796,7 @@ export default class Scene {
     }
 
     if (!location) {
-      lll(`wrong light`)
+      lle(`wrong light`)
       return null
     }
 

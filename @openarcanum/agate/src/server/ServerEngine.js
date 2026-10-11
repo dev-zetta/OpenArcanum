@@ -15,21 +15,19 @@ export default class ServerEngine extends ServerNetwork {
    */
   constructor(gameEngine: GameEngine, options: Object) {
     super(gameEngine, options)
-    this.gameEngine.server = this
   }
 
   /**
    *
    */
   async start() {
-    super.start()
+    return super.start()
   }
 
   // every server step starts here
   step() {
     super.step()
 
-    // thsi.gameEngine.
   }
 
   /**
@@ -47,38 +45,75 @@ export default class ServerEngine extends ServerNetwork {
   }
 
   /**
-   * Create a room
+   * Add object to the game world.
+   * On the client side, the object may not be created, if the server copy
+   * of this object is already in the game world.  This could happen when the client
+   * is using delayed-input, and the RTT is very low.
    *
-   * There is a default room called "/lobby".  All newly created players
-   * and objects are assigned to the default room.  When the server sends
-   * periodic syncs to the players, each player is only sent those objects
-   * which are present in his room.
-   *
-   * @param {String} roomName - the new room name
+   * @param {Object} object - the object.
+   * @return {Object} the final object.
    */
-  createRoom(roomName: string) {
-    super.createRoom(roomName)
+  addDynamicEntityToWorld(object, world) {
+    // if we are asked to create a local shadow object
+    // the server copy may already have arrived.
+    if (Number(object.id) >= this.options.clientIDSpace) {
+      let serverCopyArrived = false
+
+      const entities = world.getDynamicEntities()
+      for (const [id, entity] of entities) {
+        if (entity.inputId === object.inputId) {
+          serverCopyArrived = true
+          break
+        }
+      }
+
+      if (serverCopyArrived) {
+        this.trace.info(
+          () =>
+            `========== shadow object NOT added ${object.toString()} ==========`
+        )
+        return null
+      }
+    }
+
+    world.addObject(object)
+
+    this.events.emit(`objectAdded`, object)
+    this.trace.info(
+      () => `========== object added ${object.toString()} ==========`
+    )
+
+    return object
   }
 
   /**
-   * Assign an object to a room
+   * Remove an object from the game world.
    *
-   * @param {Object} obj - the object to move
-   * @param {String} roomName - the target room
+   * @param {Object|String} objectId - the object or object ID
    */
-  assignObjectToRoom(obj, roomName) {
-    super.assignObjectToRoom(obj, roomName)
+  removeDynamicEntityFromWorld(objectId, world) {
+    if (typeof objectId === `object`) {
+      objectId = objectId.id
+    }
+
+    let object = world.getDynamicEntity(objectId)
+
+    if (!object) {
+      throw new Error(
+        `Game attempted to remove a game object which doesn't (or never did) exist, id=${objectId}`
+      )
+    }
+    this.trace.info(
+      () => `========== destroying object ${object.toString()} ==========`
+    )
+
+    this.events.emit(`objectDestroyed`, object)
+    world.removeObject(objectId)
   }
 
-  /**
-   * Assign a player to a room
-   *
-   * @param {Number} playerId - the playerId
-   * @param {String} roomName - the target room
-   */
-  assignPlayerToRoom(playerId, roomName) {
-    super.assignPlayerToRoom(playerId, roomName)
-  }
+
+
+
 
   // handle the object creation
   onObjectAdded(obj) {
@@ -91,35 +126,6 @@ export default class ServerEngine extends ServerNetwork {
   }
 
 
-
-  /**
-   *
-   * @param socket
-   */
-  /*
-  onPlayerConnected(socket: Object) {
-    lll('player connected', socket)
-    super.onPlayerConnected(socket)
-  }*/
-
-  /**
-   *
-   * @param socketId
-   * @param playerId
-   */
-  onPlayerDisconnected(socketId: number, playerId: number) {
-    lll('player disconnected', socket)
-    super.onPlayerDisconnected(socketId, playerId)
-
-    //delete this.gameEngine.world.objects[playerId]
-  }
-
-  // handle player timeout
-  onPlayerTimeout(socket) {
-    super.onPlayerTimeout(socket)
-  }
-
-
   // add an input to the input-queue for the specific player
   // each queue is key'd by step, because there may be multiple inputs
   // per step
@@ -129,15 +135,6 @@ export default class ServerEngine extends ServerNetwork {
 
 
 
-  /**
-   *  an input has been received from a client, queue it for next step. lance
-   * @param data
-   * @param socket
-   */
-  onReceivedInput(data, socket) {
-    lll('onReceivedInput', data, socket)
-    super.onReceivedInput(data, socket)
-  }
 
 
   /**

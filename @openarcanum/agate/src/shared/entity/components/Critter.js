@@ -82,6 +82,10 @@ export default class Critter extends Component {
   }
 
   getMovementSpeed(): number {
+    if (this.aiState.hasAny([AiState.Flags.Running])) {
+      return 2.0
+    }
+
     return 1.0
   }
 
@@ -90,7 +94,7 @@ export default class Critter extends Component {
   }
 
   getMeleeDistance(): number {
-    return 1
+    return 1.0
   }
 
   hasMeleeWeapon(): boolean {
@@ -105,5 +109,22 @@ export default class Critter extends Component {
     return false
   }
 
-  equipWeapon(): boolean {}
+  equipWeapon(): boolean {
+    return true
+  }
+
+  maxHealth() {
+    let { base } = this.entity
+
+    let health = base.health.points + base.health.adjustment
+
+    health += this.stats.strength * 2
+    health += this.stats.willpower
+    return health
+  }
+
+  currentHealth() {
+    let { base } = this.entity
+    return this.maxHealth() - base.health.damage
+  }
 }

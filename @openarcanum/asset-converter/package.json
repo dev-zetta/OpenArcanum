@@ -72,9 +72,13 @@
       "prettier"
     ]
   },
-  "repository": "ssh://git@gitlab.com:openarcanum/openarcanum-assets.git",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dev-zetta/OpenArcanum.git",
+    "directory": "@openarcanum/asset-converter"
+  },
   "jest": {
     "testEnvironment": "node"
   },
-  "license": "MIT"
+  "license": "GPL-3.0-or-later"
 }

@@ -29,7 +29,7 @@ export default class Sprite {
 
   animated: boolean
   variants: Array<string>
-  stages: Array<Object>
+  stages: Object
   data: any
   offset: Vec2
   iso: IsoSprite
@@ -71,6 +71,10 @@ export default class Sprite {
     return this.scene.assetLoader
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   get spritesheet() {
     let stage = this.stage
     switch (
@@ -90,19 +94,26 @@ export default class Sprite {
     return this.stages[stage].spritesheet
   }
 
-  get totalFrames() {
+  /**
+   *
+   * @returns {number}
+   */
+  get totalFrames(): number {
     const spritesheet = this.spritesheet
     return spritesheet ? spritesheet.totalFrames : 0
   }
 
+  /**
+   *
+   * @returns {PIXI.Point}
+   */
   getGlobalPosition() {
     let sprite = this.iso
 
     let position = sprite.getGlobalPosition()
     let bounds = this.iso.getBounds()
-    position.x -= (sprite.width * sprite.anchor.x) / 2
-    position.y -= bounds.height
-
+    // position.x -= (sprite.width * sprite.anchor.x) / 2
+    //position.y -= sprite.height
 
     return position
   }
@@ -150,14 +161,26 @@ export default class Sprite {
     return descriptor
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   get type() {
     return Gfx.Types.get(this.meta.type)
   }
 
+  /**
+   *
+   * @returns {*}
+   */
   get stage() {
     return this.meta.stage
   }
 
+  /**
+   *
+   * @param stage
+   */
   set stage(stage) {
     this.meta.stage = stage
   }
@@ -181,17 +204,13 @@ export default class Sprite {
     let path = ``
     if (Utils.isObject(source)) {
       if (Utils.isUndefined(source.type)) {
-        //lll('Loading sprite data for undefined sprite type')
+        lle('Loading sprite data for undefined sprite type', source.type)
         return
       }
 
       path = GfxPathBuilder.build(source)
       if (!this.meta /*|| !(source instanceof Sprite)*/) {
         this.meta = source
-      } else {
-        if (this.path === path) {
-          //return
-        }
       }
 
       if (!Utils.isUndefined(source.frame)) {
@@ -227,17 +246,19 @@ export default class Sprite {
     }
 
     this.frameRate = meta.frameRate
-    this.triggerFrame = meta.triggerFrame
+    this.triggerFrame = 1
     this.animated = meta.animated
 
-
+    // if (this.animated) {
+    //   lle(`anim`, meta)
+    // }
 
     let variantPath = `${spritePath}/${this.variant}`
     let keyPrefix = `${this.path}/${this.variant}`
 
     let stageDirs = await this.assetLoader.findDirs(variantPath)
 
-    let promises = []
+   // let promises = []
 
     for (let [key, value] of stageDirs) {
       let stageName = key // AGate.Utils.getLastDir(dir);
@@ -329,8 +350,8 @@ export default class Sprite {
     }
 
     // Generate key name
-    let key = this.stageKey
-    key = `${key}/${index}`
+    //let key = this.stageKey
+    //key = `${key}/${index}`
 
     this.frame = index
     //this.setFrameByKey(key)
@@ -341,7 +362,7 @@ export default class Sprite {
 
   /**
    *
-   * @param index
+   * @param key
    */
   setFrameByKey(key: string) {
     let sprite = this.iso
@@ -364,8 +385,8 @@ export default class Sprite {
     //
     //this.stageKey = stageKey
 
-    //this.setFrameByKey(frameKey)
-    this.setFrame(0)
+    this.setFrameByKey(this.frameKey)
+    //this.setFrame(0)
   }
 
   /**
@@ -409,25 +430,36 @@ export default class Sprite {
    * @param speed
    */
   update(elapsed: number, speed: number = 1.0) {
-    this.totalElapsed += elapsed
-
-    if (this.totalFrames <= 2) {
+    const spritesheet = this.spritesheet
+    if (!spritesheet || spritesheet.totalFrames <= 2) {
       //this.setFrame(this.frame)
       return
     }
 
+    this.totalElapsed += elapsed
+
     let frameTime = (this.frameRate / 1000.0) * speed
     let frameIndex =
-      Math.floor(this.totalElapsed * frameTime) % this.totalFrames
+      Math.floor(this.totalElapsed * frameTime) % spritesheet.totalFrames
 
     if (this.frame !== frameIndex) {
+      if (!this.animated && frameIndex < this.frame) {
+        this.totalElapsed -= elapsed
+        return
+      }
+
       const isTrigger =
         this.frame < this.triggerFrame && frameIndex >= this.triggerFrame
       if (isTrigger && this.onTriggerFrame) {
         this.onTriggerFrame()
       }
 
-      this.setFrame(frameIndex)
+      //this.setFrame(frameIndex)
+
+      this.frame = frameIndex
+
+      let sprite = this.iso
+      sprite.texture = spritesheet.getTextureByIndex(this.frame)
     }
   }
 
@@ -464,7 +496,7 @@ export default class Sprite {
    * @returns {Promise<void>}
    */
   async change(data: Object) {
-    lll('changin sprite', data)
+    lll(`changin sprite`, data)
 
     //lle(this.path, this.stages)
     await this.load(data)
@@ -472,7 +504,7 @@ export default class Sprite {
     //lle(this.path, this.stages)
 
     //this.frame = 0
-    //this.totalElapsed = 0
+    this.totalElapsed = 0
 
     //let { stageKey, frameKey } = this.generateKeys()
 

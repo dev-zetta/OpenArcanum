@@ -3,7 +3,7 @@
 import Manager from '../entity/Manager'
 import Location from '../Location'
 import Sector from './Sector'
-import AiSystem from '../entity/ai/System'
+
 import PathFind from './PathFind'
 
 import Entity from '../entity/Entity'
@@ -11,16 +11,18 @@ import Entity from '../entity/Entity'
 import { SectorGrid } from './SectorGrid'
 import Utils from '../misc/Utils'
 
+import * as Enums from '../entity/Enums'
+import GameWorld from '../GameWorld'
+
 import type GameEngine from '../GameEngine'
 import type AssetLoader from '../assets/AssetLoader'
 import type EventEmitter from '../misc/EventEmitter'
-import * as Enums from '../entity/Enums'
 
 export default class GameMap {
-  gameEngine: GameEngine
-  entitySystem: Manager
-  aiSystem: AiSystem
+  id: string
+  world: GameWorld
   pathFind: PathFind
+
   isLoaded: boolean
   isLoading: boolean
   width: number
@@ -32,20 +34,49 @@ export default class GameMap {
   width: number
   height: number
 
-  constructor(gameEngine: GameEngine) {
-    this.gameEngine = gameEngine
-    this.entitySystem = new Manager(gameEngine)
-    this.aiSystem = new AiSystem(this)
+  /**
+   *
+   * @param world
+   * @param id
+   */
+  constructor(world: GameWorld, id: string) {
+    this.world = world
+    this.id = id
+
     this.pathFind = new PathFind(this)
     this.isLoaded = false
 
     this.sectors = new SectorGrid(this)
   }
 
+  /**
+   *
+   * @returns {GameEngine}
+   */
+  get gameEngine(): GameEngine {
+    return this.world.gameEngine
+  }
+
+  /**
+   *
+   * @returns {Manager}
+   */
+  get entityManager(): Manager {
+    return this.world.entityManager
+  }
+
+  /**
+   *
+   * @returns {AssetLoader}
+   */
   get assetLoader(): AssetLoader {
     return this.gameEngine.assetLoader
   }
 
+  /**
+   *
+   * @returns {EventEmitter}
+   */
   get events(): EventEmitter {
     return this.gameEngine.events
   }
@@ -76,20 +107,12 @@ export default class GameMap {
     return `${this.path}/Sector/${x}/${y}`
   }
 
-  async init(settings) {
-    await this.entitySystem.loadPrototypes()
-  }
-
-  async start() {
-    this.entitySystem.start()
-  }
-
   /**
    *
    * @param path
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>}
    */
-  async load(path: string) {
+  async load(path: string): boolean {
     this.path = path
     this.name = ``
     this.isLoading = true
@@ -127,31 +150,6 @@ export default class GameMap {
 
   /**
    *
-   */
-  async update(params: Object) {
-    if (!this.isLoaded) {
-      return
-    }
-
-    /*let promises = []
-    for (let col = 0; col < this.height; col++) {
-      for (let row = 0; row < this.width; row++) {
-        let sector = this.sectors[col][row]
-        if (!sector) {
-          continue
-        }
-
-        promises.push(sector.update())
-      }
-    }
-
-    await Promise.all(promises)
-*/
-    await this.entitySystem.update()
-  }
-
-  /**
-   *
    * @param x
    * @param y
    * @returns {Promise<void>}
@@ -169,7 +167,7 @@ export default class GameMap {
    * @returns {Promise<void>}
    */
   async loadEntities(path: string, target: Function | Object) {
-    Utils.logError(`Loading entities...`)
+    lle(`Loading entities...`)
 
     let entityTypes = await this.assetLoader.findDirs(`${path}/`)
 
@@ -209,17 +207,10 @@ export default class GameMap {
     let data = await this.assetLoader.loadJsonFile(`${path}`)
 
     let id = Utils.getFileBase(path)
-    let entity = await this.entitySystem.newEntity(id, data)
-    //entity.addToWorld(this)
+    let entity = await this.entityManager.newEntity(id, data)
+    entity.map = this
 
-    //this.events.emit('Map.NewEntity', entity)
-    if (this.onNewEntity) {
-      await this.onNewEntity(entity)
-    }
-
-    if (entity.base.type === `Npc`) {
-       this.gameEngine.addObjectToWorld(entity)
-     }
+    this.events.emit('Map:NewEntity', this, entity)
 
     return entity
   }
@@ -236,7 +227,6 @@ export default class GameMap {
       location = new Location(location, y)
     }
 
-
     let sector = this.getSectorFromLocation(location)
     if (!sector) {
       return true
@@ -252,27 +242,23 @@ export default class GameMap {
       return true
     }
 
-    let npcs = sector.getTileEntities(tile, Enums.Entity.Npc)
-    if (npcs) {
-      for (let id in npcs) {
-        //lll(`blocked npc`)
-        return true
-      }
-    }
+    let entities = sector.getTileEntities(tile, [ Enums.Entity.Wall, Enums.Entity.Portal, Enums.Entity.Npc])
 
-    let portals = sector.getTileEntities(tile, Enums.Entity.Portal)
-    if (portals) {
-      for (let id in portals) {
-        //lll(`blocked portal`)
-        return false
-      }
-    }
+    for (let id in entities) {
+      const entity = entities[id]
+      switch (entity.base.type) {
+        case Enums.Entity.Portal: {
+          return false
+        }
+        case Enums.Entity.Npc: {
+          return false
+        }
+        case Enums.Entity.Wall: {
+          return true
+        }
+        default: {
 
-    let walls = sector.getTileEntities(tile, Enums.Entity.Wall)
-    if (walls) {
-      for (let id in walls) {
-        //lll(`blocked walls`)
-        return true
+        }
       }
     }
 
@@ -289,6 +275,11 @@ export default class GameMap {
     return this.sectors.get(x, y)
   }
 
+  /**
+   *
+   * @param location
+   * @returns {Sector}
+   */
   getSectorFromLocation(location) {
     return this.getSector(location.sectorX, location.sectorY)
   }
@@ -377,9 +368,8 @@ export default class GameMap {
         }
 
         if (types) {
-          for (let i = 0; i < names.length; i++) {
             // Has tile the entity of given type
-            let entityList = sector.getTileEntities(tile, names[i])
+            let entityList = sector.getTileEntities(tile, names)
             if (!entityList) {
               continue
             }
@@ -390,7 +380,7 @@ export default class GameMap {
               if (ignore) {
                 let ignored = false
                 for (let other of ignore) {
-                  if (other.id === entity.id) {
+                  if (other.id == entity.id) {
                     ignored = true
                     break
                   }
@@ -406,16 +396,14 @@ export default class GameMap {
               }
 
               // Put entity into list
-              entity._distanceToCenter = Location.calculateDistance(
-                entity.base.location,
-                center
+              entity._distanceToCenter = center.distanceTo(
+                entity.base.location
               )
               result.push(entity)
             }
-          }
         } else {
           //tile
-          alert(`error`)
+          debugger
         }
       }
     }
@@ -425,6 +413,61 @@ export default class GameMap {
     return result
   }
 
+
+  /**
+   * Returns all the game world objects which match a criteria
+   * @param {Object} query The query object
+   * @param {Object} [query.id] object id
+   * @param {Object} [query.playerId] player id
+   * @param {Class} [query.instanceType] matches whether `object instanceof instanceType`
+   * @param {Array} [query.components] An array of component names
+   * @param {Boolean} [query.returnSingle] Return the first object matched
+   * @returns {Array} All game objects which match all the query parameters
+   */
+  queryEntities(query: Object): Array<Entity> {
+    let queriedObjects = []
+
+    for (const type in query) {
+      const params = query[type]
+
+      let entity = null
+      switch (type) {
+        case 'id': {
+          entity = this.entityManager.getEntityById(params)
+          break
+        }
+      }
+
+      if (entity) {
+        queriedObjects.push(entity)
+      }
+    }
+
+    return queriedObjects
+  }
+
+  /**
+   * Returns The first game object encountered which matches a criteria.
+   * Syntactic sugar for {@link queryObject} with `returnSingle: true`
+   * @param query See queryObjects
+   * @returns {Entity}
+   */
+  queryEntity(query: Object): ?Entity {
+    const result = this.queryEntities(
+      Object.assign(query, {
+        returnSingle: true
+      })
+    )
+
+    return result.length ? result[0] : null
+  }
+
+  /**
+   *
+   * @param entity
+   * @param origin
+   * @param target
+   */
   moveEntity(entity: Entity, origin: Location, target: Location) {
     //lll(`moving entity to different tile`, { entity, origin, target })
 
@@ -456,46 +499,5 @@ export default class GameMap {
     targetSector.addEntityToTile(targetTile, entity)
   }
 
-  /**
-   *
-   * @param location
-   * @returns {Promise<Entity>}
-   */
-  async addPlayer(location: Location) {
-    let player = await this.loadPlayer()
 
-    if (location && player[`Base`]) {
-      player[`Base`].location = Location.transformToRaw(location)
-    }
-
-    //await this.sectors.load(location.sectorX, location.sectorY)
-
-    let id = `0` // AGate.Utils.getFileBase(path)
-    let entity = await this.entitySystem.newEntity(id, player)
-
-    this.gameEngine.addObjectToWorld(entity)
-    return entity
-  }
-
-  /**
-   *
-   * @param entity
-   * @returns {*}
-   */
-  isDynamicEntity(entity) {
-    return entity.critter || entity.projectile
-  }
-
-  /**
-   *
-   * @returns {Promise<*>}
-   */
-  async loadPlayer(): Entity {
-    let file = `16086.json`
-    let path = AGate.getAppPath(file)
-
-    let data = await this.assetLoader.loadJsonFile(path)
-
-    return data
-  }
 }

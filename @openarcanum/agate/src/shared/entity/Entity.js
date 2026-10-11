@@ -5,6 +5,7 @@ import Utils from '../misc/Utils'
 
 import type Manager from './Manager'
 import State from './State'
+import type System from './System';
 
 export default class Entity extends GameObject {
   /**
@@ -87,7 +88,12 @@ export default class Entity extends GameObject {
     this.systemsDirty = false
   }
 
-  setComponent(componentName, component) {
+  /**
+   *
+   * @param componentName
+   * @param component
+   */
+  setComponent(componentName: string, component: Object) {
     this[componentName] = component
   }
 
@@ -96,8 +102,8 @@ export default class Entity extends GameObject {
    * needs to recompute eligibility at the beginning of next
    * tick.
    */
-  setSystemsDirty() {
-    if (!this.systemsDirty && this.manager) {
+  setDirty() {
+    if (!this.systemsDirty) {
       this.systemsDirty = true
 
       // notify to parent ECS that this entity needs to be tested next tick
@@ -180,7 +186,7 @@ export default class Entity extends GameObject {
    * simple set the component property to `undefined`. Therefore the
    * property is still enumerable after a call to removeComponent()
    *
-   * @param  {String} name Name of the component to remove.
+   * @param componentClass
    */
   removeComponent(componentClass: Object | string) {
     this.manager.removeComponentFromEntity(this, componentClass)
@@ -323,6 +329,10 @@ export default class Entity extends GameObject {
     //this.updateComponents(data)
   }
 
+  /**
+   *
+   * @returns {{_totalUpdates: number}|*}
+   */
   getUpdateState() {
     if (!this._update) {
       this._update = {
@@ -335,10 +345,19 @@ export default class Entity extends GameObject {
     return this._update
   }
 
+  /**
+   *
+   */
   triggerUpdate() {
     //lll('fdfdfd', this._update)
+
+    this.world.events.emit('Object:Update', this)
   }
 
+  /**
+   *
+   * @param other
+   */
   syncTo(other) {
     super.syncTo(other)
     /*this.position.copy(other.position)

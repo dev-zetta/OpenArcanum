@@ -1,13 +1,22 @@
 // @flow
 
 import fs from 'fs'
-import Utils from '../shared/misc/NetworkUtils'
+import NetworkUtils from '../shared/misc/NetworkUtils'
+import Utils from '../shared/misc/Utils'
 import Scheduler from '../shared/misc/Scheduler'
 import Serializer from '../shared/serialize/Serializer'
 import NetworkTransmitter from '../shared/network/NetworkTransmitter'
 import NetworkMonitor from '../shared/network/NetworkMonitor'
+import type Trace from '../shared/misc/Trace';
+import GameWorld from './World';
+import type GameEngine from '../shared/GameEngine';
+import type GameMap from '../shared/map/GameMap';
+import Socket from './Socket'
+import Timer from '../shared/misc/Timer';
 
-const IO = require(`socket.io`)
+import type EventEmitter from '../shared/misc/EventEmitter';
+import type StepState from '../shared/StepState';
+import Player from './Player';
 
 /**
  * ServerEngine is the main server-side singleton code.
@@ -26,9 +35,23 @@ const IO = require(`socket.io`)
  * connections and dis-connections, emitting periodic game-state
  * updates, and capturing remote user inputs.
  */
-class ServerNetwork {
-  io: IO
+export default class ServerNetwork {
+  socket: Socket
   serializer: Serializer
+  networkTransmitter: NetworkTransmitter
+  networkMonitor: NetworkMonitor
+  scheduler: Scheduler
+
+  gameEngine: GameEngine
+  options: Object
+
+  connectedPlayers: Object
+  playerInputQueues: Object
+  objMemory: Object
+  serverTime: number
+
+  worlds: Map<string, GameWorld>
+
 
   /**
    * create a ServerEngine instance
@@ -45,17 +68,7 @@ class ServerNetwork {
    * @param {Number} options.timeoutInterval=180 - number of seconds after which a player is automatically disconnected if no input is received. Set to 0 for no timeout
    * @return {ServerEngine} serverEngine - self
    */
-  constructor(gameEngine, options) {
-    let io = new IO()
-    io.attach(options.listenPort, () =>
-      lll(`Listening on ${options.listenPort}`)
-    )
-
-    /*io.on("connection", function(socket) {
-      lll("user connected");
-      socket.emit("welcome", "welcome man");
-    });*/
-
+  constructor(gameEngine: GameEngine, options: Object) {
     this.options = Object.assign(
       {
         updateRate: 6,
@@ -71,12 +84,18 @@ class ServerNetwork {
       },
       options
     )
+
+    let socket = new Socket()
+    socket.attach(options.listenPort)
+    lle(`Listening on ${options.listenPort}`)
+
+
     if (this.options.tracesPath !== ``) {
       this.options.tracesPath += `/`
       //mkdirp.sync(this.options.tracesPath)
     }
 
-    this.io = io
+    this.socket = socket
 
     /**
      * reference to game engine
@@ -86,34 +105,115 @@ class ServerNetwork {
     this.gameEngine = gameEngine
     this.gameEngine.registerClasses(this.serializer)
     this.networkTransmitter = new NetworkTransmitter(this.serializer)
-    this.networkMonitor = new NetworkMonitor(this)
+    //this.networkMonitor = new NetworkMonitor(this)
 
-    /**
-     * Default room name
-     * @member {String} DEFAULT_ROOM_NAME
-     */
-    this.DEFAULT_ROOM_NAME = `/lobby`
-    this.rooms = {}
-    this.createRoom(this.DEFAULT_ROOM_NAME)
     this.connectedPlayers = {}
     this.playerInputQueues = {}
     this.objMemory = {}
 
-    io.on(`connection`, this.onClientConnect.bind(this))
+    this.socket.on(`connection`, this.onConnection.bind(this))
 
-    this.gameEngine.events.on(`objectAdded`, this.onObjectAdded.bind(this))
-    this.gameEngine.events.on(
+    this.events.on(`objectAdded`, this.onObjectAdded, this)
+    this.events.on(
       `objectDestroyed`,
-      this.onObjectDestroyed.bind(this)
+      this.onObjectDestroyed, this
     )
 
-    return this
+    this.worlds = new Map()
   }
 
-  // start the ServerEngine
-  start() {
-    this.gameEngine.start()
-    this.gameEngine.events.emit(`server__init`)
+
+  /**
+   *
+   * @returns {EventEmitter}
+   */
+  get events(): EventEmitter {
+    return this.gameEngine.events
+  }
+
+  /**
+   *
+   * @returns {Trace}
+   */
+  get trace(): Trace {
+    return this.gameEngine.trace
+  }
+
+  /**
+   *
+   * @param socket
+   * @param name
+   */
+  bindPlayerEvent(player: Player, name: string) {
+    lle('Server: bindSocketEvent - ' + name)
+    try {
+      const methodName = 'on' + Utils.upperFirst(name)
+      const method = this[methodName].bind(this)
+      socket.on(name, data => {
+        lll('Server: ' + name)
+        method(player, data)
+      })
+    } catch (e) {
+      lle(e)
+    }
+
+  }
+
+  /**
+   *
+   * @param socket
+   * @param name
+   * @param payload
+   */
+  emitSocketEvent(socket: Socket, name: string, payload: Object) {
+    lle('Server: emit ' + name)
+    socket.emit(name, payload)
+  }
+
+  /**
+   *
+   * @param id
+   * @returns {GameWorld<>}
+   */
+  getWorld(id: string): ?GameWorld {
+    return this.worlds.get(id)
+  }
+
+
+  /**
+   *
+   * @returns {Promise<void>}
+   */
+  async createWorld(options: Object = {}): Promise<GameWorld> {
+    options = {
+      ...options
+    }
+
+    const world = new GameWorld(this.gameEngine, options)
+    this.worlds.set(world.id, world)
+
+    await world.init()
+
+    return world
+  }
+
+  /**
+   *
+   */
+  async start() {
+    lle('Server start')
+
+    this.trace.info(() => `========== game engine started ==========`)
+    // create the default timer
+    this.timer = new Timer()
+    this.timer.play()
+    this.events.on(`postStep`, (step, isReenact) => {
+
+    })
+
+    this.events.emit(`start`, {timestamp: Utils.getCurrentTimestamp()})
+
+    this.events.emit(`server__init`)
 
     let schedulerConfig = {
       tick: this.step.bind(this),
@@ -121,18 +221,62 @@ class ServerNetwork {
       delay: 4
     }
     this.scheduler = new Scheduler(schedulerConfig).start()
+
+    const options = {
+      id: 'default'
+    }
+
+    await this.createWorld(options)
   }
 
-  // every server step starts here
-  step() {
+  /**
+   *
+   */
+  step(state: StepState) {
+    // skip physics for shadow objects during re-enactment
+    function objectFilter(o) {
+      return !state.isReenact || o.id < clientIDSpace
+    }
+
+    // physics-only step
+    if (this.physicsEngine && state.physicsOnly) {
+      //if (dt) dt /= 1000 // physics engines work in seconds
+      this.physicsEngine.step(state.elapsed / 1000, objectFilter)
+      return
+    }
+
+    // physics step
+    if (this.physicsEngine && !this.ignorePhysics) {
+      this.physicsEngine.step(state.elapsed / 1000, objectFilter)
+    }
+
+    for (const [id, world] of this.worlds) {
+      this.updateWorld(state, world)
+    }
+
+    // if (!state.isReenact) {
+    //   this.timer.tick()
+    // }
+  }
+
+  /**
+   *
+   * @param state
+   * @param world
+   */
+  updateWorld(state: StepState, world: GameWorld, ) {
+
+    world.stepCount++
+    this.events.emit(`preStep`, {world, state})
+
     // first update the trace state
-    this.gameEngine.trace.setStep(this.gameEngine.world.stepCount + 1)
-    this.gameEngine.events.emit(
+    this.trace.setStep(world.stepCount)
+    this.events.emit(
       `server__preStep`,
-      this.gameEngine.world.stepCount + 1
+      world.stepCount + 1
     )
 
-    this.serverTime = new Date().getTime()
+    this.serverTime = Utils.getCurrentTimestamp()
 
     // for each player, replay all the inputs in the oldest step
     for (let playerId in this.playerInputQueues) {
@@ -142,40 +286,43 @@ class ServerNetwork {
 
       // check that there are inputs for this step,
       // and that we have reached/passed this step
-      if (queueSteps.length > 0 && minStep <= this.gameEngine.world.stepCount) {
+      if (queueSteps.length > 0 && minStep <= world.stepCount) {
         inputQueue[minStep].forEach(input => {
-          this.gameEngine.events.emit(`server__processInput`, {
+          this.events.emit(`server__processInput`, {
             input,
             playerId
           })
-          this.gameEngine.events.emit(`processInput`, { input, playerId })
-          this.gameEngine.processCommand(input, playerId, true)
+          this.events.emit(`processInput`, { input, playerId })
+          this.gameEngine.processCommand(input, playerId)
         })
         delete inputQueue[minStep]
       }
     }
 
     // run the game engine step
-    this.gameEngine.step(false, this.serverTime / 1000)
+    // this.gameEngine.step(false, this.serverTime / 1000)
 
     // synchronize the state to all clients
-    Object.keys(this.rooms).map(this.syncStateToClients.bind(this))
+    this.syncStateToClients(world)
 
     // remove memory-objects which no longer exist
-    for (let objId of Object.keys(this.objMemory)) {
-      if (!(objId in this.gameEngine.world.objects)) {
-        delete this.objMemory[objId]
+    for (let id in this.objMemory) {
+      if (!world.getDynamicEntity(id)) {
+        delete this.objMemory[id]
       }
     }
 
+    // emit postStep event
+    this.events.emit(`postStep`, {world, state})
+
     // step is done on the server side
-    this.gameEngine.events.emit(
+    this.events.emit(
       `server__postStep`,
-      this.gameEngine.world.stepCount
+      world.stepCount
     )
 
-    if (this.gameEngine.trace.length) {
-      let traceData = this.gameEngine.trace.rotate()
+    if (this.trace.length) {
+      let traceData = this.trace.rotate()
       let traceString = ``
       traceData.forEach((t) => {
         traceString += `[${t.time.toISOString()}]${t.step}>${t.data}\n`
@@ -190,54 +337,73 @@ class ServerNetwork {
     }
   }
 
-  syncStateToClients(roomName) {
+  /**
+   *
+   * @param world
+   */
+  syncStateToClients(world: GameWorld) {
     // update clients only at the specified step interval, as defined in options
     // or if this room needs to sync
-    const room = this.rooms[roomName]
-    if (
-      room.requestImmediateSync ||
-      this.gameEngine.world.stepCount % this.options.updateRate === 0
-    ) {
-      const roomPlayers = Object.keys(this.connectedPlayers).filter(
-        (p) => this.connectedPlayers[p].roomName === roomName
-      )
 
+    const update = world.requestImmediateSync || world.stepCount % this.options.updateRate === 0
+
+    if (!update) {
+      return
+    }
+
+    let diffUpdate = true
+
+    // also, one in N syncs is a full update, or a special request
+    if (
+      world.syncCounter++ % this.options.fullSyncRate === 0 ||
+      world.requestFullSync
+    ) {
+      diffUpdate = false
+    } else {
       // if at least one player is new, we should send a full payload
-      let diffUpdate = true
-      for (const socketId of roomPlayers) {
-        const player = this.connectedPlayers[socketId]
+      for (const [id, player] of world.players) {
         if (player.state === `new`) {
           player.state = `synced`
           diffUpdate = false
         }
       }
 
-      // also, one in N syncs is a full update, or a special request
-      if (
-        room.syncCounter++ % this.options.fullSyncRate === 0 ||
-        room.requestFullSync
-      )
-        diffUpdate = false
+    }
 
-      const payload = this.serializeUpdate(roomName, { diffUpdate })
-      this.gameEngine.trace.info(
+
+
+
+
+    for (const [id, map] of world.maps) {
+      const payload = this.serializeUpdate(map, { diffUpdate })
+
+      this.trace.info(
         () =>
-          `========== sending world update ${this.gameEngine.world.stepCount} to room ${roomName} is delta update: ${diffUpdate} ==========`
+          `========== sending world update ${world.stepCount} to room ${roomName} is delta update: ${diffUpdate} ==========`
       )
-      for (const socketId of roomPlayers)
+
+      for (const socketId of map.players) {
         this.connectedPlayers[socketId].socket.emit(`worldUpdate`, payload)
+      }
+
+
       this.networkTransmitter.clearPayload()
-      room.requestImmediateSync = false
-      room.requestFullSync = false
+      world.requestImmediateSync = false
+      world.requestFullSync = false
     }
   }
 
-  // create a serialized package of the game world
-  // TODO: this process could be made much much faster if the buffer creation and
-  //       size calculation are done in a single phase, along with string pruning.
-  serializeUpdate(roomName, options) {
-    let world = this.gameEngine.world
+  /**
+   * create a serialized package of the game world
+   * @param map
+   * @param options
+   */
+  serializeUpdate(map: GameMap, options: Object) {
+    // TODO: this process could be made much much faster if the buffer creation and
+    //       size calculation are done in a single phase, along with string pruning.
     let diffUpdate = Boolean(options && options.diffUpdate)
+
+    const world = map.world
 
     // add this sync header
     // currently this is just the sync step count
@@ -246,20 +412,24 @@ class ServerNetwork {
       fullUpdate: Number(!diffUpdate)
     })
 
-    for (let objId in world.objects) {
-      let obj = world.objects[objId]
-      if (obj._roomName !== roomName) {
+    const entities = world.getDynamicEntities()
+    for (let [id, entity] in entities) {
+      if (entity.map.id !== map.id) {
         continue
       }
 
-      let prevObject = this.objMemory[objId]
+      let prevObject = this.objMemory[id]
 
       // if the object (in serialized form) hasn't changed, move on
       if (diffUpdate) {
-        let s = obj.serialize(this.serializer)
-        if (prevObject && Utils.arrayBuffersEqual(s.dataBuffer, prevObject))
+        let s = entity.serialize(this.serializer)
+        if (prevObject && NetworkUtils.arrayBuffersEqual(s.dataBuffer, prevObject)) {
           continue
-        else this.objMemory[objId] = s.dataBuffer
+        }
+
+        else {
+          this.objMemory[id] = s.dataBuffer
+        }
 
         // prune strings which haven't changed
         //obj = obj.prunedStringsClone(this.serializer, prevObject)
@@ -267,7 +437,7 @@ class ServerNetwork {
 
       this.networkTransmitter.addNetworkedEvent(`objectUpdate`, {
         stepCount: world.stepCount,
-        objectInstance: obj
+        objectInstance: entity
       })
     }
 
@@ -275,78 +445,37 @@ class ServerNetwork {
   }
 
   /**
-   * Create a room
-   *
-   * There is a default room called "/lobby".  All newly created players
-   * and objects are assigned to the default room.  When the server sends
-   * periodic syncs to the players, each player is only sent those objects
-   * which are present in his room.
-   *
-   * @param {String} roomName - the new room name
-   */
-  createRoom(roomName) {
-    this.rooms[roomName] = { syncCounter: 0, requestImmediateSync: false }
-  }
-
-  /**
-   * Assign an object to a room
-   *
-   * @param {Object} obj - the object to move
-   * @param {String} roomName - the target room
-   */
-  assignObjectToRoom(obj, roomName) {
-    obj._roomName = roomName
-  }
-
-  /**
    * Assign a player to a room
    *
-   * @param {Number} playerId - the playerId
-   * @param {String} roomName - the target room
+   * @param player
+   * @param world
    */
-  assignPlayerToRoom(playerId, roomName) {
-    const room = this.rooms[roomName]
-    let player = null
-    if (!room) {
-      this.gameEngine.trace.error(
-        () => `cannot assign player to non-existant room ${roomName}`
-      )
-      console.error(
-        `player ${playerId} assigned to room [${roomName}] which isn't defined`
-      )
-      return
-    }
-    for (const p of Object.keys(this.connectedPlayers)) {
-      if (this.connectedPlayers[p].socket.playerId === playerId)
-        player = this.connectedPlayers[p]
-    }
-    if (!player) {
-      this.gameEngine.trace.error(
-        () =>
-          `cannot assign non-existant playerId ${playerId} to room ${roomName}`
-      )
-    }
-    const roomUpdate = {
+  assignPlayerToWorld(player: Player, world: GameWorld) {
+    const worldUpdate = {
       playerId: playerId,
-      from: player.roomName,
-      to: roomName
+      //from: player.roomName,
+      to: worldId
     }
-    player.socket.emit(`roomUpdate`, roomUpdate)
-    this.gameEngine.events.emit(`server__roomUpdate`, roomUpdate)
-    this.gameEngine.trace.info(
+
+    player.socket.emit(`worldUpdate`, worldUpdate)
+    this.events.emit(`server__worldUpdate`, worldUpdate)
+    this.trace.info(
       () =>
-        `ROOM UPDATE: playerId ${playerId} from room ${player.roomName} to room ${roomName}`
+        `ROOM UPDATE: playerId ${player.id} from room ${world.id} to room ${worldId}`
     )
-    player.roomName = roomName
-    room.requestImmediateSync = true
-    room.requestFullSync = true
+
+    player.worldId = world.id
+    world.requestImmediateSync = true
+    world.requestFullSync = true
   }
 
-  // handle the object creation
+  /**
+   * handle the object creation
+   * @param obj
+   */
   onObjectAdded(obj) {
-    obj._roomName = obj._roomName || this.DEFAULT_ROOM_NAME
     this.networkTransmitter.addNetworkedEvent(`objectCreate`, {
-      stepCount: this.gameEngine.world.stepCount,
+      stepCount: world.stepCount,
       objectInstance: obj
     })
 
@@ -355,48 +484,78 @@ class ServerNetwork {
     }
   }
 
-  // handle the object creation
+  /**
+   * handle the object creation
+   * @param obj
+   */
   onObjectDestroyed(obj) {
     this.networkTransmitter.addNetworkedEvent(`objectDestroy`, {
-      stepCount: this.gameEngine.world.stepCount,
+      stepCount: world.stepCount,
       objectInstance: obj
     })
   }
 
-  getPlayerId(socket, data) {
-    let playerId = data.playerId
-    if (!playerId) {
-      lll('server no id')
-      playerId = ++this.gameEngine.world.playerCount
-    }
+  /**
+   *
+   * @param socket
+   * @param data
+   * @returns {*}
+   */
+  getPlayer(socket, data): Player {
+    lle(socket, data)
+    const { login } = data
+
 
     return playerId
   }
 
-  onClientConnect(socket) {
-    console.log(`Client Connected`, socket.id)
+  /**
+   *
+   * @param socket
+   */
+  onConnection(socket: Socket) {
+    lle(`Server: onConnection`, socket)
 
     // save player
-    this.connectedPlayers[socket.id] = {
-      socket: socket,
-      state: `new`,
-      roomName: this.DEFAULT_ROOM_NAME
-    }
+    // this.connectedPlayers[socket.id] = {
+    //   socket: socket,
+    //   state: `new`
+    // }
 
-    socket.on(`joinServer`, (data) => {
-      this.onPlayerConnected(socket, data)
-    })
+    const player = new Player(socket)
+
+    this.bindPlayerEvent(player, `joinServer`)
+    this.bindPlayerEvent(player, `disconnect`)
+
   }
 
-  // handle new player connection
-  onPlayerConnected(socket, data) {
-    let that = this
-    let playerId = this.getPlayerId(socket, data)
+  onDisconnect(socket: Socket) {
+    lle(`Client disconnected`)
+    // playerEvent.disconnectTime = Utils.getCurrentTimestamp()
+    // delete this.connectedPlayers[socketId]
+    //
+    //
+    //
+    // this.events.emit(`server__playerDisconnected`, playerEvent)
+    // this.events.emit(`playerDisconnected`, playerEvent)
+  }
 
-    socket.playerId = playerId
+  /**
+   * handle new player connection
+   * @param socket
+   * @param data
+   */
+  async onJoinServer(socket: Socket, data: Object) {
+    lle(socket, data)
+    let player = this.getPlayer(socket, data)
+
+
+    this.assignPlayerToWorld(player, world)
+
+    socket.playerId = player.id
 
     socket.lastHandledInput = null
-    socket.joinTime = new Date().getTime()
+    socket.joinTime = Utils.getCurrentTimestamp()
     this.resetIdleTimeout(socket)
 
     let playerEvent = {
@@ -405,30 +564,21 @@ class ServerNetwork {
       joinTime: socket.joinTime,
       disconnectTime: 0
     }
-    this.gameEngine.events.emit(`server__playerJoined`, playerEvent)
-    this.gameEngine.events.emit(`playerJoined`, playerEvent)
+    this.events.emit(`server__playerJoined`, playerEvent)
+    this.events.emit(`playerJoined`, playerEvent)
     socket.emit(`playerJoined`, playerEvent)
 
-    socket.on(`disconnect`, function() {
-      playerEvent.disconnectTime = new Date().getTime()
-      that.onPlayerDisconnected(socket.id, playerId)
-      that.gameEngine.events.emit(`server__playerDisconnected`, playerEvent)
-      that.gameEngine.events.emit(`playerDisconnected`, playerEvent)
-    })
-
-    socket.on(`request`, function(data) {
-      that.onReceivedRequest(data, socket)
-    })
+    this.bindSocketEvent(socket, `request`)
 
     // we got a packet of trace data, write it out to a side-file
-    socket.on(`trace`, function(traceData) {
+    socket.on(`trace`, (traceData) => {
       traceData = JSON.parse(traceData)
       let traceString = ``
       traceData.forEach((t) => {
         traceString += `[${t.time}]${t.step}>${t.data}\n`
       })
       fs.appendFile(
-        `${that.options.tracesPath}client.${playerId}.trace`,
+        `${this.options.tracesPath}client.${playerId}.trace`,
         traceString,
         (err) => {
           if (err) throw err
@@ -439,49 +589,24 @@ class ServerNetwork {
     this.networkMonitor.registerPlayerOnServer(socket)
   }
 
-  // handle player timeout
-  onPlayerTimeout(socket) {
-    console.log(
+  /**
+   * handle player timeout
+   * @param socket
+   */
+  onPlayerTimeout(socket: Socket) {
+    lle(
       `Client timed out after ${this.options.timeoutInterval} seconds`,
       socket.id
     )
     socket.disconnect()
   }
 
-  // handle player dis-connection
-  onPlayerDisconnected(socketId, playerId) {
-    delete this.connectedPlayers[socketId]
-    console.log(`Client disconnected`)
-  }
-
-  // resets the idle timeout for a given player
-  resetIdleTimeout(socket) {
-    if (socket.idleTimeout) clearTimeout(socket.idleTimeout)
-    if (this.options.timeoutInterval > 0) {
-      socket.idleTimeout = setTimeout(() => {
-        this.onPlayerTimeout(socket)
-      }, this.options.timeoutInterval * 1000)
-    }
-  }
-
-  // add an input to the input-queue for the specific player
-  // each queue is key'd by step, because there may be multiple inputs
-  // per step
-  queueInputForPlayer(data, playerId) {
-    // create an input queue for this player, if one doesn't already exist
-    if (!this.playerInputQueues.hasOwnProperty(playerId))
-      this.playerInputQueues[playerId] = {}
-    let queue = this.playerInputQueues[playerId]
-
-    // create an array of inputs for this step, if one doesn't already exist
-    if (!queue[data.step]) queue[data.step] = []
-
-    // add the input to the player's queue
-    queue[data.step].push(data)
-  }
-
-  // an input has been received from a client, queue it for next step
-  onReceivedRequest(data, socket) {
+  /**
+   * an input has been received from a client, queue it for next step
+   * @param data
+   * @param socket
+   */
+  onRequest(data, socket) {
     if (this.connectedPlayers[socket.id]) {
       this.connectedPlayers[socket.id].socket.lastHandledInput =
         data.messageIndex
@@ -516,6 +641,99 @@ class ServerNetwork {
 
     return JSON.stringify(gameStatus)
   }
+
+
+  /**
+   * Override this function to implement input handling.
+   * This method will be called on the specific client where the
+   * input was received, and will also be called on the server
+   * when the input reaches the server.  The client does not call this
+   * method directly, rather the client calls {@link ClientEngine#sendInput}
+   * so that the input is sent to both server and client, and so that
+   * the input is delayed artificially if so configured.
+   *
+   * The input is described by a short string, and is given an index.
+   * The index is used internally to keep track of inputs which have already been applied
+   * on the client during synchronization.  The input is also associated with
+   * the ID of a player.
+   *
+   * @param {Object} inputDesc - input descriptor object
+   * @param {String} inputDesc.input - describe the input (e.g. "up", "down", "fire")
+   * @param {Number} inputDesc.messageIndex - input identifier
+   * @param {Number} inputDesc.step - the step on which this input occurred
+   * @param {Number} playerId - the player ID
+   * @param {Boolean} isServer - indicate if this function is being called on the server side
+   */
+  processCommand(inputData: Object, playerId: number) {
+    lll(`processCommand`, { inputData, playerId })
+    this.trace.info(
+      () =>
+        `game engine processing input[${inputDesc.messageIndex}] <${inputDesc.input}> from playerId ${playerId}`
+    )
+    //lle(this.world.queryObject)
+    let playerEntity = this.world.queryEntity({
+      id: playerId
+      //instanceType: Entity
+    })
+
+
+    //(inputData.action, inputData.payload)
+  }
+
+
+  /**
+   *
+   * @param serverObj
+   * @returns {*}
+   */
+  findLocalShadow(serverObj) {
+    for (let localId of Object.keys(this.world.objects)) {
+      if (Number(localId) < this.options.clientIDSpace) continue
+      let localObj = this.world.objects[localId]
+      if (
+        localObj.hasOwnProperty(`inputId`) &&
+        localObj.inputId === serverObj.inputId
+      )
+        return localObj
+    }
+
+    return null
+  }
+
+
+
+  /**
+   * resets the idle timeout for a given player
+   * @param socket
+   */
+  resetIdleTimeout(socket: Socket) {
+    if (socket.idleTimeout) clearTimeout(socket.idleTimeout)
+    if (this.options.timeoutInterval > 0) {
+      socket.idleTimeout = setTimeout(() => {
+        this.onPlayerTimeout(socket)
+      }, this.options.timeoutInterval * 1000)
+    }
+  }
+
+  /**
+   * add an input to the input-queue for the specific player
+   * each queue is key'd by step, because there may be multiple inputs
+   * per step
+   * @param data
+   * @param playerId
+   */
+  queueInputForPlayer(data, playerId) {
+    // create an input queue for this player, if one doesn't already exist
+    if (!this.playerInputQueues.hasOwnProperty(playerId))
+      this.playerInputQueues[playerId] = {}
+    let queue = this.playerInputQueues[playerId]
+
+    // create an array of inputs for this step, if one doesn't already exist
+    if (!queue[data.step]) queue[data.step] = []
+
+    // add the input to the player's queue
+    queue[data.step].push(data)
+  }
+
 }
 
-export default ServerNetwork

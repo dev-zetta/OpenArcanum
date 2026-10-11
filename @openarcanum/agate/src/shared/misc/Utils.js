@@ -14,8 +14,8 @@ let myConsole = false
 
 // https://lodash.com/docs/4.17.4
 
-import uuidv5 from 'uuid/v5'
-import lodash from 'lodash'
+const uuidv5 = require('uuid')
+const lodash = require('lodash')
 
 export default class Utils extends lodash {
   /**

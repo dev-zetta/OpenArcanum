@@ -3,6 +3,7 @@
 import Component from './Component'
 import Location from '../../Location'
 import WaypointList from '../WaypointList'
+import Waypoint from '../Waypoint'
 
 export default class Npc extends Component {
   aiData: Object
@@ -19,6 +20,8 @@ export default class Npc extends Component {
   wait: any
   generatorData: string
   waypoints: WaypointList
+
+  currentWaypoint: ?Waypoint
 
   /**
    *

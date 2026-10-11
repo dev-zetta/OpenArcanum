@@ -9,9 +9,10 @@ import Entity from './Entity'
 import UID from './UID'
 import Prototype from './Prototype'
 import Utils from '../misc/Utils'
+import EntityUtils from './Utils'
 
 import Systems from './systems'
-import Components from './components'
+//import Components from './components'
 import type GameEngine from '../GameEngine'
 import ObjectPool from './ObjectPool'
 import Messenger from './Messenger'
@@ -21,21 +22,60 @@ import type AssetLoader from '../assets/AssetLoader'
 
 //const ClassTransformer = require('class-transformer')
 
-class Manager {
-  entities: Map<string, Entity>
-  entitiesSystemsDirty: Map<string, Entity>
-  systems: Map<string, System>
+export default class Manager {
+  gameEngine: GameEngine
   updateCounter: number
   lastUpdate: number
-  gameEngine: GameEngine
+
+  entities: Map<string, Entity>
   prototypes: Map<string, Prototype>
-  components: Map<string, Object>
+  //components: Map<string, Object>
+
+  systems: Map<string, System>
+  dirtyEntities: Map<string, Entity>
+
+  messenger: Messenger
+  componentPools: Map<string, ObjectPool>
+  entityPool: ObjectPool
+
+  tags: Map<string, Map<string, Entity>>
+  groups: Map<string, Object>
+
+  dynamicEntities: Map<string, Object>
+
+
+  /**
+   * Fired AFTER an entity has be created.
+   * @event
+   */
+  static ENTITY_CREATED = `Manager#ENTITY_CREATED`
+
+  /**
+   * Fired BEFORE an entity has been removed.
+   * @event
+   */
+  static ENTITY_REMOVE = `Manager#ENTITY_REMOVE`
+
+  /**
+   * Fired AFTER a component has been removed.
+   * @event
+   */
+  static COMPONENT_ADDED = `Manager#COMPONENT_ADDED`
+
+  /**
+   * Fired BEFORE a component has been removed.
+   * @event
+   */
+  static COMPONENT_REMOVE = `Manager#COMPONENT_REMOVE`
 
   /**
    *
    * @param gameEngine
    */
   constructor(gameEngine: GameEngine) {
+    this.gameEngine = gameEngine
+
+
     /**
      * Store all entities of the ECS.
      *
@@ -47,10 +87,12 @@ class Manager {
     /**
      * Store entities which need to be tested at beginning of next tick.
      *
-     * @property entitiesSystemsDirty
+     * @property dirtyEntities
      * @type {Map}
      */
-    this.entitiesSystemsDirty = new Map()
+    this.dirtyEntities = new Map()
+
+    this.dynamicEntities = new Map()
 
     /**
      * Store all systems of the ECS.
@@ -68,16 +110,8 @@ class Manager {
      */
     this.updateCounter = 0
 
-    this.gameEngine = gameEngine
-
-    for (let key in Systems) {
-      let system = Systems[key]
-      lll(`Adding entity system: ${key}`)
-      this.addSystem(new system(this.gameEngine, this))
-    }
-
     this.prototypes = new Map()
-    this.components = new Map()
+    //this.components = new Map()
 
     /**
      * Event messenger, injected
@@ -111,6 +145,13 @@ class Manager {
     this.componentPools = new Map()
 
     this.lastUpdate = 0
+
+
+    for (let key in Systems) {
+      let system = Systems[key]
+      lll(`Adding entity system: ${key}`)
+      this.addSystem(new system(this.gameEngine, this))
+    }
   }
 
   /**
@@ -121,6 +162,10 @@ class Manager {
     return this.gameEngine.events
   }
 
+  /**
+   *
+   * @returns {AssetLoader}
+   */
   get assetLoader(): AssetLoader {
     return this.gameEngine.assetLoader
   }
@@ -130,8 +175,25 @@ class Manager {
    * @param  {Number} id id of the entity to retrieve
    * @return {Entity} The entity if found null otherwise
    */
-  getEntityById(id: string) {
+  getEntityById(id: string): ?Entity {
     return this.entities.get(id)
+  }
+
+  /**
+   *
+   * @returns {Map<string, Object>}
+   */
+  getDynamicEntities(): Map<string, Entity> {
+    return this.dynamicEntities
+  }
+
+  /**
+   *
+   * @param id
+   * @returns {Object}
+   */
+  getDynamicEntity(id: string): ?Entity {
+    return this.dynamicEntities.get(id)
   }
 
   /**
@@ -139,7 +201,7 @@ class Manager {
    * components as well.
    * @param {Entity} entity
    */
-  removeEntity(entity: Entity) {
+  removeEntity(entity: ?Entity) {
     entity = this.getEntityById(entity.id)
 
     if (!entity) {
@@ -149,24 +211,22 @@ class Manager {
     this.removeAllComponentsFromEntity(entity)
 
     // Remove from entity list
-    this._trigger(Manager.ENTITY_REMOVE, entity)
-    this.entities.remove(entity.id)
+    this.triggerEvent(Manager.ENTITY_REMOVE, entity)
+    this.entities.delete(entity.id)
 
     // Remove entity from any tag groups and clear the on-entity ref
     entity.tags.length = 0
     for (const [tag, entities] of this.tags) {
-      entities.remove(entity.id)
+      entities.delete(entity.id)
     }
 
     for (let system of entity.systems) {
       system.removeEntity(v)
     }
 
-    this.removeEntityIfDirty(entity)
-
-    // Prevent any acecss and free
-    entity._manager = null
     this.entityPool.release(entity)
+
+    this.removeEntityIfDirty(entity)
   }
 
   /**
@@ -176,7 +236,7 @@ class Manager {
    * @param  {string} id id of the entity to remove
    * @return {Entity}          removed entity if any
    */
-  removeEntityById(id: string) {
+  removeEntityById(id: string): ?Entity {
     let entity = this.getEntityById(id)
     if (!entity) {
       return null
@@ -193,8 +253,9 @@ class Manager {
    * @method removeEntityIfDirty
    * @param  {[type]} entity entity to remove
    */
-  removeEntityIfDirty(entity: Entity) {
-    entity = this.entitiesSystemsDirty.get(entity.id)
+  removeEntityIfDirty(entity: ?Entity) {
+    debugger
+    entity = this.dirtyEntities.get(entity.id)
 
     if (entity) {
       this.entities.delete(entity.id)
@@ -205,11 +266,11 @@ class Manager {
    * @param {Entity} entity
    * @param {String} tag
    */
-  addTagToEntity(entity, tag) {
+  addTagToEntity(entity: Entity, tag: string) {
     let entities = this.tags.get(tag)
 
     if (!entities) {
-      entities = []
+      entities = new Map()
 
       this.tags.set(tag, entities)
     } else {
@@ -220,7 +281,7 @@ class Manager {
     }
 
     // Add to our tag index AND the list on the entity
-    entities.push(entity)
+    entities.set(entity.id, entity)
     entity.tags.push(tag)
   }
 
@@ -239,8 +300,8 @@ class Manager {
     }
 
     // Remove from our index AND the list on the entity
-    entities.remove(entity.id)
-    entity.tags.remove(entity.id)
+    entities.delete(entity.id)
+    entity.tags.delete(entity.id)
   }
 
   /*getComponentPool(cName) {
@@ -260,10 +321,9 @@ class Manager {
    * @param componentData
    * @param prototype
    */
-  addComponentToEntity(entity, componentClass, componentData, prototype) {
+  addComponentToEntity(entity: Entity, componentClass, componentData, prototype) {
     if (entity.components.includes(componentClass)) {
-      lll(`hasComponent`, componentClass)
-      return `cccc`
+      debugger
     }
 
     entity.components.push(componentClass)
@@ -292,7 +352,7 @@ class Manager {
     entity.setComponent(componentName, component)
 
     if (!(entity instanceof Prototype)) {
-      entity.setSystemsDirty()
+      entity.setDirty()
     }
 
     // Check each indexed group to see if we need to add this entity to the list
@@ -315,7 +375,7 @@ class Manager {
       group.entities.push(entity)
     }
 
-    this._trigger(Manager.COMPONENT_ADDED, entity, componentClass)
+    this.triggerEvent(Manager.COMPONENT_ADDED, entity, componentClass)
 
     return component
   }
@@ -324,12 +384,12 @@ class Manager {
    * Drop all components on an entity. Avoids loop issues.
    * @param {Entity} entity
    */
-  removeAllComponentsFromEntity(entity) {
-    const Cs = entity.components
+  removeAllComponentsFromEntity(entity: Entity) {
+    const components = entity.components
 
-    for (let j = Cs.length - 1; j >= 0; j--) {
-      const C = Cs[j]
-      entity.removeComponent(C)
+    for (let j = components.length - 1; j >= 0; j--) {
+      const component = components[j]
+      entity.removeComponent(component)
     }
   }
 
@@ -337,13 +397,13 @@ class Manager {
    * @param {Entity} entity
    * @param {Function} Class
    */
-  removeComponentFromEntity(entity, Class) {
+  removeComponentFromEntity(entity: Entity, Class: string) {
     const index = entity.components.indexOf(Class)
     if (!~index) {
       return
     }
 
-    this._trigger(Manager.COMPONENT_REMOVE, entity, Class)
+    this.triggerEvent(Manager.COMPONENT_REMOVE, entity, Class)
 
     // Check each indexed group to see if we need to remove it
     for (const [groupName, group] of this.groups) {
@@ -358,22 +418,22 @@ class Manager {
     }
 
     // Remove T listing on entity and property ref, then free the component.
-    const propName = Manager.componentToName(Class)
+    const propName = Entity.componentToName(Class)
     entity.components.splice(index, 1)
 
     const component = entity[propName]
     delete entity[propName]
-    this.componentPools[propName].release(component)
+    this.componentPools.get(propName).release(component)
 
-    entity.setSystemsDirty()
+    entity.setDirty()
   }
 
   /**
    * Get a list of entities that have a certain set of components.
-   * @param {Array.<Function>} Components
    * @return {Array.<Entity>}
+   * @param componentClasses
    */
-  queryComponents(componentClasses) {
+  queryComponents(componentClasses: Array<string>): Array<Entity> {
     let group = this.groups.get(Manager._groupKey(componentClasses))
 
     if (!group) {
@@ -388,15 +448,14 @@ class Manager {
    * @param {String} tag
    * @return {Array.<Entity>}
    */
-  queryTag(tag) {
+  queryTag(tag: string): Array<Entity> {
     let entities = this.tags.get(tag)
 
-    if (entities === undefined) {
-      entities = []
-      this.tags.set(tag, entities)
+    if (!entities) {
+      return []
     }
 
-    return entities
+    return entities.values()
   }
 
   /**
@@ -412,9 +471,9 @@ class Manager {
       size: this.entityPool.count
     }
 
-    for (const cName in this.componentPools) {
-      const pool = this.componentPools[cName]
-      stats[cName] = {
+    for (const name in this.componentPools) {
+      const pool = this.componentPools[name]
+      stats[name] = {
         used: pool.totalUsed(),
         size: pool.count
       }
@@ -428,7 +487,7 @@ class Manager {
    * @param {Array.<Function>} Components
    * @private
    */
-  _indexGroup(componentClasses) {
+  _indexGroup(componentClasses: Array<string>) {
     const key = Manager._groupKey(componentClasses)
 
     if (this.groups.has(key)) {
@@ -454,7 +513,7 @@ class Manager {
    * @param {Object=} a
    * @param {Object=} b
    */
-  _trigger(event, a, b) {
+  triggerEvent(event, a, b) {
     if (this.messenger) {
       this.messenger.trigger(event, a, b)
     }
@@ -465,7 +524,7 @@ class Manager {
    * @param entity
    */
   addDirtyEntity(entity: Entity) {
-    this.entitiesSystemsDirty.set(entity.id, entity)
+    this.dirtyEntities.set(entity.id, entity)
   }
 
   /**
@@ -518,8 +577,11 @@ class Manager {
   cleanDirtyEntities() {
     // jshint maxdepth: 4
 
-    for (let [id, entity] of this.entitiesSystemsDirty) {
+    for (let [id, entity] of this.dirtyEntities) {
       for (let [name, system] of this.systems) {
+       // if (id == 'E505FDB0-0E4E-11D4-8F1D-00E02920220C')
+       //   debugger
+
         // for each dirty entity for each system
         let index = entity.systems.indexOf(system)
         let entityTest = system.test(entity)
@@ -534,19 +596,18 @@ class Manager {
         // else we do nothing the current state is OK
       }
 
-      entity.systemsDirty = false
+      entity.dirtyEntities = false
     }
     // jshint maxdepth: 3
 
-    this.entitiesSystemsDirty.clear()
+    this.dirtyEntities.clear()
   }
 
-  isRunning() {
-    return this.lastUpdate !== 0
-  }
-
+  /**
+   *
+   */
   start() {
-    this.lastUpdate = Utils.getCurrentTimestamp()
+
   }
 
   /**
@@ -554,14 +615,8 @@ class Manager {
    *
    * @method update
    */
-  update() {
-    if (!this.isRunning()) {
-      return
-    }
-
+  update(t: number, dt: number) {
     let now = Utils.getCurrentTimestamp()
-    let elapsed = now - this.lastUpdate
-
     //lll(now, elapsed)
 
     for (let [name, system] of this.systems) {
@@ -569,16 +624,12 @@ class Manager {
         break
       }
 
-      if (this.entitiesSystemsDirty.size > 0) {
-        // if the last system flagged some entities as dirty check that case
-        this.cleanDirtyEntities()
-      }
-
-      system.updateAll(elapsed)
+      this.cleanDirtyEntities()
+      system.updateAll(dt)
     }
 
     this.updateCounter += 1
-    this.lastUpdate = now
+    this.lastUpdate = t
   }
 
   /**
@@ -593,19 +644,25 @@ class Manager {
   /**
    *
    */
-  loadComponents() {
-    for (let key in Components) {
-      this.components.set(key, Components[key])
-    }
+  // loadComponents() {
+  //   for (let key in Components) {
+  //     this.components.set(key, Components[key])
+  //   }
+  //
+  //   /*AGate.Utils.loadScripts('shared/entity/components', (name, script) => {
+  //     let component = script.component;
+  //
+  //     this.components.set(name, component)
+  //   })*/
+  // }
 
-    /*AGate.Utils.loadScripts('shared/entity/components', (name, script) => {
-      let component = script.component;
-
-      this.components.set(name, component)
-    })*/
-  }
-
-  async loadPrototype(key, fileName) {
+  /**
+   *
+   * @param key
+   * @param fileName
+   * @returns {Promise<void>}
+   */
+  async loadPrototype(key: string, fileName: string) {
     let meta = await this.assetLoader.loadJsonFile(fileName)
 
     let prototype = new Prototype(this)
@@ -654,6 +711,12 @@ class Manager {
   async newEntity(id: string, data: Object): Promise<Entity> {
     // Apply prototype
     let entity = this.entityPool.aquire(this)
+
+    if (this.entities.get(id)) {
+      lle('Duplicate entity id', entity)
+      id = '!' + id
+    }
+
     entity.id = id
 
     if (data[`Base`]) {
@@ -665,9 +728,9 @@ class Manager {
       }
 
       if (prototypeId) {
-        let prototype: Prototype = this.prototypes.get(`${prototypeId}`)
+        let prototype: ?Prototype = this.prototypes.get(`${prototypeId}`)
         if (!prototype) {
-          console.log(`Invalid prototype: ${prototype}`)
+          lle(`Invalid prototype: ${prototype}`)
         } else {
           prototype.extendEntity(entity, data)
         }
@@ -676,6 +739,7 @@ class Manager {
 
     // Load components' data and create instances
     if (!entity) {
+      debugger
       //entity = new Entity(this.gameEngine)
     }
 
@@ -683,10 +747,14 @@ class Manager {
 
     // Add to manager
 
-    //entity.setSystemsDirty()
+    //entity.setdirtyEntities()
     this.entities.set(entity.id, entity)
 
-    this._trigger(Manager.ENTITY_CREATED, entity)
+    if (EntityUtils.isDynamic(entity)) {
+      this.dynamicEntities.set(entity.id, entity)
+    }
+
+    this.triggerEvent(Manager.ENTITY_CREATED, entity)
 
     //if (id == '44681452-6AD6-B342-9C16-23E68416F47E') {
     //  lll('sdfsfsdfsd', entity)
@@ -700,7 +768,7 @@ class Manager {
    * @return {String}
    * @private
    */
-  static _groupKey(Classes) {
+  static _groupKey(Classes: Array<string>): string {
     const names = []
     for (let n = 0; n < Classes.length; n++) {
       const T = Classes[n]
@@ -713,29 +781,3 @@ class Manager {
       .join(`-`)
   }
 }
-
-/**
- * Fired AFTER an entity has be created.
- * @event
- */
-Manager.ENTITY_CREATED = `Manager#ENTITY_CREATED`
-
-/**
- * Fired BEFORE an entity has been removed.
- * @event
- */
-Manager.ENTITY_REMOVE = `Manager#ENTITY_REMOVE`
-
-/**
- * Fired AFTER a component has been removed.
- * @event
- */
-Manager.COMPONENT_ADDED = `Manager#COMPONENT_ADDED`
-
-/**
- * Fired BEFORE a component has been removed.
- * @event
- */
-Manager.COMPONENT_REMOVE = `Manager#COMPONENT_REMOVE`
-
-export default Manager

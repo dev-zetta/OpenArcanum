@@ -6,6 +6,13 @@ import Utils from '../../shared/misc/Utils'
 
 export default class Spritesheet {
 
+  baseTexture: PIXI.BaseTexture
+  textures: Object
+  data: Object
+  _frames: Object
+  _frameKeys: Array<string>
+  resolution: number
+
   /**
    *
    * @param baseTexture
@@ -61,7 +68,7 @@ export default class Spritesheet {
     return this._frameKeys.length
   }
 
-  getFrameKey(index) {
+  getFrameKey(index: number): string {
     if (index >= this._frameKeys.length) {
       lle('Accessing unknown key', index)
       return null
@@ -71,10 +78,11 @@ export default class Spritesheet {
     return this._frameKeys[index]
   }
 
-  getTextureByIndex(index) {
+  getTextureByIndex(index: number): ?Object {
     let texture = this.textures[this.getFrameKey(index)]
     if (!texture) {
-      lle('Nonexisting texture', index, this)
+      //lle('Nonexisting texture', index, this)
+      return null
     }
 
     return texture
