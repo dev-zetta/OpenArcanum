@@ -18,6 +18,7 @@ before(async () => {
       contents: `
         export { default as AGate } from './AGate.js';
         export { default as UID } from './shared/entity/UID.js';
+        export { default as ClientNetwork } from './client/network/ClientNetwork.js';
         export { default as AssetLoader } from './shared/assets/AssetLoader.js';
         export { default as SectorCache } from './shared/map/SectorCache.js';
         export { default as Spritesheet } from './client/isometric/Spritesheet.js';
@@ -69,6 +70,32 @@ test('entity UUIDs remain unique across repeated generation', () => {
   const ids = Array.from({ length: 1000 }, () => generator.next())
   assert.equal(new Set(ids).size, ids.length)
   assert.match(ids[0], /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+})
+
+test('Socket.IO CONNECT_ERROR rejects the connection promise with its original message', async () => {
+  const client = { options: { serverURL: 'http://127.0.0.1:1' }, stopped: false }
+  const previousLog = globalThis.lll
+  const previousErrorLog = globalThis.lle
+  globalThis.lll = globalThis.lle = () => {}
+  try {
+    // Disable transport startup: inject the decoded protocol packet directly.
+    const connected = engine.ClientNetwork.prototype.connect.call(client, { autoConnect: false })
+    const rejected = assert.rejects(connected, error => {
+      assert.equal(error.message, 'Connection denied by the server')
+      assert.deepEqual(error.data, { code: 'ACCESS_DENIED' })
+      return true
+    })
+    await Promise.resolve()
+    client.socket.socket.onpacket({
+      type: 4, // Socket.IO protocol CONNECT_ERROR
+      nsp: '/',
+      data: { message: 'Connection denied by the server', data: { code: 'ACCESS_DENIED' } }
+    })
+    await rejected
+  } finally {
+    globalThis.lll = previousLog
+    globalThis.lle = previousErrorLog
+  }
 })
 
 test('asset JSON round trips Unicode, creates directories, and accepts a UTF-8 BOM', async () => {

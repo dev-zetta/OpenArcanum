@@ -184,7 +184,7 @@ export default class ClientNetwork {
 
         //lle(this.options, this.socket)
 
-        this.socket.once(`error`, error => {
+        this.socket.once(`connect_error`, error => {
           lle(error)
           reject(error)
         })
@@ -525,4 +525,3 @@ export default class ClientNetwork {
     this.outboundMessages = []
   }
 }
-

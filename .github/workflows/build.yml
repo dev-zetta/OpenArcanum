@@ -10,6 +10,28 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Allow Electron's sandbox user namespaces
+        shell: bash
+        run: |
+          # Electron 44 downloads its executable on the first require.
+          node -e "require('electron')"
+          electron_binary="$(node -p "require('fs').realpathSync(require('electron'))")"
+
+          # Ubuntu restricts user namespaces to executables with an AppArmor profile.
+          if [[ "$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || true)" == "1" ]]; then
+            profile_file="$(mktemp)"
+            trap 'rm -f -- "$profile_file"' EXIT
+            cat > "$profile_file" <<EOF
+          abi <abi/4.0>,
+          include <tunables/global>
+
+          profile openarcanum-electron "$electron_binary" flags=(unconfined) {
+            userns,
+          }
+          EOF
+            sudo install -o root -g root -m 0644 "$profile_file" /etc/apparmor.d/openarcanum-electron
+            sudo apparmor_parser -r /etc/apparmor.d/openarcanum-electron
+          fi
       - run: npm test
       - run: xvfb-run -a npm run test:ui
       - run: npm run build

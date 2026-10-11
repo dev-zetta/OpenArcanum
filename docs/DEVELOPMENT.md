@@ -51,7 +51,7 @@ synthetic owned fixtures and do not convert or distribute retail data.
 On October 11, 2026, a clean `npm ci` and the complete `npm run check` passed
 on Linux with Node 24.14.1 and npm 11.11.0:
 
-- 12 Node tests covering engine, converter and resource protocol behavior.
+- 13 Node tests covering engine, converter and resource protocol behavior.
 - 9 Electron/QUnit UI tests with 33 assertions, including controls and local GUI
   model loading.
 - Production engine/UI build and Electron 44.7.0 startup, with no renderer
@@ -60,8 +60,10 @@ on Linux with Node 24.14.1 and npm 11.11.0:
 - PixiJS 8.22.0 WebGL 2 rendering with expected atlas/filter pixels and no GL
   errors, using synthetic fixtures on an Intel Mesa GPU.
 
-The GitHub workflow runs the same checks on a headless Linux display. These
-checks do not validate original game assets, full map startup or gameplay.
+The GitHub workflow runs the same checks on a headless Linux display. On runners
+with Ubuntu's AppArmor user-namespace restriction, it loads a profile for the
+exact Electron executable so Chromium can use its normal namespace sandbox.
+These checks do not validate original game assets, full map startup or gameplay.
 
 ## Electron compatibility mode
 

@@ -41,6 +41,9 @@ source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
 - Added engine, converter, protocol, UI and actual WebGL rendering regression
   checks, plus a current Node 24 build workflow. The synthetic renderer check
   verifies atlas and filtered sprite pixels without original game assets.
+- Updated connection rejection handling for Socket.IO 4 and covered rejected
+  handshakes with a packet-level regression test. Configured the CI runner's
+  Electron user-namespace permissions without disabling Chromium's sandbox.
 - Documented known implementation gaps and the first offline playable checkpoint.
   A successful development build does not establish a playable game release.
 
