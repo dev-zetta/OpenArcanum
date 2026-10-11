@@ -1,0 +1,6 @@
+node_modules
+coverage
+package-lock.json
+.idea/
+lib/src/resources/out/
+converted

@@ -1,0 +1,80 @@
+{
+  "name": "@openarcanum/asset-converter",
+  "version": "1.0.0",
+  "description": "Converter tool to convert Arcanum assets to OpenArcanum new format",
+  "homepage": "http://arcanum.rocks/",
+  "author": {
+    "name": "Gabriel Max & Others",
+    "email": "info@arcanum.rocks",
+    "url": ""
+  },
+  "files": [
+    "lib"
+  ],
+  "main": "lib/index.js",
+  "keywords": [
+    "openarcanum",
+    "arcanum",
+    "asset",
+    "converter",
+    "tool"
+  ],
+  "devDependencies": {
+    "eslint": "^5.8.0",
+    "eslint-config-prettier": "^3.1.0",
+    "eslint-config-xo": "^0.25.0",
+    "eslint-plugin-prettier": "^3.0.0",
+    "husky": "^1.1.3",
+    "jest": "^23.6.0",
+    "lint-staged": "^8.0.4",
+    "nsp": "^3.2.1",
+    "prettier": "^1.7.0"
+  },
+  "dependencies": {
+    "iconv-lite": "^0.4.24"
+  },
+  "scripts": {
+    "start": "node lib/start.js",
+    "dev:prepublish": "nsp check",
+    "dev:pretest": "eslint .",
+    "dev:precommit": "lint-staged",
+    "test": "jest"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.json": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "xo",
+      "prettier"
+    ],
+    "env": {
+      "jest": true,
+      "node": true
+    },
+    "rules": {
+      "prettier/prettier": [
+        "error",
+        {
+          "singleQuote": true,
+          "printWidth": 90
+        }
+      ]
+    },
+    "plugins": [
+      "prettier"
+    ]
+  },
+  "repository": "ssh://git@gitlab.com:openarcanum/openarcanum-assets.git",
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "license": "MIT"
+}
