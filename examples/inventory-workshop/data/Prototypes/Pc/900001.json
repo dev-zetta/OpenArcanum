@@ -1,0 +1,38 @@
+{
+  "Base": {
+    "type": "Pc",
+    "prototype": 900001,
+    "flags": [],
+    "location": [
+      0,
+      0
+    ],
+    "offset": [
+      0,
+      0
+    ]
+  },
+  "Critter": {
+    "flags": [],
+    "inventoryIndex": 0,
+    "inventorySource": 0
+  },
+  "Visual": {
+    "classes": {
+      "current": {
+        "type": "Critter",
+        "race": "Workshop",
+        "gender": "Male",
+        "armor": "Coat",
+        "shield": "None",
+        "weapon": "Unarmed",
+        "animation": "Stand",
+        "stage": "South",
+        "frame": 0
+      }
+    },
+    "render": {
+      "flags": []
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "Base": {
+    "type": "Container",
+    "prototype": 900002,
+    "flags": [],
+    "location": [
+      0,
+      0
+    ],
+    "offset": [
+      0,
+      0
+    ]
+  },
+  "Container": {
+    "flags": [
+      "NeverLocked"
+    ],
+    "inventoryIndex": 0,
+    "inventorySource": 0,
+    "lockDifficulty": 0,
+    "keyId": 0
+  },
+  "Visual": {
+    "classes": {
+      "current": {
+        "type": "Container",
+        "category": "Workshop",
+        "name": "Box",
+        "stage": "North",
+        "frame": 0
+      }
+    },
+    "render": {
+      "flags": []
+    }
+  }
+}

@@ -418,25 +418,12 @@ export default class IsoSprite extends PIXI.Sprite {
   }
 
   updateDepth() {
-    let depth =
-      this._isoPosition.x + this._isoPosition.y + this._isoPosition.z * 1.25
-
-    let x = 0 // (this.anchor.x * this.width )
-    let y = 0 // (this.anchor.y * this.height)
-
-    if (this.offset) {
-      x += this.offset.x
-      y += this.offset.y
-    }
-
-    let offset = new Point3(x, y)
-    //et isoOffset = this.projector.unprojectAbsolute(offset)
-
-    const c = 40
-    depth += offset.x / 40.0
-    depth += offset.y / 40.0
-
-    this.zIndex = depth
+    // Order by the projected ground contact point, in screen pixels. The
+    // converted object offset is already in screen pixels; dividing it by a
+    // tile width mixed units and placed wall decorations behind their walls.
+    // Elevation moves the artwork above its ground point, not into another row.
+    const ground = this.projector.projectXY(this._isoPosition)
+    this.zIndex = ground.y + (this.offset ? this.offset.y : 0)
     this._depthChanged = false
   }
 

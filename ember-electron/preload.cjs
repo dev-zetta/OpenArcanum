@@ -18,6 +18,13 @@ window.openArcanumDesktop = Object.freeze({
   config,
   compatibilityMode: true,
   attachQUnit,
+  startLocalServer: async requestId => {
+    const result = await ipcRenderer.invoke('openarcanum:local-server-start', requestId)
+    if (!result.ok) throw new Error(result.message)
+    return result.session
+  },
+  stopLocalServer: requestId => ipcRenderer.invoke('openarcanum:local-server-stop', requestId),
+  getLocalServerState: () => ipcRenderer.invoke('openarcanum:local-server-state'),
   platform: process.platform,
   versions: Object.freeze({ electron: process.versions.electron, node: process.versions.node })
 })

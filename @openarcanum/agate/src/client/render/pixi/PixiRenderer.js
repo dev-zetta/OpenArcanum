@@ -104,6 +104,9 @@ export default class PixiRenderer extends BaseRenderer {
     }
 
     this.viewport.update(dt)
+    const scene = this.clientEngine.scene
+    if (scene.roofLayer) scene.roofLayer.updateVisibility(this.clientEngine.player?.base.location)
+    if (scene.lightLayer) scene.lightLayer.update()
     this.renderer.render({ container: this.pixi.stage })
   }
 

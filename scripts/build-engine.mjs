@@ -9,8 +9,12 @@ const engine = path.join(root, '@openarcanum/agate')
 
 await build({
   absWorkingDir: root,
-  entryPoints: [path.join(engine, 'src/AGate.js')],
-  outfile: path.join(engine, 'dist/index.cjs'),
+  entryPoints: {
+    index: path.join(engine, 'src/AGate.js'),
+    authority: path.join(engine, 'src/server/authority/entry.js'),
+  },
+  outdir: path.join(engine, 'dist'),
+  outExtension: { '.js': '.cjs' },
   bundle: true,
   platform: 'node',
   format: 'cjs',
@@ -36,4 +40,4 @@ await build({
     },
   }],
 })
-console.log('Built AGate → @openarcanum/agate/dist/index.cjs')
+console.log('Built AGate client and headless authority → @openarcanum/agate/dist/')

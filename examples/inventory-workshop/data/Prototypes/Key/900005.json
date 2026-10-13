@@ -1,0 +1,28 @@
+{
+  "Base": {
+    "type": "Key",
+    "prototype": 900005,
+    "flags": [
+      "Inventory",
+      "NoBlock"
+    ],
+    "location": [
+      0,
+      0
+    ],
+    "offset": [
+      0,
+      0
+    ]
+  },
+  "Item": {
+    "flags": [],
+    "weight": 1,
+    "worth": 0,
+    "invLocation": 0,
+    "magicTechComplexity": 0
+  },
+  "Key": {
+    "keyId": 7001
+  }
+}

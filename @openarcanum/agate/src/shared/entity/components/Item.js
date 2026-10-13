@@ -8,6 +8,7 @@ export default class Item extends Component {
   worth: number
   manaStore: number
   invLocation: number
+  parent: string // Canonical converted source path recovered from the original MOB.
   magicTechComplexity: number
   discipline: string
   descriptionUnknown: number // id

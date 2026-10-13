@@ -53,6 +53,7 @@ export default class Critter extends Component {
   hitChart: number
   inventoryIndex: number
   inventorySource: string
+  inventory: Array<{ id: string, slot: number }> // Recovered instance ownership, not inferred from coordinates.
   descUnknown: number
   teleportDest: LocationRaw
   teleportMap: string

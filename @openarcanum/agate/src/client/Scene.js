@@ -9,6 +9,9 @@ import Location from '../shared/Location'
 import Utils from '../shared/misc/Utils'
 import Light from './Light'
 import Sprite from './Sprite'
+import RoofLayer from './RoofLayer'
+import LightLayer, { lightRGB } from './LightLayer'
+import objectLightPosition from './ObjectLightPosition'
 
 import Gfx from '../shared/enums/Gfx'
 
@@ -507,19 +510,25 @@ return
    */
   async addMap(map: GameMap /*, target: Object = this*/) {
     lll(`Placing to scene: ${map.path}`)
+    if (this.lightLayer) this.lightLayer.destroy()
+    this.lightLayer = null
 
     let rootGroup = this.newGroup()
     map.rootGroup = rootGroup
-    map.tileGroup = this.newGroup(rootGroup)
-    map.objectGroup = this.newGroup(rootGroup)
+    map.litGroup = this.newGroup(rootGroup)
+    map.tileGroup = this.newGroup(map.litGroup)
+    map.objectGroup = this.newGroup(map.litGroup)
+    this.roofLayer = new RoofLayer(this, map)
 
     let sectors = map.getActiveSectors()
 
     let sortGroups = []
     for (let sector of sectors) {
       await this.addSector(sector, map.tileGroup, map.objectGroup)
+      await this.roofLayer.addSector(sector)
       sortGroups.push(sector.staticGroup)
     }
+    await this.addMapLighting(map, sectors)
 
     /*for (let col = 0; col < map.height; col++) {
       for (let row = 0; row < map.width; row++) {
@@ -535,6 +544,66 @@ return
     //sortGroups(sortGroups)
 
     // map.rootGroup = rootGroup
+  }
+
+  async addMapLighting(map, sectors) {
+    // Only use recovered, verified constant ambient data. Older archives have
+    // neither valid Light ART descriptors nor an ambient scheme.
+    if (map.lighting?.constant !== true) return
+    const environments = new Set()
+    for (const sector of sectors) {
+      sector.inspectTiles(tile => {
+        if (!tile?.type || (tile.type === 'Tile' && tile.end?.category === 'BlackYall')) return
+        environments.add(tile.outdoor)
+      })
+    }
+    // One filter can model one ambient environment. Mixed maps need separate
+    // indoor/outdoor light buffers; leave them unlit rather than tinting them
+    // with the wrong ambient or guessing which roof/wall they belong to.
+    if (environments.size !== 1 || ![true, false].includes([...environments][0])) return
+    const ambient = lightRGB(environments.has(true) ? map.lighting.outdoor : map.lighting.indoor)
+    const outdoor = lightRGB(map.lighting.outdoor)
+    this.lightLayer = new LightLayer({
+      renderer: this.pixi.renderer,
+      viewport: this.renderer.viewport,
+      target: map.tileGroup,
+      ambient
+    })
+    const [r, g, b] = outdoor
+    this.roofLayer.container.tint = (r << 16) | (g << 8) | b
+    for (const { entity, sprite } of this.roofLayer.objects.values()) {
+      this.applyEntityLighting(entity, sprite)
+    }
+    for (const sector of sectors) {
+      for (const light of sector.lights || []) {
+        if (light.resource?.type !== 'Light') {
+          this.lightLayer.skip(light, 'Missing recovered original Light ART descriptor')
+          continue
+        }
+        if (light.flags) {
+          this.lightLayer.skip(light, 'Unsupported static light flags')
+          continue
+        }
+        const mask = new Sprite(this)
+        await mask.load(light.resource)
+        this.lightLayer.addLight(light, mask.iso.texture)
+        mask.iso.destroy()
+      }
+    }
+  }
+
+  applyEntityLighting(entity, sprite) {
+    // Unlit and original blend effects bypass illumination while remaining in
+    // the same depth-sorted object container, so walls can still cover them.
+    const blends = Array.from(entity.visual?.render?.flags || [])
+    if (this.lightLayer && !entity.base.flags.hasAny(['DontLight']) &&
+        !blends.some(flag => ['BlendAdd', 'BlendMul', 'BlendSub'].includes(flag))) {
+      if (String(entity.base.type) === 'Wall') {
+        this.lightLayer.addTarget(sprite.iso)
+      } else {
+        this.lightLayer.addSampledTarget(sprite.iso, () => objectLightPosition(entity, sprite))
+      }
+    }
   }
 
   /**
@@ -572,7 +641,9 @@ return
     let ax = sector.x * Sector.Width * Sector.TileHeight
     let ay = sector.y * Sector.Height * Sector.TileHeight
 
-    let offset = new Vec2(0, 20)
+    // Converted 78x40 ground frames have a (39,39) hotspot. Relative to the
+    // entity ground origin, the original floor starts 20 pixels above it.
+    let offset = new Vec2(0, Sector.TileHeightHalf - 1)
     lll(`Adding sector to scene`, ax, ay)
     for (let y = 0; y < Sector.Height; y++) {
       let dx = ax
@@ -583,10 +654,10 @@ return
           continue
         }
 
-        if (
-          tile.type &&
-          (tile.type == `Facade` || tile.end.category != `BlackYall`)
-        ) {
+        // A typed BlackYall-ending tile still contains opaque black pixels.
+        // True void entries have no type; dropping these frames exposed the
+        // canvas through the map's boundary and omitted original ground art.
+        if (tile.type) {
           tile.sprite = new Sprite(this)
           await tile.sprite.load(tile)
           this.addSprite(tile.sprite, tileGroup,
@@ -606,7 +677,7 @@ return
       ay += Sector.TileWidthHalf
     }
 
-    if (sector.lights) {
+    if (sector.lights && this.client.options.standaloneMode !== true) {
       for (let light of sector.lights) {
         this.addLight(light, this)
       }
@@ -616,7 +687,32 @@ return
     const staticGroup = objectGroup || this.newGroup(target)
     //target.add(this.staticGroup);
 
-    await Promise.all(Array.from(sector.entities.values(), entity => this.addEntity(entity, staticGroup)))
+    const entities = Array.from(sector.entities.values())
+    await Promise.all(entities.map(entity => {
+      if (entity.ground === false || entity.base.flags.hasAny(['Off', 'Destroyed']) ||
+          (entity.ground !== true && entity.base.flags.hasAny(['Inventory']))) return
+      return this.onNewEntity(entity)
+    }))
+    // A doorway and its portal may have identical depth. The original draws
+    // the wall first. Reorder only those same-tile slots, preserving unrelated
+    // source order and letting the normal depth sort handle different rows.
+    const doorwaySlots = new Map()
+    entities.forEach((entity, index) => {
+      if (!['Wall', 'Portal'].includes(String(entity.base.type))) return
+      const { x, y } = entity.base.location
+      const key = `${x},${y}`
+      if (!doorwaySlots.has(key)) doorwaySlots.set(key, [])
+      doorwaySlots.get(key).push(index)
+    })
+    for (const slots of doorwaySlots.values()) {
+      const ordered = slots.map(index => entities[index]).sort((a, b) =>
+        Number(String(a.base.type) === 'Portal') - Number(String(b.base.type) === 'Portal'))
+      slots.forEach((index, i) => { entities[index] = ordered[i] })
+    }
+    // Load atlases concurrently, then insert in source order. Pixi preserves
+    // insertion order for equal depths; network/disk timing must not decide
+    // whether a wall or its decoration is drawn first.
+    for (const entity of entities) await this.addEntity(entity, staticGroup)
 
     // Sort objects
     //target.scene.sortGroup(this.staticGroup);
@@ -637,7 +733,8 @@ return
   async addEntity(entity: Entity, target: Object) {
     // Inventory objects carry the owner's world location. They are retained in
     // the ECS, but their ground graphics must not be displayed on the floor.
-    if (entity.base.flags.hasAny(['Inventory', 'Off', 'Destroyed'])) return
+    if (entity.ground === false || entity.base.flags.hasAny(['Off', 'Destroyed']) ||
+        (entity.ground !== true && entity.base.flags.hasAny(['Inventory']))) return
     await this.onNewEntity(entity)
 
     let baseComponent = entity.base
@@ -737,11 +834,15 @@ return
       offset
     )
     sprite.setData(entity)
+    if (this.roofLayer) this.roofLayer.trackEntity(entity, sprite)
 
     // Process render components
     let renderComponent = visualComponent.render
     if (renderComponent) {
-
+      // The legacy converter stores opacity as an unsigned byte.
+      if (Number.isFinite(renderComponent.alpha)) {
+        sprite.iso.alpha = Math.max(0, Math.min(255, renderComponent.alpha)) / 255
+      }
 
       // Process render flags
       if (renderComponent.flags) {
@@ -759,6 +860,7 @@ return
         }
       }
     }
+    if (this.lightLayer) this.applyEntityLighting(entity, sprite)
 
     let lightComponent = visualComponent.light
     if (lightComponent) {

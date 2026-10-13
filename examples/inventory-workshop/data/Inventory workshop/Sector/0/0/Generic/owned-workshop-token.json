@@ -1,0 +1,13 @@
+{
+  "Base": {
+    "prototype": 900003,
+    "location": [
+      6,
+      4
+    ]
+  },
+  "Item": {
+    "parent": "Inventory workshop/Sector/0/0/Container/owned-workshop-box.json",
+    "invLocation": 7
+  }
+}

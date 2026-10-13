@@ -94,7 +94,9 @@ export default class GameMap {
    * @returns {number[]}
    */
   getStartLocation(): Location {
-    return new Location(92, 99)
+    // Imported legacy maps retain their historical development spawn. Owned
+    // modules may declare an integer tile in Map.json without engine edits.
+    return new Location(this.startLocation || [92, 99])
   }
 
   /**
@@ -104,6 +106,8 @@ export default class GameMap {
    * @returns {string}
    */
   getSectorPath(x: number, y: number): string {
+    // Archive directories are originalY/originalX, which are runtimeX/runtimeY
+    // because the legacy converter reverses entity location coordinates.
     return `${this.path}/Sector/${x}/${y}`
   }
 
@@ -126,8 +130,18 @@ export default class GameMap {
     if (!data || !Number.isInteger(data.width) || !Number.isInteger(data.height) || data.width < 1 || data.height < 1) {
       throw new Error(`Invalid or missing converted map: ${path}/Map.json`)
     }
-    this.width = data.width
-    this.height = data.height
+    this.width = data.height
+    this.height = data.width
+    if (Object.hasOwn(data, 'startLocation')) {
+      const location = data.startLocation
+      if (!Array.isArray(location) || location.length !== 2 || !location.every(Number.isSafeInteger) ||
+          location[0] < 0 || location[1] < 0 || location[0] >= this.width * Sector.Width ||
+          location[1] >= this.height * Sector.Height) {
+        throw new Error(`Invalid converted map start location: ${path}/Map.json`)
+      }
+      this.startLocation = [...location]
+    } else this.startLocation = null
+    this.lighting = data.lighting ? structuredClone(data.lighting) : null
     this.center = new Location([(this.width / 2) * 64, (this.height / 2) * 64])
 
     this.sectors.clear()
@@ -143,7 +157,8 @@ export default class GameMap {
     await Promise.all(promises)
 */
 
-    await this.sectors.load(this.center.sectorX, this.center.sectorY)
+    const initialLocation = this.startLocation ? new Location(this.startLocation) : this.center
+    await this.sectors.load(initialLocation.sectorX, initialLocation.sectorY)
 
     this.isLoading = false
     this.isLoaded = true
@@ -160,8 +175,7 @@ export default class GameMap {
    */
   async loadSector(x: number, y: number): Promise<Sector> {
     let sector = new Sector(this)
-    // The original converter writes Sector/y/x; world coordinates stay x/y.
-    await sector.load(this.getSectorPath(y, x), x, y)
+    await sector.load(this.getSectorPath(x, y), x, y)
     return sector
   }
 
@@ -214,6 +228,9 @@ export default class GameMap {
     let id = Utils.getFileBase(path)
     let entity = await this.entityManager.newEntity(id, data)
     entity.map = this
+    // Runtime GUIDs can be renamed when two converted records share a basename.
+    // The full converted entry identifies the same object on every replica.
+    entity.sourcePath = path.replaceAll('\\', '/').replace(/^\.\//, '')
 
     this.events.emit('Map:NewEntity', this, entity)
 
@@ -250,9 +267,15 @@ export default class GameMap {
     const entities = sector.getTileEntities(tile, [Enums.Entity.Wall, Enums.Entity.Portal,
       Enums.Entity.Npc, Enums.Entity.Pc, Enums.Entity.Scenery, Enums.Entity.Container])
     for (const entity of Object.values(entities)) {
-      if (entity.base.flags.hasAny(['Inventory', 'Off', 'Destroyed', 'NoBlock'])) continue
-      // Until portal state and interactions are implemented, a closed/unknown
-      // portal and occupied object tiles are conservatively nonwalkable.
+      if (entity.base.flags.hasAny(['Inventory', 'Off', 'Destroyed'])) continue
+      if (entity.base.type === 'Portal' && typeof entity.portalOpen === 'boolean') {
+        // A converted open door can inherit NoBlock. Its committed instance
+        // state overrides that saved flag when it is subsequently closed.
+        if (entity.portalOpen) continue
+        return true
+      }
+      if (entity.base.flags.has('NoBlock')) continue
+      // Unmanaged portals retain the converted flags; other solid objects block.
       return true
     }
 

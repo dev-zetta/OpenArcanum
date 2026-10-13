@@ -148,6 +148,9 @@ export default class Manager {
 
 
     for (let key in Systems) {
+      // The authoritative host runs its own movement clock without renderer,
+      // combat or experimental NPC systems.
+      if (gameEngine.options.headless === true) continue
       // The offline map checkpoint animates visuals, but does not activate the
       // legacy two-GUID AI/combat experiment as campaign behavior.
       if (gameEngine.options.standaloneMode === true && key !== 'Render') continue

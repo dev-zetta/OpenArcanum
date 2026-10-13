@@ -1,0 +1,123 @@
+{
+  "frames": {
+    "Portal/Door/Workshop/0/0/North/0": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 80,
+        "h": 104
+      },
+      "center": {
+        "x": 40,
+        "y": 88
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 104
+      },
+      "trimmed": false
+    },
+    "Portal/Door/Workshop/0/0/North/1": {
+      "frame": {
+        "x": 80,
+        "y": 0,
+        "w": 80,
+        "h": 104
+      },
+      "center": {
+        "x": 40,
+        "y": 88
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 104
+      },
+      "trimmed": false
+    },
+    "Portal/Door/Workshop/0/0/North/2": {
+      "frame": {
+        "x": 160,
+        "y": 0,
+        "w": 80,
+        "h": 104
+      },
+      "center": {
+        "x": 40,
+        "y": 88
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 104
+      },
+      "trimmed": false
+    },
+    "Portal/Door/Workshop/0/0/North/3": {
+      "frame": {
+        "x": 240,
+        "y": 0,
+        "w": 80,
+        "h": 104
+      },
+      "center": {
+        "x": 40,
+        "y": 88
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 104
+      },
+      "trimmed": false
+    },
+    "Portal/Door/Workshop/0/0/North/4": {
+      "frame": {
+        "x": 320,
+        "y": 0,
+        "w": 80,
+        "h": 104
+      },
+      "center": {
+        "x": 40,
+        "y": 88
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 104
+      },
+      "trimmed": false
+    },
+    "Portal/Door/Workshop/0/0/North/5": {
+      "frame": {
+        "x": 400,
+        "y": 0,
+        "w": 80,
+        "h": 104
+      },
+      "center": {
+        "x": 40,
+        "y": 88
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 104
+      },
+      "trimmed": false
+    },
+    "Portal/Door/Workshop/0/0/North/6": {
+      "frame": {
+        "x": 480,
+        "y": 0,
+        "w": 80,
+        "h": 104
+      },
+      "center": {
+        "x": 40,
+        "y": 88
+      },
+      "sourceSize": {
+        "w": 80,
+        "h": 104
+      },
+      "trimmed": false
+    }
+  }
+}

@@ -42,6 +42,24 @@ async function runGameSmoke(contents, { timeout = 119000, testInput = false } = 
       !state.game.renderedTiles || !state.game.prototypes || !state.game.player?.rendered) {
     return { ...state, error: 'The local map, textures and controlled actor are not ready.' }
   }
+  const authority = state.game.authority
+  if (authority?.mode !== 'local-server' || authority.protocolVersion !== 1 || !authority.connected ||
+      !Number.isInteger(authority.serverPid) || authority.serverPid <= 0 ||
+      !Number.isInteger(authority.revision) || !Number.isFinite(authority.serverTime) ||
+      authority.actor?.id !== state.game.player.id ||
+      JSON.stringify(authority.actor.location) !== JSON.stringify(state.game.player.location)) {
+    return { ...state, error: 'The rendered actor is not connected to its local authoritative server.' }
+  }
+  if (state.game.renderedTiles !== state.game.tiles) {
+    return { ...state, error: 'Typed converted ground artwork was omitted from the scene.' }
+  }
+  if (state.game.renderedRoofs !== state.game.roofs) {
+    return { ...state, error: 'Recovered roof artwork was omitted from the scene.' }
+  }
+  if (state.game.lightingAvailable && (!state.game.lighting || state.game.lighting.skipped ||
+      state.game.lighting.rendered !== state.game.lights)) {
+    return { ...state, error: 'Recovered static light masks were not all installed.' }
+  }
   if (!state.canvas || state.canvas.hidden || !state.canvas.width || !state.canvas.height) {
     return { ...state, error: 'The game canvas is not visible with a valid size.' }
   }
@@ -65,22 +83,97 @@ async function runGameSmoke(contents, { timeout = 119000, testInput = false } = 
   }
   state.guiImages = guiImages
   const initial = state.game
+  let roofs = { tested: false }
+  if (initial.roofs && initial.map.id === 'Bates Mansion Lev 2') {
+    roofs = await contents.executeJavaScript(`(() => {
+      const client = globalThis.AGate._engine.client;
+      const layer = client.scene.roofLayer;
+      const interior = client.getDevelopmentState().visibleRoofs;
+      // Original SEC West edge: original(111,92), runtime(92,111), subX3.
+      // This is a visibility witness, not a claim that the tile is walkable.
+      layer.updateVisibility({ x: 92, y: 111 });
+      const exteriorEdge = client.getDevelopmentState().visibleRoofs;
+      layer.updateVisibility(client.player.base.location);
+      return { tested: true, interior, exteriorEdge, restored: client.getDevelopmentState().visibleRoofs };
+    })()`)
+    if (roofs.interior !== 0 || roofs.exteriorEdge !== initial.roofs || roofs.restored !== 0) {
+      return { ...state, roofs, error: 'Recovered roof visibility did not follow the original interior/edge footprints.' }
+    }
+  }
   let movement
   try {
     movement = await contents.executeJavaScript(`(async () => {
       const client = globalThis.AGate._engine.client;
-      const accepted = await client.movePlayerTo([94, 99]);
-      const after = client.getDevelopmentState();
-      const rejected = [];
-      for (const target of [[94, 103], [90, 100], [64, 64]]) {
-        try {
-          await client.movePlayerTo(target);
-          rejected.push({ target, rejected: false });
-        } catch (error) {
-          rejected.push({ target, rejected: true, message: error.message });
-        }
+      const session = client.options.authoritySession;
+      if (!session?.observerToken || session.protocolVersion !== 1) {
+        throw new Error('The local session did not provide observer access.');
       }
-      return { accepted, after, rejected, final: client.getDevelopmentState() };
+      const socketModule = window.requireNode('socket.io-client');
+      const observer = socketModule.io(session.url, {
+        auth: { version: 1, token: session.observerToken },
+        transports: ['websocket'], autoConnect: false, reconnection: false, forceNew: true, timeout: 5000
+      });
+      const snapshots = [];
+      observer.on('authority:snapshot', snapshot => snapshots.push(snapshot));
+      const completedActor = snapshot => snapshot?.actors?.find(actor => actor.id === client.player.id);
+      function observeCompletion(commandId, revision) {
+        const matches = snapshot => snapshot.version === 1 && snapshot.mapId === client.map.id &&
+          snapshot.revision === revision && completedActor(snapshot)?.lastCommand?.id === commandId &&
+          completedActor(snapshot)?.lastCommand?.status === 'completed';
+        const existing = snapshots.find(matches);
+        if (existing) return Promise.resolve(existing);
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => { cleanup(); reject(new Error('Observer missed the completed movement snapshot.')); }, 5000);
+          function cleanup() { clearTimeout(timer); observer.off('authority:snapshot', receive); }
+          function receive(snapshot) { if (matches(snapshot)) { cleanup(); resolve(snapshot); } }
+          observer.on('authority:snapshot', receive);
+        });
+      }
+      try {
+        await new Promise((resolve, reject) => {
+          const connected = () => { observer.off('connect_error', failed); resolve(); };
+          const failed = error => { observer.off('connect', connected); reject(error); };
+          observer.once('connect', connected);
+          observer.once('connect_error', failed);
+          observer.connect();
+        });
+        const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 1 });
+        if (!joined.ok || joined.version !== 1 || joined.role !== 'observer' ||
+            joined.mapId !== client.map.id || joined.actorId !== client.player.id ||
+            JSON.stringify(completedActor(joined.snapshot)?.location) !== '[92,99]') {
+          throw new Error('The second socket did not join the same authoritative world as an observer.');
+        }
+        let accepted, after, observed, paused;
+        client.scene.stop();
+        const framesBefore = client.scene.frameCount;
+        try {
+          accepted = await client.movePlayerTo([94, 99]);
+          after = client.getDevelopmentState();
+          observed = await observeCompletion(accepted.commandId, after.authority.revision);
+          paused = { framesBefore, framesAfter: client.scene.frameCount,
+            sceneStoppedAtCompletion: client.scene.stopped };
+        } finally {
+          if (!client.stopped) await client.scene.start();
+        }
+        const observedActor = completedActor(observed);
+        const observerResult = { role: joined.role, protocolVersion: joined.version,
+          joinedRevision: joined.snapshot.revision, completedRevision: observed.revision,
+          serverTime: observed.serverTime, actor: observedActor,
+          progressSnapshots: snapshots.filter(snapshot => completedActor(snapshot)?.movement?.commandId === accepted.commandId).length };
+        const rejected = [];
+        for (const target of [[94, 103], [90, 100], [64, 64]]) {
+          try {
+            await client.movePlayerTo(target);
+            rejected.push({ target, rejected: false });
+          } catch (error) {
+            rejected.push({ target, rejected: true, message: error.message });
+          }
+        }
+        return { accepted, after, paused, observer: observerResult, rejected, final: client.getDevelopmentState() };
+      } finally {
+        observer.removeAllListeners();
+        observer.disconnect();
+      }
     })()`)
   } catch (error) {
     return { ...(await readState(contents)), initial, error: `Movement check failed: ${error.message}` }
@@ -90,6 +183,15 @@ async function runGameSmoke(contents, { timeout = 119000, testInput = false } = 
       JSON.stringify(path[path.length - 1]) !== '[94,99]' ||
       JSON.stringify(movement.after.player.location) !== '[94,99]' ||
       JSON.stringify(movement.after.player.spritePosition) === JSON.stringify(initial.player.spritePosition) ||
+      movement.paused.framesBefore !== movement.paused.framesAfter || !movement.paused.sceneStoppedAtCompletion ||
+      movement.after.authority?.actor?.lastCommand?.id !== movement.accepted.commandId ||
+      movement.after.authority.actor.lastCommand.status !== 'completed' || movement.after.authority.actor.movement !== null ||
+      JSON.stringify(movement.after.authority.actor.location) !== '[94,99]' ||
+      !movement.after.authority.actor.location.every(Number.isInteger) ||
+      movement.observer.role !== 'observer' || movement.observer.protocolVersion !== 1 ||
+      movement.observer.completedRevision !== movement.after.authority.revision ||
+      movement.observer.serverTime !== movement.after.authority.serverTime || !movement.observer.progressSnapshots ||
+      JSON.stringify(movement.observer.actor) !== JSON.stringify(movement.after.authority.actor) ||
       movement.rejected.some(result => !result.rejected) ||
       JSON.stringify(movement.final.player.location) !== '[94,99]') {
     return { ...(await readState(contents)), initial, movement, error: 'Player movement or blocked/void target checks failed.' }
@@ -103,7 +205,11 @@ async function runGameSmoke(contents, { timeout = 119000, testInput = false } = 
       const canvas = document.querySelector('#render2d');
       const rect = canvas.getBoundingClientRect();
       const screen = client.scene.pixi.screen;
-      const hit = client.scene.pixi.renderer.events.rootBoundary.hitTest(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      // Pixi initializes its native boundary's root on the first pointer event.
+      // Use a stage-bound diagnostic without depending on prior mouse movement;
+      // the native click below still exercises the actual EventSystem.
+      const boundary = new client.scene.pixi.renderer.events.rootBoundary.constructor(client.scene.pixi.stage);
+      const hit = boundary.hitTest(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
       return { x: Math.round(rect.left + (bounds.x + bounds.width / 2) * rect.width / screen.width),
         y: Math.round(rect.top + (bounds.y + bounds.height / 2) * rect.height / screen.height),
         hit: hit ? { type: hit.data?.data?.type || hit.data?.data?.base?.type || null,
@@ -133,7 +239,29 @@ async function runGameSmoke(contents, { timeout = 119000, testInput = false } = 
   if (state.game.frameCount <= initial.frameCount) {
     return { ...state, initial, movement, input, error: 'The game did not advance any rendered frames.' }
   }
-  return { ...state, guiImages, initial, movement, input, elapsedMs: Date.now() - started }
+  const objectLighting = await contents.executeJavaScript(`(() => {
+    const client = globalThis.AGate._engine.client;
+    const layer = client.scene.lightLayer;
+    if (!layer) return { tested: false };
+    const sprite = client.player.visual.classes.current.sprite.iso;
+    const entry = layer.sampledTargets.get(sprite);
+    if (!entry) return { tested: true, sampledPlayer: false };
+    const point = entry.getWorldPoint();
+    const rgb = layer.sampleColor(point);
+    const original = entry.originalTint;
+    const expected = (Math.round(((original >> 16) & 255) * rgb[0] / 255) << 16) |
+      (Math.round(((original >> 8) & 255) * rgb[1] / 255) << 8) |
+      Math.round((original & 255) * rgb[2] / 255);
+    return { tested: true, sampledPlayer: true, point, rgb, tint: sprite.tint, expected,
+      floorFilter: (sprite.filters || []).includes(layer.filter), ...layer.diagnostics };
+  })()`)
+  if (objectLighting.tested && (!objectLighting.sampledPlayer || objectLighting.floorFilter ||
+      objectLighting.tint !== objectLighting.expected || !objectLighting.sampledTargets ||
+      !objectLighting.filteredTargets)) {
+    return { ...state, initial, movement, input, objectLighting,
+      error: 'The animated player did not retain ground-sampled object illumination.' }
+  }
+  return { ...state, guiImages, initial, roofs, movement, input, objectLighting, elapsedMs: Date.now() - started }
 }
 
 module.exports = { runGameSmoke }

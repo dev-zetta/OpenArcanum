@@ -418,7 +418,11 @@ export default class Prototype extends Entity {
     } else {
       const prototypeData = prototype[`_originalData`] // original data of prototype... compare new component data with prototype component data
 
-      for (let key in prototypeData) {
+      // Converted instances contain sparse overrides, including fields whose
+      // zero/default value was omitted from their prototype (e.g. door stage).
+      // Load both sets of keys so those saved values are not silently lost.
+      const keys = new Set([...Object.keys(prototypeData), ...Object.keys(data)])
+      for (const key of keys) {
         let value = data[key]
         if (Utils.isUndefined(value)) {
           // the property is not present in loaded in data...

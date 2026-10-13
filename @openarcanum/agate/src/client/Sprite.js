@@ -84,6 +84,7 @@ export default class Sprite {
     ) {
       case Gfx.Types.Tile:
       case Gfx.Types.Wall:
+      case Gfx.Types.Portal:
         stage = `North`
         break
     }
@@ -269,6 +270,10 @@ export default class Sprite {
     this.frameRate = meta.frameRate
     this.triggerFrame = 1
     this.animated = meta.animated
+    const imageExtension = meta.imageExtension ?? AGate.Const?.Sprite?.DefaultExt ?? 'gif'
+    if (!['gif', 'png'].includes(imageExtension)) {
+      throw new Error(`Unsupported sprite image extension: ${imageExtension}`)
+    }
 
     // if (this.animated) {
     //   lle(`anim`, meta)
@@ -298,7 +303,7 @@ export default class Sprite {
 
       let stagePath = `${variantPath}/${stageName}`
       this.stages[stageName].spritesheet = await this.loadSpritesheet(assetKey, {
-        texture: `${stagePath}/Sprite.${AGate.Const.Sprite.DefaultExt}`,
+        texture: `${stagePath}/Sprite.${imageExtension}`,
         data: `${stagePath}/Stage.json`,
         stageName
       })
@@ -329,7 +334,7 @@ export default class Sprite {
         break
       case Gfx.Types.Portal:
         stageKey = `${currentPath}/North`
-        frameKey = `${stageKey}/0`
+        frameKey = `${stageKey}/${this.frame}`
         break
       default:
         stageKey = `${currentPath}/${this.stage}`
@@ -368,6 +373,17 @@ export default class Sprite {
 
     let sprite = this.iso
     sprite.texture = spritesheet.getTextureByIndex(this.frame)
+  }
+
+  // Door poses are committed server state, not a looping decoration animation.
+  setPortalState(frame: number) {
+    if (this.type !== Gfx.Types.Portal || !Number.isInteger(frame) || frame < 0 || frame >= this.totalFrames) {
+      throw new Error(`Unsupported portal pose: ${frame}`)
+    }
+    this.portalStateFrame = frame
+    this.totalElapsed = 0
+    this.setFrame(frame)
+    this.frameKey = this.generateKeys().frameKey
   }
 
   /**
@@ -441,6 +457,7 @@ export default class Sprite {
    */
   update(elapsed: number, speed: number = 1.0) {
     if (this.loading) return
+    if (this.portalStateFrame !== undefined) return
     const spritesheet = this.spritesheet
     if (!spritesheet || spritesheet.totalFrames <= 2) {
       //this.setFrame(this.frame)
@@ -592,13 +609,6 @@ export default class Sprite {
 
     let sprite = this.iso
     sprite.addToContainer(target, x, y, z, this.offset)
-
-    switch (this.type) {
-      case Gfx.Types.Wall:
-      case Gfx.Types.Portal:
-        sprite.alpha = 0.6
-        break
-    }
 
     sprite.eventMode = 'static'
 

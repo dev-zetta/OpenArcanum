@@ -7,6 +7,8 @@ const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { app, BrowserWindow, ipcMain, net, protocol, session } = require('electron')
 const { resolveProtocolFile } = require('./protocol-files.cjs')
+const { LocalServerHost } = require('./local-server.cjs')
+const { LocalSessionController } = require('./local-session.cjs')
 
 const projectRoot = path.resolve(__dirname, '..')
 const config = require(path.join(projectRoot, 'config', 'project.js'))()
@@ -34,6 +36,19 @@ let smokeFinished = false
 let smokeTimer
 let smokeSettleTimer
 let gameSmokeStarted = false
+let quitting = false
+let quitReady = false
+// Automated scene checks get their own slot and never replace a user's save.
+const checkpointFixture = gameSmoke ? fs.mkdtempSync(path.join(os.tmpdir(), 'openarcanum-checkpoint-smoke-')) : null
+const localServer = new LocalServerHost({
+  entryPath: path.join(projectRoot, '@openarcanum/agate/dist/authority.cjs'),
+  dataPath: config.dataPath,
+  mapId: config.developmentMap || 'Bates Mansion Lev 2',
+  ...(checkpointFixture ? { checkpointPath: path.join(checkpointFixture, 'checkpoint.json') } :
+    config.checkpointPath ? { checkpointPath: config.checkpointPath } : {})
+})
+localServer.on('failure', error => recordError('local-server', error))
+const localSessions = new LocalSessionController(localServer)
 
 app.setName('OpenArcanum')
 if (automated) {
@@ -51,11 +66,23 @@ function recordError(kind, error) {
   console.error(`[OpenArcanum:${kind}] ${entry.message}`)
 }
 
-function finishSmoke(renderer = null, reason = null) {
+async function finishSmoke(renderer = null, reason = null) {
   if (smokeFinished) return
   smokeFinished = true
   clearTimeout(smokeTimer)
   clearTimeout(smokeSettleTimer)
+  try {
+    // Disconnect the replica first so an intentional server shutdown is quiet.
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+      let deadline
+      await Promise.race([
+        mainWindow.webContents.executeJavaScript('globalThis.AGate?._engine?.client?.stop()').catch(() => {}),
+        new Promise(resolve => { deadline = setTimeout(resolve, 500) })
+      ]).finally(() => clearTimeout(deadline))
+    }
+    await localSessions.invalidate({ closed: true })
+    if (checkpointFixture) fs.rmSync(checkpointFixture, { recursive: true, force: true })
+  } catch (error) { recordError('local-server-cleanup', error) }
   if (uiTest && renderer && (!renderer.qunit || renderer.qunit.total === 0)) reason = 'QUnit completed without any assertions'
   if (uiTest && renderer && renderer.qunit && renderer.qunit.failed > 0) reason = 'QUnit reported failing assertions'
   let ok = Boolean(renderer) && errors.length === 0 && failedRequests.length === 0 && !reason
@@ -67,6 +94,7 @@ function finishSmoke(renderer = null, reason = null) {
     application: { url: loadUrl, uiRoot, dataPath: config.dataPath, dataDirectoryExists: fs.existsSync(config.dataPath) },
     compatibility: { nodeIntegration: true, contextIsolation: false, webSecurity: true },
     renderer,
+    localServer: localServer.getState(),
     errors,
     console: messages,
     failedRequests
@@ -153,13 +181,20 @@ function createWindow() {
   })
   contents.on('render-process-gone', (event, details) => {
     recordError('renderer-process', details.reason)
+    localSessions.invalidate().catch(error => recordError('local-server-cleanup', error))
     if (automated) finishSmoke(null, 'Renderer process exited')
   })
   mainWindow.on('unresponsive', () => {
     recordError('renderer-process', 'Window became unresponsive')
     if (automated) finishSmoke(null, 'Renderer became unresponsive')
   })
-  mainWindow.on('closed', () => { mainWindow = null })
+  contents.on('did-start-navigation', (event, url, isInPlace, isMainFrame) => {
+    if (isMainFrame && !isInPlace) localSessions.invalidate().catch(error => recordError('local-server-cleanup', error))
+  })
+  mainWindow.on('closed', () => {
+    mainWindow = null
+    localSessions.invalidate().catch(error => recordError('local-server-cleanup', error))
+  })
   if (process.argv.includes('--devtools')) contents.openDevTools({ mode: 'detach' })
   if (automated) smokeTimer = setTimeout(() => finishSmoke(null, uiTest ?
     'Timed out waiting for QUnit to finish' : 'Timed out waiting for the real Ember application readiness marker'), smokeTimeout)
@@ -174,6 +209,27 @@ function isMainApplication(contents, url) {
     typeof url === 'string' && url.startsWith(appUrl))
 }
 
+function authorizeLocalServer(event) {
+  if (!isMainApplication(event.sender, event.senderFrame?.url) || event.senderFrame !== event.sender.mainFrame) {
+    throw new Error('Only the main application can control its local server')
+  }
+}
+ipcMain.handle('openarcanum:local-server-start', async (event, requestId) => {
+  authorizeLocalServer(event)
+  // A cancelled navigation/start is an expected result. Return it explicitly
+  // instead of making Electron print an IPC handler exception for a stale page.
+  try { return { ok: true, session: await localSessions.start(requestId) } }
+  catch (error) { return { ok: false, message: error.message } }
+})
+ipcMain.handle('openarcanum:local-server-stop', async (event, requestId) => {
+  authorizeLocalServer(event)
+  return localSessions.stop(requestId)
+})
+ipcMain.handle('openarcanum:local-server-state', event => {
+  authorizeLocalServer(event)
+  return localServer.getState()
+})
+
 ipcMain.on('openarcanum:renderer-error', (event, error) => {
   if (mainWindow && event.sender === mainWindow.webContents) recordError(error.kind || 'renderer', error)
 })
@@ -182,15 +238,47 @@ ipcMain.on('openarcanum:renderer-ready', (event, renderer) => {
   if (gameSmoke) {
     if (gameSmokeStarted) return
     gameSmokeStarted = true
-    const { runGameSmoke } = require('./game-smoke.cjs')
+    const workshop = config.moduleId === 'inventory-workshop'
+    const runGameSmoke = workshop ? require('./workshop-smoke.cjs').runWorkshopSmoke : require('./game-smoke.cjs').runGameSmoke
     if (process.argv.includes('--show')) mainWindow.focus()
     runGameSmoke(mainWindow.webContents, { timeout: smokeTimeout - 1000, testInput: process.argv.includes('--show') }).then(async result => {
+      if (!workshop && !result.error) {
+        const { runDoorSmoke } = require('./door-smoke.cjs')
+        result.doors = await runDoorSmoke(mainWindow.webContents, { testInput: process.argv.includes('--show') })
+        if (!result.doors.ok) result.error = result.doors.error || 'Door interaction check failed'
+      }
+      if (!workshop && !result.error) {
+        const { runCheckpointSmoke } = require('./checkpoint-smoke.cjs')
+        result.checkpoint = await runCheckpointSmoke(mainWindow.webContents, {
+          testInput: process.argv.includes('--show')
+        })
+        if (!result.checkpoint.ok) result.error = result.checkpoint.error || 'Checkpoint check failed'
+      }
+      if (!workshop && !result.error) {
+        const { runContainerSmoke } = require('./container-smoke.cjs')
+        result.containers = await runContainerSmoke(mainWindow.webContents, {
+          testInput: process.argv.includes('--show')
+        })
+        if (!result.containers.ok) result.error = result.containers.error || 'Container inspection check failed'
+      }
+      if (!workshop && !result.error) {
+        const { runPauseSmoke } = require('./pause-smoke.cjs')
+        result.pause = await runPauseSmoke(mainWindow.webContents, {
+          testInput: process.argv.includes('--show')
+        })
+        if (!result.pause.ok) result.error = result.pause.error || 'Local pause check failed'
+      }
       const screenshot = option('--game-screenshot')
       if (screenshot) {
         const file = path.resolve(screenshot)
         fs.mkdirSync(path.dirname(file), { recursive: true })
         fs.writeFileSync(file, (await mainWindow.webContents.capturePage()).toPNG())
         result.screenshot = file
+      }
+      if (!result.error && process.argv.includes('--game-lifecycle')) {
+        const { runLocalSessionSmoke } = require('./local-session-smoke.cjs')
+        result.lifecycle = await runLocalSessionSmoke(mainWindow.webContents)
+        if (!result.lifecycle.ok) result.error = result.lifecycle.error || result.lifecycle.cleanupError || 'Local session lifecycle check failed'
       }
       finishSmoke(result, result.error || null)
     }).catch(error => {
@@ -239,6 +327,19 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin' || automated) app.quit()
+})
+app.on('before-quit', event => {
+  if (quitReady) return
+  event.preventDefault()
+  if (quitting) return
+  quitting = true
+  localSessions.invalidate({ closed: true }).then(() => {
+    quitReady = true
+    app.quit()
+  }, error => {
+    recordError('local-server-cleanup', error)
+    app.exit(1)
+  })
 })
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0 && fs.existsSync(path.join(uiRoot, 'index.html'))) createWindow()

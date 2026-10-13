@@ -14,6 +14,8 @@ tmp/
 coverage/
 .sass-cache/
 .cache/
+__pycache__/
+*.py[cod]
 .node_modules.ember-try/
 
 # Local settings, credentials, logs and editor state
@@ -23,6 +25,8 @@ coverage/
 .credentials/
 *credentials*.json
 *token*.json
+# Authored example item data contains no credentials.
+!/examples/inventory-workshop/data/Inventory workshop/Sector/0/0/Generic/owned-workshop-token.json
 .idea/
 .vscode/
 .directory
@@ -38,6 +42,10 @@ libpeerconnection.log
 # Retail data and converted output are local inputs
 # Assets copied from my_projects, runtime saves and local screenshots stay private.
 /local-data/
+# Defensive exclusions if reference inputs are copied inside the source checkout.
+/Arcanum/
+/original-game/
+/manual.pdf
 /@openarcanum/asset-db/archives/
 /@openarcanum/asset-db/cache/
 /@openarcanum/asset-db/gfx/

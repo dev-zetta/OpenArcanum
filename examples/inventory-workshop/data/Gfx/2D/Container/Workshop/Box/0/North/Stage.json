@@ -1,0 +1,21 @@
+{
+  "frames": {
+    "Container/Workshop/Box/0/North/0": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "center": {
+        "x": 32,
+        "y": 48
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      },
+      "trimmed": false
+    }
+  }
+}

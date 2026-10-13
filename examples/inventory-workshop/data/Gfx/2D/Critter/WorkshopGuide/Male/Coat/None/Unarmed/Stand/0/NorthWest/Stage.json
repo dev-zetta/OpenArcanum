@@ -1,0 +1,21 @@
+{
+  "frames": {
+    "Critter/WorkshopGuide/Male/Coat/None/Unarmed/Stand/0/NorthWest/0": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 76
+      },
+      "center": {
+        "x": 24,
+        "y": 68
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 76
+      },
+      "trimmed": false
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "Base": {
+    "prototype": 900007,
+    "location": [
+      4,
+      7
+    ]
+  },
+  "Item": {
+    "parent": null,
+    "invLocation": 0
+  }
+}

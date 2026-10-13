@@ -216,13 +216,31 @@ export default class Sector {
       throw new Error(`Invalid or missing converted sector: ${path}/Sector.json`)
     }
 
-    this.tiles = data.tiles
+    // The legacy converter keeps SEC tile rows in original y/x order, but
+    // reverses the packed x/y location of every entity and light. Runtime
+    // coordinates follow those entities, so transpose whole tiles (including
+    // blocking flags) rather than reflecting only their rendered positions.
+    // AssetLoader caches JSON; locations, sprites and occupants belong to this
+    // sector instance and must never be attached to the cached source objects.
+    const sourceTiles = structuredClone(data.tiles)
+    this.tiles = Array.from({ length: Sector.Height }, (_, ty) =>
+      Array.from({ length: Sector.Width }, (_, tx) => sourceTiles[tx]?.[ty])
+    )
     this.x = x
     this.y = y
     this.id = Sector.makeId(x, y)
 
-    this.lights = data.lights
-    this.roofs = data.roofs || data.roof || []
+    // Light locations already use the converter's reversed entity axes.
+    this.lights = structuredClone(data.lights || [])
+    const sourceRoofs = structuredClone(data.roofs || data.roof || [])
+    // Older archives contain null rows where roof conversion failed. Preserve
+    // that missing data; transpose only an actual roof grid, without inventing
+    // roof graphics or enabling the unfinished roof renderer.
+    this.roofs = sourceRoofs.some(Array.isArray)
+      ? Array.from({ length: sourceRoofs.length }, (_, ry) =>
+          Array.from({ length: sourceRoofs.length }, (_, rx) => sourceRoofs[rx]?.[ry])
+        )
+      : sourceRoofs
 
     this.events.emit(`Sector:Loading`, this)
 

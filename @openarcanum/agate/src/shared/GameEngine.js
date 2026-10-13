@@ -353,18 +353,27 @@ export default class GameEngine {
   async createClient(canvas: HTMLCanvasElement, options: Object = {}): Promise<ClientEngine> {
     this.options = { ...this.options, ...options }
     await this.init()
+    options.signal?.throwIfAborted()
 
     this.events.on(`Client:Created`, this.onClientCreated, this)
     this.client = new ClientEngine(this, this.options)
-
-    await this.client.create(canvas)
-    await this.load()
-
-    if (this.options.standaloneMode === true) {
-      await this.client.startOffline(this.options.mapId)
-    }
-
-    return this.client
+    const cancel = () => this.client.stop()
+    options.signal?.addEventListener('abort', cancel, { once: true })
+    try {
+      await this.client.create(canvas)
+      this.client.assertStartupActive()
+      await this.load()
+      this.client.assertStartupActive()
+      if (this.options.authoritySession) {
+        await this.client.startLocalAuthority(this.options.mapId, this.options.authoritySession)
+      } else if (this.options.standaloneMode === true) {
+        await this.client.startOffline(this.options.mapId)
+      }
+      return this.client
+    } catch (error) {
+      this.client.stop()
+      throw error
+    } finally { options.signal?.removeEventListener('abort', cancel) }
   }
 
   /**

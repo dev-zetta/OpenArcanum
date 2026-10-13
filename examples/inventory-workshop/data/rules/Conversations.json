@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "quests": [
+    {
+      "id": "a-closer-look",
+      "title": "A closer look",
+      "rewardExperience": 2100,
+      "activeText": "Find the loose workshop pebble and show it to the guide while carrying it.",
+      "completedText": "The guide examined the pebble. It remains yours."
+    }
+  ],
+  "conversations": [
+    {
+      "id": "workshop-guide",
+      "targetId": "Inventory workshop/Sector/0/0/Npc/owned-workshop-guide.json",
+      "label": "Workshop guide",
+      "questId": "a-closer-look",
+      "nodes": [
+        {
+          "id": "offer",
+          "text": "I am checking the workshop samples. Will you find the loose pebble and bring it over for a closer look?",
+          "options": [
+            {
+              "id": "accept",
+              "text": "I will find the pebble.",
+              "effect": "start"
+            },
+            {
+              "id": "leave",
+              "text": "Not now.",
+              "effect": "close"
+            }
+          ]
+        },
+        {
+          "id": "active",
+          "text": "Have you found the workshop pebble? Carry it here so I can examine it. You can keep it.",
+          "options": [
+            {
+              "id": "show",
+              "text": "Here is the workshop pebble.",
+              "effect": "complete",
+              "condition": {
+                "kind": "held-item",
+                "itemId": "Inventory workshop/Sector/0/0/Generic/owned-workshop-pebble.json"
+              }
+            },
+            {
+              "id": "leave",
+              "text": "I will come back.",
+              "effect": "close"
+            }
+          ]
+        },
+        {
+          "id": "completed",
+          "text": "That is the sample I needed to see. Thank you; keep the pebble.",
+          "options": [
+            {
+              "id": "leave",
+              "text": "Goodbye.",
+              "effect": "close"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

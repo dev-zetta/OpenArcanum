@@ -3,7 +3,7 @@
 import Component from './Component'
 
 export default class Key extends Component {
-  keyId: string
+  keyId: number
 
   /**
    *

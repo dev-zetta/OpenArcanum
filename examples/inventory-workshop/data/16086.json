@@ -1,0 +1,15 @@
+{
+  "Base": {
+    "prototype": 900001,
+    "location": [
+      4,
+      4
+    ]
+  },
+  "Critter": {
+    "inventory": [],
+    "inventoryIndex": 0,
+    "inventorySource": 0,
+    "progressionSupported": true
+  }
+}

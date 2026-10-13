@@ -1,0 +1,38 @@
+{
+  "Base": {
+    "type": "Portal",
+    "prototype": 900004,
+    "flags": [],
+    "location": [
+      0,
+      0
+    ],
+    "offset": [
+      0,
+      0
+    ]
+  },
+  "Portal": {
+    "flags": [
+      "NeverLocked"
+    ],
+    "keyID": 0,
+    "lockDifficulty": 0
+  },
+  "Visual": {
+    "classes": {
+      "current": {
+        "type": "Portal",
+        "category": "Door",
+        "name": "Workshop",
+        "version": 0,
+        "side": 6,
+        "stage": "North",
+        "frame": 0
+      }
+    },
+    "render": {
+      "flags": []
+    }
+  }
+}

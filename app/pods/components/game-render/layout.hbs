@@ -3,15 +3,21 @@
 
 {{#unless this.running}}
   <section class="app-status" aria-labelledby="startup-heading" data-runtime-status={{this.runtimeState}} data-assets-state={{if this.dataStatus.ready "available" "missing"}}>
-    <h1 id="startup-heading">OpenArcanum</h1>
-    <p>The engine and game interface are under active development. The supplied converted map, Bates Mansion Lev 2, can be tested locally. A playable campaign is not yet available.</p>
+    <h1 id="startup-heading">{{if this.dataStatus.ownedModule "Inventory workshop" "OpenArcanum"}}</h1>
+    {{#if this.dataStatus.ownedModule}}
+      <p>An original, bundled test room for movement, containers, keys, ground items and a guide with a small quest. Talk to the guide, accept the request and show the carried pebble. All artwork and data are included. Equipment and the full campaign are still in development.</p>
+    {{else}}
+      <p>The engine and game interface are under active development. The supplied converted map, Bates Mansion Lev 2, can be tested locally. A playable campaign is not yet available.</p>
+    {{/if}}
     <p>{{this.dataStatus.message}}</p>
-    <p>Local data directory: <code>{{this.dataStatus.dataPath}}</code></p>
-    <p>Provide your own converted Arcanum data, including GUI scripts and image metadata and compatible ZIP archives. The conversion pipeline is incomplete; copying the original DAT archives here is insufficient.</p>
-    <button type="button" class="btn btn-secondary" {{on "click" this.refreshDataStatus}}>Check data again</button>
+    {{#unless this.dataStatus.ownedModule}}
+      <p>Local data directory: <code>{{this.dataStatus.dataPath}}</code></p>
+      <p>Provide your own converted Arcanum data, including GUI scripts and image metadata and compatible ZIP archives. The conversion pipeline is incomplete; copying the original DAT archives here is insufficient.</p>
+    {{/unless}}
+    <button type="button" class="btn btn-secondary" {{on "click" this.refreshDataStatus}}>{{if this.dataStatus.ownedModule "Check workshop files" "Check data again"}}</button>
     {{#if this.dataStatus.ready}}
       <button type="button" class="btn btn-primary" data-action="start-game" disabled={{this.starting}} {{on "click" this.startGame}}>
-        {{if this.starting "Loading local map…" "Start local map"}}
+        {{#if this.dataStatus.ownedModule}}{{if this.starting "Loading inventory workshop…" "Start inventory workshop"}}{{else}}{{if this.starting "Loading local map…" "Start local map"}}{{/if}}
       </button>
     {{/if}}
     {{#if this.error}}<p role="alert">Startup failed: {{this.error}}</p>{{/if}}
@@ -20,6 +26,163 @@
 
 {{#if this.running}}
   {{#if this.error}}<p class="app-status" role="alert">The local map stopped with an error: {{this.error}}</p>{{/if}}
+  {{#if this.pauseSupported}}
+    <section class="pause-panel" aria-labelledby="pause-heading" data-pause-panel aria-busy={{if this.pauseBusy "true" "false"}}>
+      <h2 id="pause-heading">Local game</h2>
+      <button type="button" data-action="toggle-pause" aria-pressed={{if this.pause.paused "true" "false"}} disabled={{this.pauseControlsBusy}} {{on "click" this.togglePause}}>{{if this.pause.paused "Resume" "Pause"}}</button>
+      <p role="status" aria-live="polite" aria-atomic="true" data-pause-status={{this.pause.status}} data-paused={{if this.pause.paused "true" "false"}}>{{this.pause.message}}</p>
+    </section>
+  {{/if}}
+  {{#if this.checkpointSupported}}
+    <section class="checkpoint-panel" aria-labelledby="checkpoint-heading" data-checkpoint-panel aria-busy={{if this.checkpointBusy "true" "false"}}>
+      <h2 id="checkpoint-heading">Checkpoint</h2>
+      <p>Save your position, door states, supported items and quest journal. Loading restores this local development session.</p>
+      <div class="checkpoint-actions">
+        <button type="button" data-action="save-checkpoint" disabled={{this.checkpointControlsBusy}} {{on "click" this.saveCheckpoint}}>Save checkpoint</button>
+        <button type="button" data-action="load-checkpoint" disabled={{this.checkpointControlsBusy}} {{on "click" this.loadCheckpoint}}>Load checkpoint</button>
+      </div>
+      <p role="status" aria-live="polite" aria-atomic="true" data-checkpoint-status={{this.checkpoint.status}}>{{if this.checkpoint this.checkpoint.message "Choose when to save or load."}}</p>
+    </section>
+  {{/if}}
+  {{#if this.interactionStackAvailable}}
+    <div class="interaction-stack" data-interaction-stack>
+  {{#if this.doors.length}}
+    <section class="interaction-panel" aria-labelledby="interaction-heading" data-interaction-panel>
+      <h2 id="interaction-heading">Doors</h2>
+      <p>Click a door on the map, or choose one here. A supported locked door needs a matching key in your inventory to open.</p>
+      <label for="door-target">Choose a door</label>
+      <select id="door-target" disabled={{this.controlsBusy}} {{on "change" this.selectDoor}}>
+        {{#each this.doorChoices as |door|}}
+          <option value={{door.id}} selected={{door.selected}}>{{door.choiceLabel}}</option>
+        {{/each}}
+      </select>
+      <button type="button" data-action="use-door" disabled={{this.controlsBusy}} {{on "click" this.useSelectedDoor}}>
+        {{if this.interactionBusy "Using door…" "Use selected door"}}
+      </button>
+      {{#if this.selectedDoor.reason}}<p>{{this.selectedDoor.reason}}</p>{{/if}}
+      <p role="status" aria-live="polite" aria-atomic="true" data-interaction-status={{this.interaction.status}}>
+        {{#if this.interaction}}{{this.interaction.message}}{{else}}The character will approach the door before using it.{{/if}}
+      </p>
+    </section>
+  {{/if}}
+  {{#if this.containers.length}}
+    <section class="container-panel" aria-labelledby="container-heading" data-container-panel aria-busy={{if this.containerBusy "true" "false"}}>
+      <h2 id="container-heading">Containers</h2>
+      <p>Inspect nearby contents. Take simple items and standalone keys, or put them in the selected container when your inventory is available. Supported locked containers require a matching key held in your inventory each time.</p>
+      <label for="container-target">Choose a container</label>
+      <select id="container-target" disabled={{this.controlsBusy}} {{on "change" this.selectContainer}}>
+        {{#each this.containerChoices as |container|}}
+          <option value={{container.id}} selected={{container.selected}}>{{container.choiceLabel}}</option>
+        {{/each}}
+      </select>
+      <button type="button" data-action="inspect-container" disabled={{this.controlsBusy}} {{on "click" this.inspectSelectedContainer}}>Inspect selected container</button>
+      {{#if this.selectedContainer.reason}}<p>{{this.selectedContainer.reason}}</p>{{/if}}
+      <p role="status" aria-live="polite" aria-atomic="true" data-container-status={{this.containerInteraction.status}}>
+        {{#if this.containerInteraction}}{{this.containerInteraction.message}}{{else}}The character will approach before inspecting.{{/if}}
+      </p>
+      {{#if this.containerInteraction.inspected}}
+        <div data-container-items>
+          {{#if this.containerItems.length}}
+            <div class="container-contents-heading">
+              <h3>Contents</h3>
+              {{#if this.canTakeAllFromSelectedContainer}}<button type="button" data-action="take-all-items" disabled={{this.transferControlsBusy}} {{on "click" this.takeAllContainerItems}}>Take All</button>{{/if}}
+            </div>
+            <ul>{{#each this.containerItems as |item|}}<li>
+              <span>{{item.displayLabel}}</span>
+              {{#if item.takeAvailable}}<button type="button" data-action="take-item" data-item-id={{item.id}} disabled={{this.transferControlsBusy}} {{on "click" (fn this.takeContainerItem item.id)}}>Take</button>{{/if}}
+            </li>{{/each}}</ul>
+          {{else}}<p>This container is empty.</p>{{/if}}
+        </div>
+      {{/if}}
+    </section>
+  {{/if}}
+  {{#if this.conversationSupported}}
+    <section class="conversation-panel" aria-labelledby="conversation-heading" data-conversation-panel aria-busy={{if this.conversationBusy "true" "false"}}>
+      <h2 id="conversation-heading">Conversation</h2>
+      {{#if this.conversationTargets.length}}
+        <label for="conversation-target">Choose a character</label>
+        <select id="conversation-target" disabled={{this.controlsBusy}} {{on "change" this.selectConversation}}>
+          {{#each this.conversationChoices as |target|}}<option value={{target.id}} selected={{target.selected}}>{{target.choiceLabel}}</option>{{/each}}
+        </select>
+        <button type="button" data-action="begin-conversation" disabled={{this.controlsBusy}} {{on "click" this.beginConversation}}>Talk to selected character</button>
+      {{else}}<p>No supported characters are available to talk.</p>{{/if}}
+      <p role="status" aria-live="polite" aria-atomic="true" data-conversation-status={{this.conversation.status}}>{{if this.conversation this.conversation.message "Your character will approach before talking."}}</p>
+      {{#if this.conversation.text}}
+        <div data-conversation-content tabindex="-1">
+          <h3>{{this.conversation.speaker}}</h3>
+          <p data-conversation-text>{{this.conversation.text}}</p>
+          {{#if this.conversationReady}}
+            <ul data-conversation-options>{{#each this.conversation.options as |option|}}<li>
+              <button type="button" data-action="reply-conversation" data-option-id={{option.id}} disabled={{this.controlsBusy}} {{on "click" (fn this.replyConversation option.id)}}>{{option.text}}</button>
+            </li>{{/each}}</ul>
+          {{/if}}
+          <button type="button" data-action="close-conversation" disabled={{this.conversationBusy}} {{on "click" this.closeConversation}}>Close conversation</button>
+        </div>
+      {{/if}}
+    </section>
+  {{/if}}
+  {{#if this.journal}}
+    <section class="journal-panel" aria-labelledby="journal-heading" data-journal-panel aria-busy={{if this.journalBusy "true" "false"}}>
+      <h2 id="journal-heading">Journal</h2>
+      <button type="button" data-action="refresh-journal" disabled={{this.journalControlsBusy}} {{on "click" this.refreshJournal}}>Refresh journal</button>
+      <p role="status" aria-live="polite" aria-atomic="true" data-journal-status={{this.journal.status}}>{{this.journal.message}}</p>
+      <details data-journal-entries>
+        <summary>Quest entries</summary>
+        {{#if this.journal.entries.length}}
+          <ul>{{#each this.journal.entries as |entry|}}<li data-quest-id={{entry.id}} data-quest-status={{entry.status}}>
+            <h3>{{entry.title}} <span>({{entry.status}})</span></h3><p>{{entry.text}}</p>
+          </li>{{/each}}</ul>
+        {{else}}<p>No journal entries yet.</p>{{/if}}
+      </details>
+    </section>
+  {{/if}}
+    </div>
+  {{/if}}
+  {{#if this.inventoryPanelAvailable}}
+    <section class="inventory-panel" aria-labelledby="inventory-heading" data-inventory-panel aria-busy={{if this.inventoryBusy "true" "false"}}>
+      <h2 id="inventory-heading">Your inventory</h2>
+      <p role="status" aria-live="polite" aria-atomic="true" data-inventory-status={{this.inventory.status}}>{{this.inventory.message}}</p>
+      {{#if this.inventory.known}}
+        <div data-inventory-items>
+          {{#if this.inventoryItems.length}}<ul>{{#each this.inventoryItems as |item|}}<li>
+            <span>{{item.label}}</span>
+            {{#if item.putAvailable}}<button type="button" data-action="put-item" data-item-id={{item.id}} aria-label={{concat "Put " item.label " in selected container"}} disabled={{this.transferControlsBusy}} {{on "click" (fn this.putInventoryItem item.id)}}>Put</button>{{/if}}
+            {{#if item.dropAvailable}}<button type="button" data-action="drop-item" data-item-id={{item.id}} aria-label={{concat "Drop " item.label}} disabled={{this.transferControlsBusy}} {{on "click" (fn this.dropInventoryItem item.id)}}>Drop</button>{{/if}}
+          </li>{{/each}}</ul>{{else}}<p>Your inventory is empty.</p>{{/if}}
+        </div>
+      {{/if}}
+      {{#if this.groundSupported}}
+        <section class="ground-panel" aria-labelledby="ground-heading" data-ground-panel aria-busy={{if this.groundBusy "true" "false"}}>
+          <h3 id="ground-heading">Ground items</h3>
+          <p>Pick up a nearby item. Your character approaches it first.</p>
+          {{#if this.groundItems.length}}
+            <label for="ground-target">Choose a ground item</label>
+            <select id="ground-target" disabled={{this.controlsBusy}} {{on "change" this.selectGroundItem}}>
+              {{#each this.groundChoices as |item|}}<option value={{item.id}} selected={{item.selected}}>{{item.choiceLabel}}</option>{{/each}}
+            </select>
+            <button type="button" data-action="pickup-ground-item" disabled={{this.transferControlsBusy}} {{on "click" this.pickupGroundItem}}>Pick up selected item</button>
+          {{else}}<p data-ground-empty>No supported items are on the ground.</p>{{/if}}
+          <p role="status" aria-live="polite" aria-atomic="true" data-ground-status={{this.ground.status}}>{{if this.ground this.ground.message "Dropping an eligible item puts it at your feet."}}</p>
+        </section>
+      {{/if}}
+      {{#if this.character}}
+        <section class="character-panel" aria-labelledby="character-heading" data-character-panel aria-busy={{if this.characterBusy "true" "false"}}>
+          <h3 id="character-heading">Character</h3>
+          <button type="button" data-action="refresh-character" disabled={{this.journalControlsBusy}} {{on "click" this.refreshCharacter}}>Refresh character</button>
+          <p role="status" aria-live="polite" aria-atomic="true" data-character-status={{this.character.status}}>{{this.character.message}}</p>
+          {{#if this.characterValuesAvailable}}
+            <dl data-character-values>
+              <div><dt>Experience</dt><dd data-character-experience data-character-xp>{{this.character.experiencePoints}}</dd></div>
+              <div><dt>Level</dt><dd data-character-level>{{this.character.level}}</dd></div>
+              <div><dt>Banked character points</dt><dd data-character-points>{{this.character.unspentPoints}}</dd></div>
+              <div><dt>Next level at</dt><dd data-character-next-level>{{if this.character.nextLevelExperience this.character.nextLevelExperience "Maximum level"}}</dd></div>
+            </dl>
+            <p>Spending character points is in development.</p>
+          {{/if}}
+        </section>
+      {{/if}}
+    </section>
+  {{/if}}
 {{/if}}
 
 <div id="gui">

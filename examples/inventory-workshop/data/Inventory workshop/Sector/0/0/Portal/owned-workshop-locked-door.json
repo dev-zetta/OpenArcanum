@@ -1,0 +1,16 @@
+{
+  "Base": {
+    "prototype": 900004,
+    "location": [
+      10,
+      6
+    ]
+  },
+  "Portal": {
+    "flags": [
+      "Locked"
+    ],
+    "keyID": 7001,
+    "keyUseSupported": true
+  }
+}

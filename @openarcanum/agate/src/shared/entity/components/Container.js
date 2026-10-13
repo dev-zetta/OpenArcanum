@@ -7,8 +7,9 @@ export default class Container extends Component {
   lockDifficulty: number
   keyId: string
   notifyNpc: string // id
-  inventoryIndex: string
+  inventoryIndex: number // Original inventory count, despite the legacy name.
   inventorySource: string // id
+  inventory: Array<{ id: string, slot: number }> // Recovered instance ownership; absent means unknown.
 
   /**
    *

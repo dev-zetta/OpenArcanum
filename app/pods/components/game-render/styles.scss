@@ -8,10 +8,156 @@
 }
 
 #render2d {
-  background: #666;
+  background: #000;
   width: 100%;
   height: 100%;
   pointer-events: auto;
+}
+
+.interaction-panel, .checkpoint-panel, .container-panel, .pause-panel, .inventory-panel, .conversation-panel, .journal-panel {
+  position: absolute;
+  top: 4rem;
+  right: 1rem;
+  width: min(20rem, calc(100% - 2rem));
+  padding: 0.8rem;
+  border: 1px solid #a38642;
+  border-radius: 0.35rem;
+  background: rgba(35, 31, 27, 0.95);
+  pointer-events: auto;
+  z-index: 10001;
+  text-shadow: none;
+
+  * { text-shadow: none; }
+  h2 { font-size: 1.1rem; margin: 0 0 0.35rem; }
+  p { margin: 0.45rem 0; font-size: 0.9rem; }
+  label { display: block; margin-bottom: 0.25rem; }
+  select, button {
+    width: 100%;
+    min-height: 2rem;
+    color: #fff;
+    background: #332a21;
+    border: 1px solid #a38642;
+    border-radius: 0.2rem;
+    margin-bottom: 0.4rem;
+    text-shadow: none;
+  }
+  button:disabled, select:disabled { opacity: 0.7; }
+  [role='status'] { min-height: 2.5em; }
+}
+
+.interaction-stack {
+  position: absolute;
+  top: 4rem;
+  bottom: 14rem;
+  right: 1rem;
+  width: min(20rem, calc(100% - 2rem));
+  overflow-y: auto;
+  pointer-events: auto;
+  z-index: 10001;
+
+  > section {
+    position: static;
+    width: 100%;
+    box-sizing: border-box;
+    max-height: none;
+    overflow: visible;
+    margin-bottom: 0.65rem;
+  }
+}
+
+.conversation-panel, .journal-panel {
+  h3 { font-size: 1rem; margin: 0.5rem 0; overflow-wrap: anywhere; }
+  p { white-space: pre-wrap; overflow-wrap: anywhere; }
+  ul { list-style: none; margin: 0.5rem 0; padding: 0; }
+  button { text-align: left; padding: 0.35rem; white-space: normal; overflow-wrap: anywhere; }
+  summary { cursor: pointer; padding: 0.3rem 0; }
+  [data-conversation-content]:focus { outline: 1px solid #a38642; outline-offset: 0.2rem; }
+}
+
+.checkpoint-panel {
+  right: auto;
+  left: 1rem;
+  width: min(19rem, calc(100% - 2rem));
+
+  .checkpoint-actions { display: flex; gap: 0.5rem; }
+  button { width: 50%; padding: 0.3rem; }
+  [role='status'] { min-height: 1.4em; }
+}
+
+.container-panel {
+  top: 24rem;
+  bottom: 14rem;
+  max-height: calc(100% - 38rem);
+  overflow-y: auto;
+
+  h3 { font-size: 1rem; margin: 0.5rem 0; }
+
+  .container-contents-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+
+    h3 { margin: 0; }
+    button { width: auto; margin: 0; padding: 0.2rem 0.5rem; }
+  }
+}
+
+.container-panel, .inventory-panel {
+  ul { margin: 0.4rem 0; padding-left: 1.25rem; }
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    button { width: auto; min-width: 3.5rem; margin: 0; padding: 0.2rem 0.5rem; }
+  }
+}
+
+.pause-panel {
+  top: 18rem;
+  right: auto;
+  left: 1rem;
+  width: min(19rem, calc(100% - 2rem));
+
+  [role='status'] { min-height: 1.4em; }
+}
+
+.inventory-panel {
+  top: 30rem;
+  bottom: 14rem;
+  max-height: calc(100% - 44rem);
+  overflow-y: auto;
+  right: auto;
+  left: 1rem;
+  width: min(19rem, calc(100% - 2rem));
+
+  [role='status'] { min-height: 1.4em; }
+  li > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+}
+
+.ground-panel, .character-panel {
+  margin-top: 0.8rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #a38642;
+
+  h3 { font-size: 1rem; margin: 0 0 0.35rem; }
+}
+
+.character-panel {
+  dl { margin: 0.5rem 0; }
+  dl > div { display: flex; justify-content: space-between; gap: 0.5rem; margin: 0.25rem 0; }
+  dt { font-weight: normal; }
+  dd { margin: 0; font-variant-numeric: tabular-nums; }
+}
+
+&.owned-workshop {
+  // The bundled workshop has no legacy HUD at the bottom of the canvas.
+  .interaction-stack { bottom: 2rem; }
+  .container-panel { bottom: 2rem; max-height: calc(100% - 26rem); }
+  .inventory-panel { bottom: 2rem; max-height: calc(100% - 32rem); }
 }
 
 }

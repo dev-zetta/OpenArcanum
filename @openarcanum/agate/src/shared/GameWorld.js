@@ -181,6 +181,9 @@ export default class GameWorld {
 
     let id = `0` // AGate.Utils.getFileBase(path)
     let entity = await this.entityManager.newEntity(id, player)
+    // The controlled actor uses a fixed content template outside map MOBs.
+    // Identity does not imply recovered inventory when that metadata is absent.
+    entity.sourcePath = '16086.json'
 
     const map = this.findMapByLocation(location)
     if (!map) throw new Error('Player requires a loaded map')
@@ -293,4 +296,3 @@ export default class GameWorld {
     entity.onAddToWorld(this)
   }
 }
-
