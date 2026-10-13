@@ -5,9 +5,10 @@
   "homepage": "https://github.com/dev-zetta/OpenArcanum",
   "author": "Gabriel Max <dev@zetta.app>",
   "files": [
+    "dist",
     "lib"
   ],
-  "main": "lib/index.js",
+  "main": "dist/index.cjs",
   "keywords": [
     "openarcanum",
     "arcanum",
@@ -19,8 +20,9 @@
     "iconv-lite": "0.7.3"
   },
   "scripts": {
-    "start": "node lib/start.js",
-    "test": "node --test lib/__tests__/*.test.js"
+    "build": "tsc -p ../../tsconfig.converter.json",
+    "start": "npm run build && node dist/start.cjs",
+    "test": "npm run build && node --test lib/__tests__/*.test.cts"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "Preserve", "moduleResolution": "Bundler", "moduleDetection": "force",
+    "types": ["node"], "noEmit": true, "allowImportingTsExtensions": true,
+    "esModuleInterop": true
+  },
+  "include": ["scripts/*.mts", "scripts/*.cts", "*.mts", "types/tooling.d.ts"]
+}

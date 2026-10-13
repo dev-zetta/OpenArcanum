@@ -1,0 +1,31 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
+    "esModuleInterop": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false
+  },
+  "include": [
+    "@openarcanum/agate/tests/**/*.cts",
+    "@openarcanum/asset-converter/lib/__tests__/**/*.cts",
+    "ember-electron/*-smoke.cts",
+    "ember-electron/*.test.cts",
+    "types/test-runtime.d.ts"
+  ],
+  "exclude": [
+    "**/libs/PSON/**"
+  ]
+}

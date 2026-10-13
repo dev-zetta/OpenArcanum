@@ -1,8 +1,8 @@
 # OpenArcanum
 
-An independent engine reimplementation of **Arcanum: Of Steamworks and Magick Obscura**, built with Electron, the AGate engine, Ember and PixiJS. The source is primarily **JavaScript with Flow annotations**.
+An independent engine reimplementation of **Arcanum: Of Steamworks and Magick Obscura**, built with Electron, the AGate engine, Ember and PixiJS. Project-owned JavaScript has been migrated to **TypeScript 7** across the application, engine, converter, authored GUI, tooling and tests. Upstream libraries and generated compatibility files retain their JavaScript formats. Flow is no longer required.
 
-**Work in progress. Active development resumed on October 11, 2026.** This repository preserves the JavaScript generation of the original OpenArcanum / ArcanumAlive project and provides a starting point for its continued development. It is a source-only publication; no complete playable release or end-to-end campaign compatibility is claimed.
+**Work in progress. Active development resumed on October 11, 2026.** This repository continues the 2018 JavaScript rewrite of the original OpenArcanum / ArcanumAlive project, now migrated to TypeScript 7. It is a source-only publication; no complete playable release or end-to-end campaign compatibility is claimed.
 
 ## Current state
 
@@ -44,7 +44,7 @@ The [reference-game oracle](docs/ORACLE.md) runs a separate local copy of the su
 
 **The original game's assets are not included.** The bundled workshop needs no original game data. Running original content requires your own copy of Arcanum and locally converted data. This repository does not yet provide a complete, validated process that turns an installation of the original game into a playable OpenArcanum installation.
 
-The `asset-db` directory retains client scripts; proprietary game archives, converted artwork, music, maps and other retail data are excluded from this source-only repository. The source license does not grant rights to the original game or its assets.
+The `asset-db` directory retains authored TypeScript client GUI definitions; proprietary game archives, converted artwork, music, maps and other retail data are excluded from this source-only repository. The source license does not grant rights to the original game or its assets.
 
 Put compatible converted data in **`local-data/`**, which is ignored by Git, or set `OPENARCANUM_DATA_PATH`. The current scene requires `archives/Bates Mansion Lev 2.zip`, `archives/Prototypes.zip`, `archives/Gfx.zip`, `archives/Gfx-tiles.zip`, GUI images/metadata, MES tables and `16086.json`. Original DAT files cannot be used directly. See [local data and scene controls](docs/DEVELOPMENT.md#local-data-and-optional-integrations) for details.
 
@@ -68,7 +68,7 @@ module-specific names, key names and complete examination remain unfinished.
 | `ember-electron/` | Electron main/preload, local resource protocols and startup checks. |
 | `@openarcanum/agate/` | Local AGate engine package: rendering, entities, resources and supporting systems. |
 | `@openarcanum/asset-converter/` | Partial MES/dialogue-message, spell-metadata and rule-table conversion tools. |
-| `@openarcanum/asset-db/scripts/` | Retained client UI scripts; converted retail data must be supplied locally. |
+| `@openarcanum/asset-db/scripts/` | Authored TypeScript client GUI definitions; builds into ignored `compiled-scripts/`. |
 | `docs/` | Pitch, feature roadmap, reference workflow, development notes and history. |
 | `scripts/oracle/` | Source-only local Wine/Ghidra bootstrap, reference harness and manual conversion. |
 | `examples/inventory-workshop/` | Owned map, objects, generated artwork and deterministic module generator. |
@@ -81,7 +81,8 @@ Use **Node.js 24.11 or newer in the Node 24 LTS line** and npm 11 or newer. The 
 
 ```sh
 npm ci
-npm run build       # compile client/headless authority bundles and Ember UI
+npm run typecheck   # strict production checks plus separate fixture checks
+npm run build       # check types; build engine, UI, host, converter and GUI
 npm start           # rebuild and open Electron
 npm run start:workshop # rebuild and run the owned example; no retail assets
 # Or, after building:
@@ -99,7 +100,7 @@ npm run smoke:workshop -- --show --game-lifecycle # owned module, private item i
 npm run check
 ```
 
-The current stack is Electron 44.7, Ember/Ember CLI 7.3, PixiJS 8.22 and Vite 8.3. Babel uses the latest compatible version 7 because the current Ember build plugins require it. Exact versions are pinned in [package.json](package.json) and [package-lock.json](package-lock.json).
+The current stack is TypeScript 7.0.2, Electron 44.7, Ember/Ember CLI 7.3, PixiJS 8.22 and Vite 8.3. Babel remains on version 7 to satisfy the Ember build plugins. The [TypeScript migration notes](docs/DEVELOPMENT.md#typescript) describe strict production checking, deliberately malformed test fixtures, generated runtime output and upstream exceptions. Exact versions are pinned in [package.json](package.json) and [package-lock.json](package-lock.json).
 
 The authority bundle also runs directly in Node without Electron or a display:
 

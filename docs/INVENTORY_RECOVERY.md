@@ -134,7 +134,7 @@ retail ground transfers, barter and unrestricted transfer remain unfinished.
 ## Run and install locally
 
 ```sh
-node @openarcanum/agate/tools/recover-inventories.cjs \
+node @openarcanum/agate/tools/recover-inventories.cts \
   --original '../my_projects/OpenArcanumCpp/Data/#UNPACKED.zip' \
   --converted 'local-data/archives/Bates Mansion Lev 2.zip' \
   --data local-data --map 'Bates Mansion Lev 2' \

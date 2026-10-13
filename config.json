@@ -1,12 +1,10 @@
 {
   "dataPath": "./local-data",
-  "scriptsPath": "./@openarcanum/asset-db/scripts",
+  "scriptsPath": "./@openarcanum/asset-db/compiled-scripts",
   "appProtocol": "asset://",
-
   "client": {
     "serverURL": "ws://127.0.0.1:4564"
   },
-
   "server": {
     "listenPort": 4564
   }

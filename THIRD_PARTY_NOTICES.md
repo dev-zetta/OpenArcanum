@@ -10,7 +10,7 @@ those notices or grant rights to original Arcanum assets.
 | Ember Shopify draggable shim | `vendor/ember-cli-shopify-draggable-shim/` | MIT; [license](vendor/ember-cli-shopify-draggable-shim/LICENSE.md). |
 | Pixi filters | `@openarcanum/agate/vendor/pixi-filters/` | MIT; [license](%40openarcanum/agate/vendor/pixi-filters/LICENSE), including the bundled package's notice. |
 | PSON | `@openarcanum/agate/src/libs/PSON/` | Apache-2.0; [license](%40openarcanum/agate/src/libs/PSON/LICENSE). Source credits Daniel Wirtz and Andrew Sun. |
-| Isometric projection code | `@openarcanum/agate/src/client/isometric/Isometric.js` | Lewis Lane's MIT notice is retained in the source. |
+| Isometric projection code | `@openarcanum/agate/src/client/isometric/Isometric.ts` | Lewis Lane's MIT notice is retained in the source. |
 | Lance-derived engine/network/serialization code | AGate client, server, synchronization, world and serialization modules | Apache-2.0; [upstream license](licenses/Lance-Apache-2.0.txt), [upstream project](https://github.com/lance-gg/lance). These modules have been modified and reorganized for OpenArcanum. |
 
 Other installed dependencies are obtained through package manifests and retain

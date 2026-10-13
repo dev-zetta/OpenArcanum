@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": false,
+    "noEmit": true,
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
+    "moduleDetection": "force"
+  },
+  "include": [
+    "@openarcanum/agate/src/**/*.ts",
+    "@openarcanum/agate/src/**/*.cts"
+  ],
+  "exclude": [
+    "**/libs/PSON/**",
+    "node_modules",
+    "**/dist/**"
+  ]
+}

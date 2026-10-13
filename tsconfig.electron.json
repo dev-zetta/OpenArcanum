@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
+    "rootDir": "ember-electron",
+    "outDir": "dist-electron",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "noEmitOnError": true
+  },
+  "include": [
+    "ember-electron/main.cts",
+    "ember-electron/preload.cts",
+    "ember-electron/test-main.cts",
+    "ember-electron/local-server.cts",
+    "ember-electron/local-session.cts",
+    "ember-electron/protocol-files.cts",
+    "ember-electron/desktop-contracts.cts"
+  ]
+}

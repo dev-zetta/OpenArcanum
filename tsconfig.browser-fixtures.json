@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.engine.json",
+  "include": [
+    "@openarcanum/agate/tests/lighting-smoke-fixture.ts",
+    "@openarcanum/agate/tests/renderer-smoke-entry.ts",
+    "@openarcanum/agate/src/**/*.d.ts"
+  ]
+}

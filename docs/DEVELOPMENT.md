@@ -16,17 +16,99 @@ the rest of the campaign simulation remains unfinished. The
 [reference-game oracle](ORACLE.md) documents private Wine/Ghidra tools, captures,
 manual conversion and comparison scenarios.
 
+## TypeScript
+
+The compiler is pinned to **TypeScript 7.0.2**, the stable native compiler from
+[Microsoft's TypeScript 7 release](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/).
+All project-owned JavaScript in the engine, application, desktop, converter,
+authored GUI, recovery tools, build/launch tooling and tests has been migrated to
+`.ts`, `.cts` or `.mts`. Run
+`npm run typecheck` for the source inventory and compiler checks. CI and
+`npm run build` run these checks before bundling; an error stops the build.
+
+| Configuration | Checked source and output |
+| --- | --- |
+| `tsconfig.engine.json` | Complete AGate client, authority, ECS, physics, serialization and legacy adapters; esbuild produces the client and headless authority bundles. |
+| `tsconfig.app.json` | Ember application, components, routes, helpers, services and UI tests; Babel retains Ember's legacy decorator semantics while removing TypeScript syntax for Vite. |
+| `tsconfig.electron.json` | Desktop host, preload, local child/session lifecycle and protocol handling; emits `.cjs` files and source maps into ignored `dist-electron/`. |
+| `tsconfig.converter.json` | Asset converter; emits `.cjs` files into its ignored `dist/` directory. |
+| `tsconfig.gui.json` | Authored GUI definitions and callback contracts; emits `.cjs` files and maps into ignored `@openarcanum/asset-db/compiled-scripts/`. |
+| `tsconfig.config.json`, `tsconfig.tooling.json` | Configuration sources, root build entry and native Node 24 build/launch scripts. |
+| `tsconfig.research.json`, `tsconfig.fixture-tools.json` | Original-data recovery tools and the deterministic owned Workshop generator. |
+
+Production configurations use `strict: true`. JSON, IPC and wire input is
+represented as `unknown` until the relevant runtime boundary validates it;
+structural contracts describe entities, components and renderer interfaces.
+Type-only class fields use `declare` where emitting a field would shadow an
+existing getter or change initialization.
+
+The root `tsconfig.json` selects the UI configuration for editors; the engine
+and desktop directories have their own `tsconfig.json` discovery files. The npm
+commands explicitly select their configurations. `skipLibCheck` skips dependency
+**declaration** checking. The source inventory check rejects project-owned
+JavaScript, `ts-nocheck` and `ts-ignore`; compiler configurations do not enable
+`allowJs` or `checkJs`. Upstream PSON, generated FlatBuffers code and vendored
+libraries retain their original formats and notices.
+The reference oracle's shell/Python tools, templates, styles and data formats
+remain in their existing languages.
+
+Historical adversarial Node fixtures deliberately pass malformed data and use
+a separate relaxed test configuration. Browser rendering fixtures retain strict
+checking in `tsconfig.browser-fixtures.json`. `npm run typecheck:tests` first
+emits engine declarations with the strict production configuration into ignored
+`@openarcanum/agate/dist-types/`, then checks fixture calls against those APIs.
+This keeps test inference settings out of production checking. Runtime
+assertions, real socket/process tests and native rendering checks still establish
+behavior; a successful compiler run cannot establish gameplay completeness.
+
+`npm run build:config` compiles `config/*.cts`, then generates ignored conventional
+`config/*.js` files and `ember-cli-build.mjs` from `ember-cli-build.mts` for Ember's
+configuration discovery. Edit the TypeScript sources, not those generated files.
+The default authored-GUI script path points to `compiled-scripts/`, populated by
+`npm run build:gui`. Node 24 runs the `.cts`/`.mts` launch and maintenance scripts
+directly; the Electron host and authored GUI load their compiled `.cjs` output.
+
+The former Flow annotations/configuration and repeated stripping plugins have
+been removed. Protocol 1, checkpoint schema 6 / rules v9 and authored GUI layout
+data remain unchanged. Typing exposed latent dormant helpers, including raw DOM
+cursor positioning, GUI asset descriptor loading, socket disconnect forwarding
+and a nonstandard random-number call. Unsupported old renderer pipelines now
+fail explicitly. The [legacy adapter notes](LEGACY_ADAPTERS.md) describe explicit
+provider requirements; these corrections do not implement those services or add
+campaign features.
+
+The completed October 13 migration passes the production build and compiler
+checks across 427 authored source/declaration files. The full real-socket Node
+suite passes 526 tests; seven additional renderer-script syntax tests pass,
+checking 125 embedded JavaScript snippets. Native UI testing passes 83 tests /
+726 assertions, including authored root/child registration, model reuse and
+listener payload forwarding. Test discovery now rejects an empty module set or
+a run below the 83-test baseline.
+
+Renderer pixel checks pass with no WebGL errors. Both the owned Workshop and
+original-data Bates scenarios pass their native-input gameplay and local-server
+lifecycle checks with no application errors or failed requests. Reload, stale
+session cleanup and child-process reaping are verified. Geometry comparisons
+also match the previous implementation in 1,432 cases. These checks cover the
+documented development scenarios, rather than campaign compatibility.
+Private reports and captures are under ignored
+`local-data/test-results/2026-10-13-typescript7-all/`. Existing build, Electron CSP
+and platform warnings remain. The earlier limited migration's 506 Node / 82 UI
+baseline is retained under `local-data/test-results/2026-10-13-typescript7/`.
+
 ## Toolchain and commands
 
 - Node.js 24 LTS, version 24.11.0 or newer; npm 11 or newer.
 - Electron 44.7.0; Ember CLI / Ember 7.3.0; PixiJS 8.22.0.
-- Vite 8.3.4 with Embroider; AGate Flow types are stripped at build time and
-  bundled with esbuild. Runtime Babel registration and electron-compile are gone.
+- TypeScript 7.0.2 native compiler, with strict production checks across owned source.
+- Vite 8.3.4 with Embroider and Babel for UI; esbuild for the AGate client and
+  authority bundles. Runtime Babel registration and electron-compile are gone.
 - The root npm workspaces link AGate and asset-converter to their current source.
   Commit the root lockfile when changing dependency versions.
 
 ```sh
 npm ci
+npm run typecheck
 npm test
 npm run test:ui
 npm run build
@@ -46,7 +128,12 @@ a desktop session with the libraries Electron requires. For headless CI, run
 `npm start` rebuilds before opening the desktop application. `npm run start:built`
 uses existing build output. Append `-- --devtools` to inspect the renderer.
 `npm run build:engine` rebuilds the AGate client and headless authority bundles;
-`npm run build:ui` rebuilds only Ember.
+`npm run build:ui` prepares configuration and rebuilds Ember.
+`npm run build:desktop` checks and emits the Electron host into ignored
+`dist-electron/`. `npm run build:converter` and `npm run build:gui` emit the converter
+and authored widgets. A full build runs all compiler and source inventory checks
+first. `npm test` prepares configuration, desktop, converter and GUI output before
+running its Node fixtures.
 `npm run smoke -- --smoke-report=/absolute/path/report.json` writes a startup
 report. Smoke success requires the actual Ember readiness marker and no renderer
 exceptions, crashes or timeout; the normal missing-data state is supported.
@@ -61,8 +148,9 @@ Chromium's CPU-backed SwiftShader driver. This option affects only the synthetic
 test process. The default check continues to exercise the available GPU.
 
 See [DEPENDENCIES](DEPENDENCIES.md) for version choices and audit limitations.
-The converter has its own legacy `lib/start.js` entry point; its executor still
-needs a documented configurable input/output workflow. The unit tests use
+The converter's source entry is `@openarcanum/asset-converter/lib/start.cts`;
+`npm run build:converter` emits `dist/start.cjs` inside that workspace. Its executor
+still needs a documented configurable input/output workflow. The unit tests use
 synthetic owned fixtures and do not convert or distribute retail data.
 
 ## Owned inventory workshop
@@ -101,7 +189,7 @@ behind the same key. Inspect, Take, Put and Take All recheck possession, while
 preserving both the key and lock. Returning the key to its accessible crate
 blocks further access to the keepsake crate. See [standalone keys](KEYS.md) for
 the source-backed rules and the additional per-command authority policy.
-Version-3 checkpoints persist position, doors and verified ownership, so loading
+Current checkpoints persist position, doors and verified ownership, so loading
 an earlier empty-inventory save returns the token to container slot `3`; loading
 a taken-item save restores it to the actor without duplicating it. Saving after
 Put retains the new container slot `0`, rather than resetting it to original `3`.
@@ -109,7 +197,7 @@ Put retains the new container slot `0`, rather than resetting it to original `3`
 Generate the readable JSON, PNG atlases, three ZIP catalogs and file manifest:
 
 ```sh
-node examples/inventory-workshop/generate.cjs
+node examples/inventory-workshop/generate.cts
 npm run build
 npm run smoke:workshop -- --show --game-lifecycle
 ```
@@ -1111,7 +1199,7 @@ There is no public bind option, account service or supported remote hosting mode
 yet. Each fresh host starts a new development session until explicitly loaded.
 
 The source entry is
-`@openarcanum/agate/src/server/authority/entry.js`; the build emits
+`@openarcanum/agate/src/server/authority/entry.ts`; the build emits
 `@openarcanum/agate/dist/authority.cjs`. The legacy `ServerEngine`/`ServerNetwork`
 experiment remains in source and is not the path used by this checkpoint.
 
@@ -1197,7 +1285,7 @@ The original input must use the retained `#UNPACKED.zip` extracted layout;
 this helper does not unpack retail DAT files or replace the full converter.
 
 ```sh
-node @openarcanum/agate/tools/recover-sector-roofs.cjs \
+node @openarcanum/agate/tools/recover-sector-roofs.cts \
   --original /path/to/your/#UNPACKED.zip \
   --converted 'local-data/archives/Bates Mansion Lev 2.zip' \
   --gfx local-data/archives/Gfx.zip \
@@ -1264,15 +1352,15 @@ The check starts the scene, awaits map/atlas/player readiness, walks a known cle
 path, rejects blocked, wall and void targets, clicks a real floor tile through
 Electron mouse input, and observes subsequent frames. It fails on renderer
 exceptions, console errors, stopped updates or failed local resource requests.
-The [door smoke](../ember-electron/door-smoke.cjs) then approaches, opens, closes
+The [door smoke](../ember-electron/door-smoke.cts) then approaches, opens, closes
 and reopens a real door, traverses its tile, verifies occupied-close rejection,
 and restores the original door/actor state. A separate authenticated observer
 checks authoritative completion; actual texture frames and collision are asserted.
-The [checkpoint smoke](../ember-electron/checkpoint-smoke.cjs) then saves an open
+The [checkpoint smoke](../ember-electron/checkpoint-smoke.cts) then saves an open
 door and the adjacent actor, changes both, loads the slot and verifies restored
 position, door artwork, collision and matching observer state. It restores and
 saves the closed-door regression baseline; visible runs activate the final save
-through the actual UI button. The [container smoke](../ember-electron/container-smoke.cjs) then approaches the recovered empty dresser, verifies private inspection and a matching public observer summary, rejects the original locked chest, exercises the visible Inspect button and returns to the same actor baseline. Automated game runs use a private temporary slot
+through the actual UI button. The [container smoke](../ember-electron/container-smoke.cts) then approaches the recovered empty dresser, verifies private inspection and a matching public observer summary, rejects the original locked chest, exercises the visible Inspect button and returns to the same actor baseline. Automated game runs use a private temporary slot
 so a user's normal checkpoint is untouched. Without `--show`, native pointer
 verification is omitted. Keep reports, screenshots, converted data and saves
 under the ignored directory.

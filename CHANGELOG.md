@@ -13,6 +13,36 @@ source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
 
 ## 2026-10-13
 
+- Completed the owned-source TypeScript 7 migration across the engine/ECS,
+  renderer/physics, authority, Ember UI, Electron host, asset converter, authored
+  GUI definitions, research tools, launch/build scripts and tests. Production
+  configurations use strict native compiler checks; deliberately malformed test
+  fixtures use separate configurations and consume emitted engine declarations.
+  A source inventory check rejects authored JavaScript and unchecked TypeScript
+  suppressions while retaining upstream PSON, generated FlatBuffers and build
+  compatibility output.
+- Added checked `.cts` configuration sources and an `.mts` Ember build entry,
+  generated conventional config files, compiled GUI `.cjs` output and native
+  Node 24 launchers. Preserved protocol 1, checkpoint schema 6 / rules v9 and
+  authored GUI data. Clarified [dormant adapter contracts](docs/LEGACY_ADAPTERS.md)
+  and corrected latent GUI/socket helpers without claiming playable legacy
+  multiplayer, Realm, Google services or modal-window support.
+- Corrected pooled component ownership/initialization and custom primitive
+  serialization offsets. Preserved adversarial shared-prototype door coverage.
+  Fixed authored root GUI registration, method payload forwarding and TypeScript
+  UI test discovery; embedded renderer scripts now have JavaScript syntax checks.
+  The completed migration passes strict checks, production build, 526 full-suite
+  Node tests plus seven new syntax tests, 83 UI tests / 726 assertions, renderer
+  pixels and native Workshop/Bates gameplay with server lifecycle checks.
+- Initially switched to stable TypeScript 7.0.2 with strict engine, UI and desktop compiler
+  configurations, CI checking and native Electron host compilation. Migrated
+  the active game UI/runtime, character/dialogue sessions, neutral formulas,
+  movement/grid, checkpoint storage and content identity to checked TypeScript.
+  Removed Flow annotations/configuration and repeated build/test transforms;
+  remaining owned JavaScript was migrated in the subsequent step above.
+  That initial migration passed strict checks, production build, all 506 Node / 82 UI tests, renderer pixel
+  checks and native Workshop/Bates gameplay with server lifecycle checks passed.
+
 - Committed and pushed the previously validated local-authority foundation as
   [`11aa4cb`](https://github.com/dev-zetta/OpenArcanum/commit/11aa4cb84ee8a979fd12ca9f34911c898eab2639).
   Publication review confirmed owned Workshop binaries and excluded retail

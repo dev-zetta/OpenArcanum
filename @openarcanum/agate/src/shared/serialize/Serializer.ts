@@ -1,0 +1,283 @@
+import type Serializable from './Serializable'
+import type { NetProperty, SerializableConstructor } from './Serializable'
+
+export interface CustomWireType {
+  type: string
+  BYTES_PER_ELEMENT: number
+  writeDataView(view: DataView, value: unknown, offset: number): void
+  readDataView(view: DataView, offset: number): unknown
+}
+import Utils from '../misc/NetworkUtils'
+
+const MAX_UINT_16 = 0xffff
+
+/**
+ * The Serializer is responsible for serializing the game world and its
+ * objects on the server, before they are sent to each client.  On the client side the
+ * Serializer deserializes these objects.
+ *
+ */
+class Serializer {
+  declare registeredClasses: Record<string | number, SerializableConstructor>
+  declare customTypes: Record<string, CustomWireType>
+
+  constructor() {
+    this.registeredClasses = {}
+    this.customTypes = {}
+    //this.registerClass(TwoVector)
+    //this.registerClass(ThreeVector)
+    //this.registerClass(Quaternion)
+  }
+
+  /**
+   * Adds a custom primitive to the serializer instance.
+   * This will enable you to use it in an object's netScheme
+   * @param customType
+   */
+  addCustomType(customType: CustomWireType) {
+    this.customTypes[customType.type] = customType
+  }
+
+  /**
+   * Checks if type can be assigned by value.
+   * @param {String} type Type to Checks
+   * @return {Boolean} True if type can be assigned
+   */
+  static typeCanAssign(type: string) {
+    return (
+      type !== 'class' && type !== 'list'
+    )
+  }
+
+  /**
+   * Registers a new class with the serializer, so it may be deserialized later
+   * @param {Function} classObj reference to the class (not an instance!)
+   * @param {String} classId Unit specifying a class ID
+   */
+  registerClass(classObj: SerializableConstructor, classId?: string | number) {
+    // if no classId is specified, hash one from the class name
+    classId = classId ? classId : Utils.hashStr(classObj.name, 8)
+    if (this.registeredClasses[classId]) {
+      console.error(
+        `Serializer: accidental override of classId ${classId} when registering class`,
+        classObj
+      )
+    }
+
+    this.registeredClasses[classId] = classObj
+  }
+
+  deserialize(dataBuffer: ArrayBufferLike, byteOffset = 0): {obj: Serializable; byteOffset: number} {
+    byteOffset = byteOffset ? byteOffset : 0
+    let localByteOffset = 0
+
+    let dataView = new DataView(dataBuffer)
+
+    let objectClassId = dataView.getUint8(byteOffset + localByteOffset)
+
+    // todo if classId is 0 - take care of dynamic serialization.
+    let objectClass = this.registeredClasses[objectClassId]
+    if (objectClass == null) {
+      console.error(
+        `Serializer: Found a class which was not registered.  Please use serializer.registerClass() to register all serialized classes.`
+      )
+    }
+
+    localByteOffset += Uint8Array.BYTES_PER_ELEMENT // advance the byteOffset after the classId
+
+    // create de-referenced instance of the class. gameEngine and id will be 'tacked on' later at the sync strategies
+    let obj = Reflect.construct(objectClass, [null, {id: null}]) as Serializable
+    for (let property of Object.keys(objectClass.netScheme || {}).sort()) {
+      let read = this.readDataView(
+        dataView,
+        byteOffset + localByteOffset,
+        objectClass.netScheme![property]
+      )
+      Reflect.set(obj, property, read.data)
+      localByteOffset += read.bufferSize
+    }
+
+    return {obj, byteOffset: localByteOffset}
+  }
+
+  writeDataView(dataView: DataView, value: unknown, bufferOffset: number, netSchemProp: NetProperty): void {
+    if (netSchemProp.type === 'float') {
+      dataView.setFloat32(bufferOffset, value as number)
+    } else if (netSchemProp.type === 'int') {
+      dataView.setInt32(bufferOffset, value as number)
+    } else if (netSchemProp.type === 'int16') {
+      dataView.setInt16(bufferOffset, value as number)
+    } else if (netSchemProp.type === 'int8') {
+      dataView.setInt8(bufferOffset, value as number)
+    } else if (netSchemProp.type === 'uint8') {
+      dataView.setUint8(bufferOffset, value as number)
+    } else if (netSchemProp.type === 'string') {
+      //   MAX_UINT_16 is a reserved (length) value which indicates string hasn't changed
+      if (value === null) {
+        dataView.setUint16(bufferOffset, MAX_UINT_16)
+      } else {
+        let strLen = (value as string).length
+        dataView.setUint16(bufferOffset, strLen)
+        let localBufferOffset = 2
+        for (let i = 0; i < strLen; i++)
+          dataView.setUint16(
+            bufferOffset + localBufferOffset + i * 2,
+            (value as string).charCodeAt(i)
+          )
+      }
+    } else if (netSchemProp.type === 'class') {
+      (value as Serializable).serialize(this, {
+        dataBuffer: dataView.buffer,
+        bufferOffset: bufferOffset
+      })
+    } else if (netSchemProp.type === 'list') {
+      let localBufferOffset = 0
+
+      // a list is comprised of the number of items followed by the items
+      dataView.setUint16(bufferOffset + localBufferOffset, (value as unknown[]).length)
+      localBufferOffset += Uint16Array.BYTES_PER_ELEMENT
+
+      for (let item of value as unknown[]) {
+        // TODO: inelegant, currently doesn't support list of lists
+        if (netSchemProp.itemType === 'class') {
+          let serializedObj = (item as Serializable).serialize(this, {
+            dataBuffer: dataView.buffer,
+            bufferOffset: bufferOffset + localBufferOffset
+          })
+          localBufferOffset += serializedObj.bufferOffset
+        } else if (netSchemProp.itemType === 'string') {
+          //   MAX_UINT_16 is a reserved (length) value which indicates string hasn't changed
+          if (item === null) {
+            dataView.setUint16(bufferOffset + localBufferOffset, MAX_UINT_16)
+            localBufferOffset += Uint16Array.BYTES_PER_ELEMENT
+          } else {
+            let strLen = (item as string).length
+            dataView.setUint16(bufferOffset + localBufferOffset, strLen)
+            localBufferOffset += Uint16Array.BYTES_PER_ELEMENT
+            for (let i = 0; i < strLen; i++)
+              dataView.setUint16(
+                bufferOffset + localBufferOffset + i * 2,
+                (item as string).charCodeAt(i)
+              )
+            localBufferOffset += Uint16Array.BYTES_PER_ELEMENT * strLen
+          }
+        } else {
+          this.writeDataView(dataView, item, bufferOffset + localBufferOffset, {
+            type: netSchemProp.itemType!
+          })
+          localBufferOffset += this.getTypeByteSize(netSchemProp.itemType!)
+        }
+      }
+    } else if (this.customTypes[netSchemProp.type]) {
+      // this is a custom data property which needs to define its own write method
+      this.customTypes[netSchemProp.type].writeDataView(
+        dataView,
+        value,
+        bufferOffset
+      )
+    } else {
+      console.error(`No custom property ${netSchemProp.type} found!`)
+    }
+  }
+
+  readDataView(dataView: DataView, bufferOffset: number, netSchemProp: NetProperty): {data: unknown; bufferSize: number} {
+    let data: unknown, bufferSize = 0
+
+    if (netSchemProp.type === 'float') {
+      data = dataView.getFloat32(bufferOffset)
+      bufferSize = this.getTypeByteSize(netSchemProp.type)
+    } else if (netSchemProp.type === 'int') {
+      data = dataView.getInt32(bufferOffset)
+      bufferSize = this.getTypeByteSize(netSchemProp.type)
+    } else if (netSchemProp.type === 'int16') {
+      data = dataView.getInt16(bufferOffset)
+      bufferSize = this.getTypeByteSize(netSchemProp.type)
+    } else if (netSchemProp.type === 'int8') {
+      data = dataView.getInt8(bufferOffset)
+      bufferSize = this.getTypeByteSize(netSchemProp.type)
+    } else if (netSchemProp.type === 'uint8') {
+      data = dataView.getUint8(bufferOffset)
+      bufferSize = this.getTypeByteSize(netSchemProp.type)
+    } else if (netSchemProp.type === 'string') {
+      let length = dataView.getUint16(bufferOffset)
+      let localBufferOffset = Uint16Array.BYTES_PER_ELEMENT
+      bufferSize = localBufferOffset
+      if (length === MAX_UINT_16) {
+        data = null
+      } else {
+        let a = []
+        for (let i = 0; i < length; i++)
+          a[i] = dataView.getUint16(bufferOffset + localBufferOffset + i * 2)
+        data = String.fromCharCode.apply(null, a)
+        bufferSize += length * Uint16Array.BYTES_PER_ELEMENT
+      }
+    } else if (netSchemProp.type === 'class') {
+      let deserializeData = this.deserialize(dataView.buffer, bufferOffset)
+      data = deserializeData.obj
+      bufferSize = deserializeData.byteOffset
+    } else if (netSchemProp.type === 'list') {
+      let localBufferOffset = 0
+
+      let items = []
+      let itemCount = dataView.getUint16(bufferOffset + localBufferOffset)
+      localBufferOffset += Uint16Array.BYTES_PER_ELEMENT
+
+      for (let x = 0; x < itemCount; x++) {
+        let read = this.readDataView(
+          dataView,
+          bufferOffset + localBufferOffset,
+          {type: netSchemProp.itemType!}
+        )
+        items.push(read.data)
+        localBufferOffset += read.bufferSize
+      }
+
+      data = items
+      bufferSize = localBufferOffset
+    } else if (this.customTypes[netSchemProp.type] != null) {
+      // this is a custom data property which needs to define its own read method
+      data = this.customTypes[netSchemProp.type].readDataView(
+        dataView,
+        bufferOffset
+      )
+      bufferSize = this.getTypeByteSize(netSchemProp.type)
+    } else {
+      console.error(`No custom property ${netSchemProp.type} found!`)
+    }
+
+    return {data: data, bufferSize: bufferSize}
+  }
+
+  getTypeByteSize(type: string): number {
+    switch (type) {
+      case 'float': {
+        return Float32Array.BYTES_PER_ELEMENT
+      }
+      case 'int': {
+        return Int32Array.BYTES_PER_ELEMENT
+      }
+      case 'int16': {
+        return Int16Array.BYTES_PER_ELEMENT
+      }
+      case 'int8': {
+        return Int8Array.BYTES_PER_ELEMENT
+      }
+      case 'uint8': {
+        return Uint8Array.BYTES_PER_ELEMENT
+      }
+
+      // not one of the basic properties
+      default: {
+        if (type === undefined) {
+          throw `netScheme property declared without type attribute!`
+        } else if (this.customTypes[type] === null) {
+          throw `netScheme property ${type} undefined! Did you forget to add it to the serializer?`
+        } else {
+          return this.customTypes[type].BYTES_PER_ELEMENT
+        }
+      }
+    }
+  }
+}
+
+export default Serializer

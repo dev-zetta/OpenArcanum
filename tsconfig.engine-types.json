@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.engine.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": true,
+    "rootDir": "@openarcanum/agate/src",
+    "outDir": "@openarcanum/agate/dist-types"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [
+      "node"
+    ],
+    "rootDir": "@openarcanum/asset-converter/lib",
+    "outDir": "@openarcanum/asset-converter/dist",
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": [
+    "@openarcanum/asset-converter/lib/**/*.cts"
+  ],
+  "exclude": [
+    "@openarcanum/asset-converter/lib/__tests__"
+  ]
+}

@@ -1,0 +1,177 @@
+import type {RealmSchema, RealmStore, RealmRecord, RealmResults} from '../../libs/Realm'
+import Realm from '../../libs/Realm'
+import Utils from '../misc/Utils'
+
+class RealmModel {
+  declare schema: RealmSchema
+  declare realm: RealmStore
+  declare linkedProperties: Record<string, string>
+
+  constructor(realm: RealmStore, schema: RealmSchema /*dbPath = null*/) {
+    /*if (dbPath === null) {
+      this.dbPath = Realm.defaultPath
+    } else {
+      this.dbPath = dbPath
+    }*/
+
+    this.schema = schema
+    this.realm = realm //this.makeRealm(this.dbPath, this.schema)
+
+    // find out which properties are custom types/models
+    let linkedProperties: Record<string, string> = {}
+    for (let property in this.schema.properties) {
+      let typeName = this.schema.properties[property]
+      if (Utils.isFirstUpperCase(typeName)) {
+        linkedProperties[property] = typeName.replace(`[]`, ``)
+      }
+    }
+
+    this.linkedProperties = linkedProperties
+  }
+
+  makeRealm(dbPath: string, schema: RealmSchema) {
+    this.realm = new Realm({
+      path: dbPath,
+      schema: [schema]
+    })
+  }
+
+  /**
+   *
+   * @param func
+   * @returns {Promise}
+   */
+  async write<T>(func: () => T): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      this.realm.write(() => {
+        resolve(func())
+      })
+    })
+  }
+
+  /**
+   * Link indexes to object instances
+   * @param object
+   */
+  linkProperties(object: RealmRecord): RealmRecord {
+    for (let property in this.linkedProperties) {
+      let value = object[property]
+      if (Utils.isObjectLike(value)) {
+        continue
+      }
+
+      let typeName = this.linkedProperties[property]
+
+      let other = this.realm.objectForPrimaryKey(typeName, value)
+
+      //console.error(property, other)
+      object[property] = other
+    }
+
+    return object
+  }
+
+  /**
+   *
+   * @param input
+   * @param updateFlag
+   * @returns {Promise<*>}
+   */
+  async create(input: RealmRecord | RealmRecord[], updateFlag = false) {
+    return this.write(() => {
+      //console.error(this.schema)
+      if (Array.isArray(input)) {
+        let result = []
+        for (let entry of input) {
+          result.push(
+            this.realm.create(
+              this.schema.name,
+              this.linkProperties(entry),
+              updateFlag
+            )
+          )
+        }
+        return result
+      } else {
+        let result = this.realm.create(
+          this.schema.name,
+          this.linkProperties(input),
+          updateFlag
+        )
+        return result
+      }
+    })
+  }
+
+  /**
+   *
+   * @param input
+   * @returns {Promise<*>}
+   */
+  async save(input: RealmRecord | RealmRecord[]) {
+    return this.create(input, true)
+  }
+
+  /**
+   *
+   * @param input
+   * @param filterString
+   * @returns {Promise<*>}
+   */
+  async update(input: RealmRecord, filterString: string) {
+    let data = this.filtered(filterString)
+
+    await this.write(() => {
+      for (let entry of data) {
+        for (let property in this.schema.properties) {
+          if (Object.keys(input).includes(property)) {
+            entry[property] = input[property]
+          }
+        }
+      }
+    })
+
+    return data
+  }
+
+  /**
+   *
+   * @param object
+   */
+  delete(object: RealmRecord | RealmResults) {
+    this.write(() => {
+      this.realm.delete(object)
+    })
+  }
+
+  /**
+   *
+   * @param pk
+   * @returns {*}
+   */
+  get(): RealmResults
+  get(pk: string | number): RealmRecord
+  get(pk: string | number | null = null): RealmRecord | RealmResults {
+    if (pk === null) {
+      return this.realm.objects(this.schema.name)
+    } else {
+      let data = this.filtered(`${this.schema.primaryKey} == '${pk}'`)
+      if (data.length > 0) {
+        return data[0]
+      } else {
+        return {}
+      }
+    }
+  }
+
+  /**
+   *
+   * @param filterString
+   * @returns {*}
+   */
+  filtered(filterString: string): RealmResults {
+    return this.realm.objects(this.schema.name).filtered(filterString)
+  }
+}
+
+export default RealmModel

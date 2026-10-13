@@ -64,3 +64,20 @@ libpeerconnection.log
 # Temporary Ember compatibility files
 bower.json.ember-try
 package.json.ember-try
+
+# Native TypeScript desktop output and compiler cache
+/dist-electron/
+*.tsbuildinfo
+
+# Framework-discovered JavaScript generated from TypeScript configuration
+/dist-config/
+/config/*.js
+/ember-cli-build.mjs
+/ember-cli-build.mjs.map
+# Authored GUI scripts compiled for the Electron runtime
+/@openarcanum/asset-db/scripts/**/*.cjs
+/@openarcanum/asset-db/scripts/**/*.cjs.map
+
+/@openarcanum/asset-db/compiled-scripts/
+
+/@openarcanum/agate/dist-types/

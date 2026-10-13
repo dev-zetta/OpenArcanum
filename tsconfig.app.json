@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "types": [
+      "ember-source/types",
+      "@embroider/core/virtual",
+      "node",
+      "qunit"
+    ],
+    "paths": {
+      "open-arcanum/*": [
+        "./app/*"
+      ],
+      "open-arcanum/tests/*": [
+        "./tests/*"
+      ]
+    }
+  },
+  "include": [
+    "app/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "local-data"
+  ]
+}

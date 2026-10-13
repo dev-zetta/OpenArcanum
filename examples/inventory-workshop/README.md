@@ -1,7 +1,7 @@
 # Inventory workshop
 
 A small owned test module for OpenArcanum. Its map, character, guide, crates, doors and
-artwork are authored by the deterministic [generator](generate.cjs), using only
+artwork are authored by the deterministic [generator](generate.cts), using only
 Node built-ins. No original game data, artwork or installation is required.
 The module and its generator use the repository's GPL-3.0-or-later license.
 
@@ -31,7 +31,7 @@ ground-item witness, with no owner, owner-list slot or inventory flag initially.
 The stationary Workshop guide at `(9, 8)` offers the quest **A closer look**.
 
 ```sh
-node examples/inventory-workshop/generate.cjs
+node examples/inventory-workshop/generate.cts
 OPENARCANUM_MODULE=inventory-workshop npm start
 ```
 

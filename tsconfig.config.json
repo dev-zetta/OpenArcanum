@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext", "moduleResolution": "NodeNext", "moduleDetection": "force",
+    "types": ["node"], "rootDir": ".", "outDir": "dist-config", "sourceMap": true
+  },
+  "include": ["config/*.cts"]
+}

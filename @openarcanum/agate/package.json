@@ -35,5 +35,6 @@
     "workerpool": "10.0.3",
     "xorshift": "1.2.0"
   },
-  "source": "src/AGate.js"
+  "source": "src/AGate.ts",
+  "types": "dist-types/AGate.d.ts"
 }

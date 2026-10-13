@@ -32,6 +32,7 @@ jobs:
             sudo install -o root -g root -m 0644 "$profile_file" /etc/apparmor.d/openarcanum-electron
             sudo apparmor_parser -r /etc/apparmor.d/openarcanum-electron
           fi
+      - run: npm run typecheck
       - run: npm test
       - run: xvfb-run -a npm run test:ui
       - run: npm run build

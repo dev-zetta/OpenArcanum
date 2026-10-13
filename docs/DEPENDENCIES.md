@@ -1,12 +1,14 @@
-# Dependency upgrade — October 11, 2026
+# Toolchain and dependency upgrade — October 13, 2026
 
-The JavaScript/Electron project now uses a single npm-workspace install and a
-root lockfile. Versions were checked against npm's stable release metadata and
-the upstream Ember and Electron releases during this upgrade.
+The TypeScript/Electron project uses a single npm-workspace install and a root
+lockfile. Runtime/build dependency versions were checked against npm's stable
+release metadata and upstream Ember/Electron releases during the October 11
+upgrade. The October 13 migration added TypeScript 7 across owned source.
 
 | Area | Current version |
 | --- | --- |
 | Development runtime | Node 24 LTS, >=24.11.0; npm >=11 |
+| TypeScript native compiler | 7.0.2 |
 | Electron | 44.7.0 |
 | Ember / Ember CLI | 7.3.0 |
 | Ember Data legacy model/store packages / WarpDrive | 5.9.1 |
@@ -15,7 +17,7 @@ the upstream Ember and Electron releases during this upgrade.
 | PixiJS / Viewport / filters | 8.22.0 / 6.0.3 / 6.1.5 |
 | Socket.IO / client / MessagePack parser | 4.8.4 / 4.8.4 / 3.0.2 |
 | esbuild / Sass | 0.28.2 / 1.105.1 |
-| Babel core and Flow strip plugin | 7.29.7 |
+| Babel core / TypeScript syntax transform | 7.29.7 / 7.29.9 |
 | Converter iconv-lite | 0.7.3 |
 
 Exact direct versions and transitive integrity hashes are committed in the root
@@ -26,16 +28,19 @@ provide upstream context.
 
 ## Compatibility choices
 
-Babel 8.0.7 is available, but the current `ember-cli-babel` 8.3.2 and
-`@rollup/plugin-babel` 7.1.0 peer dependencies still require Babel 7. This build
-uses the latest stable Babel 7 core/plugin versions and runtime 7.29.10. Moving
-to Babel 8 requires upstream support rather than ignoring those peer contracts.
+Babel 8.0.7 was available during the October 11 review, but `ember-cli-babel`
+8.3.2 and `@rollup/plugin-babel` 7.1.0 require Babel 7. The build retains compatible
+Babel 7 plugins and runtime 7.29.10. Moving to Babel 8 requires upstream support
+rather than ignoring those peer contracts.
 
-AGate's Flow annotations are removed before bundling. Type-only class fields
-must not become emitted fields: some engine fields share names with getters.
-ESM dependencies are bundled into the Node-compatible engine entry; workerpool
-remains external so its worker files keep working. This is compilation and
-regression coverage, not a complete Flow type-checking migration.
+The native TypeScript 7 compiler checks owned production source with strict
+settings. esbuild bundles the engine; Babel removes TypeScript syntax while
+preserving Ember decorators for Vite. Syntax transformation does not replace
+the compiler checks. Type-only class fields use `declare` where emitting a field
+would shadow an existing getter. ESM dependencies are bundled into the
+Node-compatible engine entry; workerpool remains external so its worker files
+keep working. The [migration notes](DEVELOPMENT.md#typescript) explain separate
+adversarial test configurations and upstream/generated JavaScript exceptions.
 
 The existing Ember application remains in place. Abandoned Flexi/layout,
 Bootstrap, toggle, resize, audio, scheduler and related addons were replaced
@@ -49,20 +54,23 @@ metadata, Viewport events and filter resources. Synthetic Electron/WebGL checks
 verify actual filtered sprite pixels, atlas pixels and a zero GL error result.
 
 The retired Ember Electron / electron-compile / Forge 5 launch pipeline is
-replaced by direct Electron main/preload scripts. Unused native dependencies,
+replaced by checked `.cts` main/preload sources compiled to `.cjs` and native
+Node 24 launch scripts. Unused native dependencies,
 old Realm rebuild commands and Git-branch dependencies have been removed.
-This covers the active `AGate.js` import graph. Dormant physics, dice,
-experimental serialization, PSON and historical Google integration modules remain
-as source references; they are not installed or tested as standalone features.
-Reactivating them requires reviewing their APIs and dependencies explicitly.
+Owned engine modules, including legacy physics, dice and serialization, now
+participate in strict TypeScript checking. Upstream PSON retains its source
+format. Dormant multiplayer, Realm, Google services and modal-window helpers
+have [explicit provider contracts](LEGACY_ADAPTERS.md); their SDKs and unfinished
+services are not enabled by the migration. Reactivating them requires API,
+dependency and runtime validation.
 See [DEVELOPMENT](DEVELOPMENT.md) for the explicit Node-enabled compatibility
 mode and its remaining IPC work.
 
 ## Upstream audit limitations
 
-The build-tool dependency tree still includes vulnerable `braces` and
-`sprintf-js` releases. Their advisories report no patched version at the time
-of this upgrade. Many audit entries are packages affected by these same leaf
+The October 11 build-tool audit included vulnerable `braces` and `sprintf-js`
+releases. Their advisories reported no patched version at the time of that
+upgrade. Many audit entries were packages affected by these same leaf
 dependencies, rather than separate flaws in each framework package:
 
 - [braces: deeply nested pattern denial of service](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm).
@@ -82,7 +90,8 @@ Run `npm audit` to refresh the report. New releases or advisories can change
 these findings; a clean audit is not claimed.
 
 After the temporary-file overrides and required GUI data integration, the
-verified lock reports 40 affected development packages (31 moderate, 9 high)
-cascading from those two remaining leaf dependencies. `npm audit --omit=dev`
-reports zero findings for the production install; that classification is not
-a security audit of the bundled desktop application.
+October 11 report counted 40 affected development packages (31 moderate, 9 high)
+cascading from those two leaf dependencies. At that point `npm audit --omit=dev`
+reported zero findings for the production install. These are historical results,
+not a refreshed audit of the TypeScript migration or a security audit of the
+bundled desktop application.
