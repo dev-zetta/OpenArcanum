@@ -33,6 +33,7 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
       game: client?.getDevelopmentState() || null,
       actorSource: client?.player?.sourcePath,
       actorInventory: client?.player?.critter?.inventory,
+      legacyStats: client?.player?.critter?.stats ?? null,
       characterPending: !!client?.characterRequest,
       nextCommandId: client?.authority?.nextId,
       visibleCharacter: {
@@ -40,6 +41,10 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
         level: document.querySelector('[data-character-level]')?.textContent,
         points: document.querySelector('[data-character-points]')?.textContent,
         nextLevel: document.querySelector('[data-character-next-level]')?.textContent },
+      visibleAttributes: Object.fromEntries([...document.querySelectorAll('[data-attribute-id]')].map(row =>
+        [row.dataset.attributeId, Number(row.querySelector('[data-attribute-value]').textContent)])),
+      visibleDerived: Object.fromEntries([...document.querySelectorAll('[data-derived-stat]')].map(row =>
+        [row.dataset.derivedStat, Number(row.textContent)])),
       authoredGui: client?.options.authoredGui,
       guiWidgets: document.querySelectorAll('#gui .gui-widget').length,
       legacyStyles: !!document.querySelector('link[data-arcanum-gui-assets]'),
@@ -104,7 +109,7 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
       !JSON.stringify(snapshot).includes(KEY_ID) && !JSON.stringify(snapshot).includes(PRIZE_ID) &&
       !JSON.stringify(snapshot).includes(PRIZE_LABEL) &&
       !JSON.stringify(snapshot).includes(QUEST_ID) && !JSON.stringify(snapshot).includes(QUEST_TITLE) &&
-      !/"(?:items|itemIds|inventory|parent|quantity|keyId|keyID|keyUseSupported|journal|quests|options|conversationId|nodeId|character|experiencePoints|level|unspentPoints|nextLevelExperience)"\s*:/.test(JSON.stringify(snapshot)),
+      !/"(?:items|itemIds|inventory|parent|quantity|keyId|keyID|keyUseSupported|journal|quests|options|conversationId|nodeId|character|experiencePoints|level|unspentPoints|nextLevelExperience|attributes|derived|history|statId|maxHealth|maxFatigue|strength|dexterity|constitution|beauty|intelligence|perception|willpower|charisma)"\s*:/.test(JSON.stringify(snapshot)),
       'Workshop observer received private inventory information')
   }
   async function matchObserver(state) {
@@ -151,14 +156,15 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
     check(joined?.ok && joined.role === 'observer', 'Workshop observer did not join')
     snapshots.push(joined.snapshot)
 
+    let pointPurchases = 0
     const progression = (state, awarded = false) => {
       const character = state.game.character
       check(character?.status === 'ready' && character.supported === true &&
         character.experiencePoints === (awarded ? QUEST_EXPERIENCE_REWARD : 0) && character.level === (awarded ? 2 : 1) &&
-        character.unspentPoints === (awarded ? 6 : 5) && character.nextLevelExperience === (awarded ? 4600 : 2100),
+        character.unspentPoints === (awarded ? 6 : 5) - pointPurchases && character.nextLevelExperience === (awarded ? 4600 : 2100),
       'The private character view has an incorrect quest reward, level or point balance')
       return waitFor(rendered => rendered.visibleCharacter.experience === String(awarded ? QUEST_EXPERIENCE_REWARD : 0) &&
-        rendered.visibleCharacter.level === String(awarded ? 2 : 1) && rendered.visibleCharacter.points === String(awarded ? 6 : 5),
+        rendered.visibleCharacter.level === String(awarded ? 2 : 1) && rendered.visibleCharacter.points === String((awarded ? 6 : 5) - pointPurchases),
       'The Character panel does not display the committed private progression')
     }
     await progression(initial)
@@ -540,6 +546,47 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
       JSON.stringify(report.baseline.game.player.location) === '[4,4]', 'Workshop did not restore its running baseline')
     report.baseline.observer = await matchObserver(report.baseline)
 
+    report.attributes = { purchases: [] }
+    const purchase = async statId => {
+      const before = await read(), value = before.game.character.attributes.find(row => row.id === statId).value
+      if (testInput) await button('increase-attribute', statId, 'statId')
+      else await evaluate(`globalThis.AGate._engine.client.spendCharacterPoint(${JSON.stringify(statId)})`)
+      const state = await waitFor(state => state.game.character?.status === 'ready' &&
+        state.game.character.attributes.find(row => row.id === statId).value === value + 1 &&
+        state.game.character.unspentPoints === before.game.character.unspentPoints - 1 && state.visibleAttributes[statId] === value + 1,
+      'Attribute purchase did not conserve a point and publish its private value')
+      pointPurchases++
+      check(state.legacyStats === null, 'Buying an attribute unexpectedly mutated legacy character stats')
+      report.attributes.purchases.push({ statId, character: state.game.character })
+      return state
+    }
+    report.attributes.first = await purchase('strength')
+    check(report.attributes.first.game.character.derived.maxHealth === 32 &&
+      report.attributes.first.game.character.derived.carryWeight === 4500 &&
+      report.attributes.first.game.character.derived.damageBonus === 0, 'Strength preview lost original HP, weight or C-division behavior')
+    report.attributes.firstSaved = await evaluate('globalThis.AGate._engine.client.saveCheckpoint()')
+    const remainingStart = ['dexterity', 'constitution', 'willpower', 'beauty']
+    for (const id of remainingStart) await purchase(id)
+    report.attributes.startSpent = await read()
+    await progression(report.attributes.startSpent)
+    check(report.attributes.startSpent.game.character.unspentPoints === 0 &&
+      report.attributes.startSpent.game.character.attributes.every(row => row.canIncrease === false), 'Starting points were not exhausted')
+    report.attributes.noPoints = await evaluate(`(async () => {
+      const c=globalThis.AGate._engine.client;
+      try {await c.authority.buyAttribute(c.player.id,'intelligence',c.authorityState.revision);return {rejected:false};}
+      catch(error){return {rejected:true,code:error.code};}
+    })()`)
+    check(report.attributes.noPoints.rejected && report.attributes.noPoints.code === 'INSUFFICIENT_POINTS',
+      'Server accepted an attribute purchase with no points')
+    await evaluate('globalThis.AGate._engine.client.loadCheckpoint()')
+    pointPurchases = 1
+    report.attributes.firstRestored = await read()
+    await progression(report.attributes.firstRestored)
+    check(report.attributes.firstRestored.game.character.attributes.find(row => row.id === 'strength').value === 9 &&
+      report.attributes.firstRestored.game.character.attributes.filter(row => row.id !== 'strength').every(row => row.value === 8),
+    'Checkpoint did not restore exactly the first purchase')
+    for (const id of remainingStart) await purchase(id)
+
     // The same server owns private branching replies and persistent quest
     // status. Showing an item is a condition, not an inventory transfer.
     report.dialogue = {}
@@ -636,6 +683,12 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
     await pickupPebble()
     await talk()
     await reply('show')
+    report.attributes.rewardSpent = await purchase('charisma')
+    await progression(report.attributes.rewardSpent, true)
+    check(report.attributes.rewardSpent.game.character.unspentPoints === 0 &&
+      JSON.stringify(report.attributes.rewardSpent.game.character.derived) === JSON.stringify({
+        maxHealth:35,maxFatigue:35,carryWeight:4500,damageBonus:0,armorClassAdjustment:-1,speed:9,
+        healRate:3,poisonRecovery:9,reactionModifier:-3,maxFollowers:2}), 'Sixth purchase did not recompute the neutral derived preview')
     report.dialogue.completedSaved = await evaluate('globalThis.AGate._engine.client.saveCheckpoint()')
     await move([4,7])
     await evaluate(`globalThis.AGate._engine.client.dropItem(${JSON.stringify(GROUND_ITEM_ID)})`)
@@ -694,6 +747,23 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
     })()`)
     check(report.progressionVisible.visible && report.progressionVisible.text.includes(String(QUEST_EXPERIENCE_REWARD)),
       'Committed progression is not readable within the Character scroll panel')
+    const derivedPoint = await evaluate(`(() => {
+      const details=document.querySelector('[data-character-derived]'),summary=details.querySelector('summary');
+      summary.scrollIntoView({block:'nearest'});
+      const r=summary.getBoundingClientRect();return {x:Math.round(r.left+r.width/2),y:Math.round(r.top+r.height/2)};
+    })()`)
+    if (testInput) {
+      contents.sendInputEvent({type:'mouseMove',...derivedPoint});
+      contents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,...derivedPoint});
+      contents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,...derivedPoint});
+    } else await evaluate('document.querySelector("[data-character-derived]").open=true')
+    report.attributes.derivedVisible = await evaluate(`new Promise(resolve=>setTimeout(()=>{
+      const details=document.querySelector('[data-character-derived]'),values=details.querySelector('dl');
+      values.scrollIntoView({block:'nearest'});const r=values.getBoundingClientRect(),p=document.querySelector('[data-inventory-panel]').getBoundingClientRect();
+      resolve({open:details.open,visible:r.top>=p.top&&r.bottom<=p.bottom,text:values.textContent});
+    },50))`)
+    check(report.attributes.derivedVisible.open && report.attributes.derivedVisible.visible,
+      'Neutral derived preview cannot be read within the Character scroll panel')
     report.baseline = await read()
     report.baseline.observer = await matchObserver(report.baseline)
     await progression(report.baseline, true)

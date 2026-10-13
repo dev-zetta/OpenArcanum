@@ -66,5 +66,5 @@ and [authored ground pickup/drop](GROUND_ITEMS.md).
 The raw simulation fields remain part of the current content fingerprint;
 description text is presentation only. Development saves are disposable and no
 older-rule compatibility is maintained; the current checkpoint contract is
-schema 5 with `movement-doors-ownership-progression-v8`. Original Bates records and unknown
+schema 6 with `movement-doors-ownership-attributes-v9`. Original Bates records and unknown
 controlled-actor inventory remain unchanged.

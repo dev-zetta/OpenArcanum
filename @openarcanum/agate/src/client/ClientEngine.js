@@ -282,7 +282,9 @@ export default class ClientEngine extends ClientNetwork {
         options: this.conversationState.options?.map(option => ({ ...option })) } : null,
       journal: this.journalState ? { ...this.journalState,
         entries: this.journalState.entries?.map(entry => ({ ...entry })) } : null,
-      character: this.characterState ? { ...this.characterState } : null,
+      character: this.characterState ? { ...this.characterState,
+        ...(this.characterState.attributes ? { attributes: this.characterState.attributes.map(row => ({ ...row })) } : {}),
+        ...(this.characterState.derived ? { derived: { ...this.characterState.derived } } : {}) } : null,
       inventory: this.inventoryState ? { ...this.inventoryState,
         items: this.inventoryState.items?.map(item => ({ ...item })) } : null,
       pause: this.pauseState ? { ...this.pauseState } : null,
@@ -406,6 +408,7 @@ export default class ClientEngine extends ClientNetwork {
   }
 
   refreshCharacter() { return this.getCharacterSession().refresh() }
+  spendCharacterPoint(statId) { return this.getCharacterSession().buy(statId) }
 
   clearContainerInspection() {
     if (this.interactionState?.kind !== 'container') return

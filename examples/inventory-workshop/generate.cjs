@@ -28,7 +28,9 @@ const CONVERSATION_ID = 'workshop-guide'
 const QUEST_ID = 'a-closer-look'
 const QUEST_TITLE = 'A closer look'
 const QUEST_EXPERIENCE_REWARD = 2100
-const PROGRESSION_BASELINE = Object.freeze({ experiencePoints: 0, level: 1, unspentPoints: 5 })
+const PROGRESSION_BASELINE = Object.freeze({ experiencePoints: 0, level: 1, unspentPoints: 5,
+  attributes: Object.freeze({ strength: 8, dexterity: 8, constitution: 8, beauty: 8,
+    intelligence: 8, perception: 8, willpower: 8, charisma: 8 }) })
 const DIRECTIONS = ['North', 'NorthEast', 'East', 'SouthEast', 'South', 'SouthWest', 'West', 'NorthWest']
 const PALETTE = ['#00000000', '#162c38', '#274653', '#365663', '#517582', '#7598a1',
   '#a6bec1', '#d5ddca', '#eab769', '#ba793e', '#78513d', '#443737', '#529ba4',
@@ -265,7 +267,8 @@ function buildFiles() {
     Visual: visual({ ...critterVisual, race: 'WorkshopGuide' }) })
   json('16086.json', { Base: { prototype: 900001, location: [4, 4] },
     Critter: { inventory: [], inventoryIndex: 0, inventorySource: 0, progressionSupported: true } })
-  json('rules/Progression.json', { version: 1, actorId: '16086.json', baseline: { ...PROGRESSION_BASELINE } })
+  json('rules/Progression.json', { version: 2, actorId: '16086.json', profile: 'neutral-human',
+    baseline: { ...PROGRESSION_BASELINE, attributes: { ...PROGRESSION_BASELINE.attributes } } })
   json(`${MAP_ID}/Map.json`, { width: 1, height: 1, startLocation: [4, 4] })
   const tiles = Array.from({ length: 64 }, () => Array.from({ length: 64 }, () => ({})))
   for (let x = 1; x <= 12; x++) for (let y = 1; y <= 10; y++) {

@@ -177,7 +177,35 @@
               <div><dt>Banked character points</dt><dd data-character-points>{{this.character.unspentPoints}}</dd></div>
               <div><dt>Next level at</dt><dd data-character-next-level>{{if this.character.nextLevelExperience this.character.nextLevelExperience "Maximum level"}}</dd></div>
             </dl>
-            <p>Spending character points is in development.</p>
+            {{#if this.characterAttributes.length}}
+              <h4>Base attributes</h4>
+              <ul data-character-attributes>{{#each this.characterAttributes as |attribute|}}<li data-attribute-id={{attribute.id}}>
+                <div class="attribute-value"><span>{{attribute.label}}</span><strong data-attribute-value>{{attribute.value}}</strong></div>
+                <div class="attribute-purchase">
+                  <span>{{attribute.pointCost}} Character Point · Maximum {{attribute.maximum}}</span>
+                  <button type="button" data-action="increase-attribute" data-stat-id={{attribute.id}} aria-label={{concat "Increase " attribute.label}} disabled={{if this.controlsBusy true (unless attribute.canIncrease true)}} {{on "click" (fn this.increaseAttribute attribute.id)}}>Increase</button>
+                </div>
+                {{#if attribute.reason}}<p data-attribute-reason>{{attribute.reason}}</p>{{/if}}
+              </li>{{/each}}</ul>
+            {{else}}<p>Spending character points is in development.</p>{{/if}}
+            {{#if this.character.derived}}
+              <details data-character-derived>
+                <summary>Derived stats preview</summary>
+                <dl>
+                  <div><dt>Maximum health</dt><dd data-derived-stat="maxHealth">{{this.character.derived.maxHealth}}</dd></div>
+                  <div><dt>Maximum fatigue</dt><dd data-derived-stat="maxFatigue">{{this.character.derived.maxFatigue}}</dd></div>
+                  <div><dt>Carry capacity (stone)</dt><dd data-derived-stat="carryWeight">{{this.character.derived.carryWeight}}</dd></div>
+                  <div><dt>Damage bonus</dt><dd data-derived-stat="damageBonus">{{this.character.derived.damageBonus}}</dd></div>
+                  <div><dt>Armor class adjustment</dt><dd data-derived-stat="armorClassAdjustment">{{this.character.derived.armorClassAdjustment}}</dd></div>
+                  <div><dt>Speed</dt><dd data-derived-stat="speed">{{this.character.derived.speed}}</dd></div>
+                  <div><dt>Heal rate</dt><dd data-derived-stat="healRate">{{this.character.derived.healRate}}</dd></div>
+                  <div><dt>Poison recovery</dt><dd data-derived-stat="poisonRecovery">{{this.character.derived.poisonRecovery}}</dd></div>
+                  <div><dt>Reaction modifier</dt><dd data-derived-stat="reactionModifier">{{this.character.derived.reactionModifier}}</dd></div>
+                  <div><dt>Maximum followers</dt><dd data-derived-stat="maxFollowers">{{this.character.derived.maxFollowers}}</dd></div>
+                </dl>
+                <p>These values are a preview. Effects on combat, movement and carried weight are in development.</p>
+              </details>
+            {{/if}}
           {{/if}}
         </section>
       {{/if}}

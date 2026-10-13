@@ -16,6 +16,7 @@ import ContainerInteractions from './ContainerInteractions'
 import GroundInteractions from './GroundInteractions'
 import ConversationInteractions from './ConversationInteractions'
 import CharacterProgression from './CharacterProgression'
+import { ATTRIBUTE_IDS } from '../../shared/character/NeutralStats'
 import InventoryOwnership, { prepareOwnWrites } from './InventoryOwnership'
 import { loadItemDisplayCatalog } from './ItemDisplayCatalog'
 import CheckpointStore from './CheckpointStore'
@@ -307,18 +308,20 @@ export class AuthorityServer {
     const inventory = command.type === 'inventory'
     const talk = command.type === 'talk', reply = command.type === 'reply', journal = command.type === 'journal'
     const character = command.type === 'character'
+    const purchase = command.type === 'buy-attribute'
     const checkpoint = command.type === 'save' || command.type === 'load'
     const pause = command.type === 'pause' || command.type === 'resume'
     const allowed = ['version', 'id', 'actorId', 'type', ...(move ? ['target'] : drop ? ['itemId', 'expectedRevision'] : pickup ? ['targetId', 'expectedRevision'] : takeAll ? ['targetId', 'expectedRevision'] :
       transfer ? ['targetId', 'itemId', 'expectedRevision'] :
-      reply ? ['targetId', 'conversationId', 'optionId', 'expectedRevision'] : use || inspect || talk ? ['targetId'] : [])]
-    if ((!move && !use && !inspect && !transfer && !groundTransfer && !inventory && !checkpoint && !pause && !talk && !reply && !journal && !character) || !Number.isSafeInteger(command.id) || command.id < 1 ||
+      reply ? ['targetId', 'conversationId', 'optionId', 'expectedRevision'] : purchase ? ['statId', 'expectedRevision'] : use || inspect || talk ? ['targetId'] : [])]
+    if ((!move && !use && !inspect && !transfer && !groundTransfer && !inventory && !checkpoint && !pause && !talk && !reply && !journal && !character && !purchase) || !Number.isSafeInteger(command.id) || command.id < 1 ||
         (move && (!Array.isArray(command.target) || command.target.length !== 2 ||
           !command.target.every(Number.isSafeInteger))) ||
         ((use || inspect || transfer || pickup || talk || reply) && (typeof command.targetId !== 'string' || !command.targetId || command.targetId.length > 1024)) ||
         (reply && (typeof command.conversationId !== 'string' || !command.conversationId || command.conversationId.length > 128 ||
           typeof command.optionId !== 'string' || !command.optionId || command.optionId.length > 128 ||
           !Number.isSafeInteger(command.expectedRevision) || command.expectedRevision < 0)) ||
+        (purchase && (!ATTRIBUTE_IDS.includes(command.statId) || !Number.isSafeInteger(command.expectedRevision) || command.expectedRevision < 0)) ||
         (drop && (typeof command.itemId !== 'string' || !command.itemId || command.itemId.length > 1024)) ||
         (groundTransfer && (!Number.isSafeInteger(command.expectedRevision) || command.expectedRevision < 0)) ||
         (transfer && ((!takeAll && (typeof command.itemId !== 'string' || !command.itemId || command.itemId.length > 1024)) ||
@@ -335,6 +338,7 @@ export class AuthorityServer {
     if (inventory) return this.inspectInventory(command)
     if (journal) return this.inspectJournal(command)
     if (character) return this.inspectCharacter(command)
+    if (purchase) return this.buyAttribute(command)
     if (talk || reply) return this.converse(socket, command)
     if (groundTransfer) return this.transferGroundItem(command)
     if (transfer) return this.transferItem(command)
@@ -428,6 +432,30 @@ export class AuthorityServer {
       return { ok: true, version: PROTOCOL_VERSION, id: command.id, actorId: ACTOR_ID,
         status: 'completed', result: this.progression.view(), revision: this.revision }
     } catch (_) { return this.reject(command.id, 'PROGRESSION_UNAVAILABLE', 'Character progression could not be safely read') }
+  }
+
+  buyAttribute(command) {
+    if (command.expectedRevision !== this.revision) {
+      return this.reject(command.id, 'STALE_REVISION', 'The character view changed; refresh it before purchasing')
+    }
+    let transaction, character
+    try {
+      transaction = prepareOwnWrites(this.progression.purchaseWrites(command.statId))
+      transaction.apply()
+      character = this.progression.view()
+    } catch (failure) {
+      transaction?.rollback()
+      const code = ['INSUFFICIENT_POINTS', 'ATTRIBUTE_AT_MAX', 'PROGRESSION_UNAVAILABLE'].includes(failure.code) ?
+        failure.code : 'PROGRESSION_UNAVAILABLE'
+      return this.reject(command.id, code, code === 'INSUFFICIENT_POINTS' ? 'Not enough Character Points.' :
+        code === 'ATTRIBUTE_AT_MAX' ? 'Attribute is at its maximum.' : 'Character progression could not be safely updated')
+    }
+    this.conversations.invalidate()
+    // Attribute choices, balances and derived values stay in the owner's ACK.
+    this.lastCommand = { id: command.id, type: 'buy-attribute', status: 'completed', result: { kind: 'buy-attribute' } }
+    this.publish()
+    return { ok: true, version: PROTOCOL_VERSION, id: command.id, actorId: ACTOR_ID, status: 'completed',
+      result: { kind: 'buy-attribute', statId: command.statId, character }, revision: this.revision }
   }
 
   converse(socket, command) {
@@ -534,14 +562,14 @@ export class AuthorityServer {
       character = this.progression.checkpointState()
     }
     catch (_) { throw checkpointError('CHECKPOINT_INVALID') }
-    return { format: CHECKPOINT_FORMAT, version: 5, rulesVersion: RULES_VERSION,
+    return { format: CHECKPOINT_FORMAT, version: 6, rulesVersion: RULES_VERSION,
       mapId: this.mapId, contentIdentity: this.contentIdentity, savedAt: new Date().toISOString(),
       actor: { id: ACTOR_ID, location: [this.player.base.location.x, this.player.base.location.y] },
       doors: this.doors.checkpointStates(), ownership, quests, character }
   }
 
   validateCheckpoint(document) {
-    if (document?.format === CHECKPOINT_FORMAT && [1, 2, 3, 4].includes(document.version)) throw checkpointError('CHECKPOINT_INCOMPATIBLE')
+    if (document?.format === CHECKPOINT_FORMAT && [1, 2, 3, 4, 5].includes(document.version)) throw checkpointError('CHECKPOINT_INCOMPATIBLE')
     if (!exactKeys(document, ['format', 'version', 'rulesVersion', 'mapId', 'contentIdentity', 'savedAt', 'actor', 'doors', 'ownership', 'quests', 'character']) ||
         typeof document.savedAt !== 'string' || !Number.isFinite(Date.parse(document.savedAt)) ||
         new Date(document.savedAt).toISOString() !== document.savedAt ||
@@ -551,7 +579,7 @@ export class AuthorityServer {
         typeof document.contentIdentity !== 'string' || !/^[a-f0-9]{64}$/.test(document.contentIdentity)) {
       throw checkpointError('CHECKPOINT_INVALID')
     }
-    if (document.format !== CHECKPOINT_FORMAT || document.version !== 5 ||
+    if (document.format !== CHECKPOINT_FORMAT || document.version !== 6 ||
         document.rulesVersion !== RULES_VERSION || document.contentIdentity !== this.contentIdentity || document.mapId !== this.mapId) {
       throw checkpointError('CHECKPOINT_INCOMPATIBLE')
     }

@@ -7,9 +7,18 @@ const Module = require('node:module')
 const { generate, MAP_ID, BOX_ID, TOKEN_ID, GROUND_ITEM_ID, NPC_ID, QUEST_ID } = require('../../../examples/inventory-workshop/generate.cjs')
 const root = path.resolve(__dirname, '../../..'), source = path.join(root, '@openarcanum/agate/src')
 let engine
-const initial = { kind: 'character', supported: true, experiencePoints: 0, level: 1, unspentPoints: 5, nextLevelExperience: 2100 }
-const advanced = { kind: 'character', supported: true, experiencePoints: 2100, level: 2, unspentPoints: 6, nextLevelExperience: 4600 }
-const stateOf = view => ({ experiencePoints: view.experiencePoints, level: view.level, unspentPoints: view.unspentPoints })
+const attributePairs = [['strength', 'Strength'], ['dexterity', 'Dexterity'], ['constitution', 'Constitution'], ['beauty', 'Beauty'],
+  ['intelligence', 'Intelligence'], ['perception', 'Perception'], ['willpower', 'Willpower'], ['charisma', 'Charisma']]
+const baseAttributes = Object.fromEntries(attributePairs.map(([id]) => [id, 8]))
+const presentation = (level, points) => ({ attributes: attributePairs.map(([id, label]) => ({ id, label, value: 8,
+  maximum: 20, pointCost: 1, canIncrease: points > 0, ...(points ? {} : { reason: 'Not enough Character Points.' }) })),
+  derived: { maxHealth: 28 + 2 * level, maxFatigue: 28 + 2 * level, carryWeight: 4000, damageBonus: -1,
+    armorClassAdjustment: -2, speed: 8, healRate: 3, poisonRecovery: 8, reactionModifier: -7, maxFollowers: 2 } })
+const initial = { kind: 'character', supported: true, experiencePoints: 0, level: 1, unspentPoints: 5, nextLevelExperience: 2100, ...presentation(1, 5) }
+const advanced = { kind: 'character', supported: true, experiencePoints: 2100, level: 2, unspentPoints: 6, nextLevelExperience: 4600, ...presentation(2, 6) }
+const stateOf = view => ({ experiencePoints: view.experiencePoints, level: view.level, unspentPoints: view.unspentPoints,
+  attributes: { ...baseAttributes }, history: view.experiencePoints ? [{ kind: 'quest', questId: QUEST_ID }] : [] })
+const baseline = { experiencePoints: 0, level: 1, unspentPoints: 5, attributes: { ...baseAttributes } }
 
 before(async () => {
   const { build } = await import('esbuild'), { transformAsync } = await import('@babel/core')
@@ -85,19 +94,20 @@ test('reviewed XP thresholds, five-level bonus and bank cap derive exact boundar
   const actor = { sourcePath: '16086.json', base: { type: 'Pc', prototype: 900001 }, critter: { progressionSupported: true } }
   for (let index = 0; index < LEVEL_EXPERIENCE.length; index++) {
     const minimum = LEVEL_EXPERIENCE[index]
-    const ledger = new CharacterProgression(actor, { version: 1, actorId: '16086.json', baseline: stateOf(initial) })
+    const ledger = new CharacterProgression(actor, { version: 2, actorId: '16086.json', profile: 'neutral-human', baseline })
     const quests = new Map([['test', { definition: { rewardExperience: minimum }, status: 'absent' }]])
     ledger.bindQuests(quests)
-    const current = ledger.expected([{ id: 'test', status: 'completed' }])
+    const current = ledger.expected([{ id: 'test', status: 'completed' }], [{ kind: 'quest', questId: 'test' }])
     let points = 5
     for (let level = 2; level <= index + 1; level++) points += level % 5 === 0 ? 2 : 1
-    assert.deepEqual(current, { experiencePoints: minimum, level: index + 1, unspentPoints: Math.min(56, points) })
+    assert.deepEqual(current, { experiencePoints: minimum, level: index + 1, unspentPoints: Math.min(56, points),
+      attributes: { ...baseAttributes }, history: [{ kind: 'quest', questId: 'test' }] })
     if (index) {
       quests.get('test').definition.rewardExperience = minimum - 1
-      const before = new CharacterProgression(actor, { version: 1, actorId: '16086.json', baseline: stateOf(initial) })
+      const before = new CharacterProgression(actor, { version: 2, actorId: '16086.json', profile: 'neutral-human', baseline })
       before.bindQuests(quests)
-      assert.equal(before.expected([{ id: 'test', status: 'completed' }]).level, index)
-      assert.equal(ledger.expected([{ id: 'test', status: 'completed' }]).level, index + 1, 'reward catalog is immutable after binding')
+      assert.equal(before.expected([{ id: 'test', status: 'completed' }], [{ kind: 'quest', questId: 'test' }]).level, index)
+      assert.equal(ledger.expected([{ id: 'test', status: 'completed' }], [{ kind: 'quest', questId: 'test' }]).level, index + 1, 'reward catalog is immutable after binding')
     }
   }
 })
@@ -152,7 +162,7 @@ test('multi-level quest awards and cap saturation use the verified curve and ban
     const context = await start(); context.begin()
     const completed = context.reply(context.carry(), 'show')
     assert.equal(completed.ok, true)
-    assert.deepEqual(completed.result.character, { kind: 'character', supported: true, ...expected })
+    assert.deepEqual(completed.result.character, { kind: 'character', supported: true, ...expected, ...presentation(expected.level, expected.unspentPoints) })
     assert.doesNotThrow(() => context.server.validateCheckpoint(context.server.createCheckpoint()))
   })
 })
@@ -227,13 +237,13 @@ test('character intention has owner, exact-schema, replay, idle/pause and checkp
   assert.equal(server.revision > revision, true)
 })
 
-test('schema5 jointly validates XP, level, points and quest completion before any checkpoint writes', async t => {
+test('schema6 jointly validates XP, level, points and quest completion before any checkpoint writes', async t => {
   const { start } = await fixture(t)
   const context = await start(), { server, state, begin, carry, reply } = context
   begin(); reply(carry(), 'show')
   const before = state(), document = server.createCheckpoint()
-  assert.equal(document.version, 5)
-  assert.equal(document.rulesVersion, 'movement-doors-ownership-progression-v8')
+  assert.equal(document.version, 6)
+  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-v9')
   assert.deepEqual(document.character, stateOf(advanced))
   for (const mutate of [
     value => { value.character.experiencePoints++ }, value => { value.character.level = 3 },

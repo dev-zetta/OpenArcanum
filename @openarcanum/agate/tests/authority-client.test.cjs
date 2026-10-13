@@ -456,3 +456,12 @@ test('character read sends no client-proposed experience, level or point balance
   assert.equal((await reading).result.unspentPoints, 5)
   assert.deepEqual(snapshots, [snapshot()])
 })
+
+test('attribute purchase sends only the stat ID and revision, never client-selected value or cost', async t => {
+  const { client, socket } = fixture(t)
+  await client.start()
+  const buying = client.buyAttribute('0', 'strength', 7)
+  assert.deepEqual(socket.requests[1].payload, { version: 1, id: 11, actorId: '0', type: 'buy-attribute', statId: 'strength', expectedRevision: 7 })
+  socket.requests[1].resolve({ ok: true, id: 11, status: 'completed', revision: 8 })
+  await buying
+})

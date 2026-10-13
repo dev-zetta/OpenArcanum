@@ -154,6 +154,46 @@ workshop provides a reproducible inspection, whole-item transfer and ownership
 persistence witness; it does not complete M0's import
 pipeline, the original rules or the supported mod API.
 
+## Attribute validation on October 13, 2026
+
+The attribute update passed **506 Node tests**, **82 UI tests with 712 assertions**
+and production build on Linux. Focused authority regressions passed 173
+cases/subcases, including 26 new purchase/preview cases; focused client checks
+passed 146, workshop/catalog/config checks passed 24, and combined attribute and
+progression sockets passed nine (five new attribute cases). Focused counts
+overlap the complete Node run.
+
+The owned Workshop ran with a nonexistent retail-data path. Native Increase
+buttons spent the five starting points. A one-purchase checkpoint restored only
+Strength 9 and four available points after the other points had been spent.
+The five-purchase active quest checkpoint and six-purchase completed checkpoint
+then restored their corresponding budgets and attributes. Completing the guide
+quest replenished one point, which native input spent on Charisma. A direct
+unfunded purchase rejected with `INSUFFICIENT_POINTS`; no item or legacy stat
+mutation occurred. The final level-2 neutral preview showed HP/fatigue 35/35,
+carry 4,500 stone, damage 0, armor adjustment −1, speed 9, heal 3, poison recovery
+9, reaction −3 and follower limit 2. Native preview expansion and visible bounds
+were verified. The complete prior gameplay loops plus purchases took about 102
+seconds before lifecycle checks.
+
+The current contract is progression definition version 2, checkpoint schema 6
+and rules v9. Tests cover capped-stat rejection, all eight purchases, negative
+integer truncation and extraordinary/clamp boundaries, stale/racing/replayed
+commands, partial-write/page failures, reordered JSON object keys, invalid save
+histories, both bank-overflow orderings and complete checkpoint rollback.
+Original character data remains unsupported without explicit authored opt-in.
+
+Private evidence is under `local-data/test-results/2026-10-13-attributes/`.
+The Bates rendering, movement, door, container, checkpoint, pause and lifecycle
+regression passed with progression unavailable for the imported actor. Both game
+reports captured no application errors or failed requests; screenshots were
+inspected and recorded server children were independently checked after exit.
+Existing build, development CSP and Linux desktop/driver warnings remain.
+The owned data and manifest still match all 89 generated files. Derived values
+are previews; movement, combat, carried-weight enforcement, effects, races,
+backgrounds, other point purchases and respec remain unfinished. See
+[Attributes](ATTRIBUTES.md) for primary sources and exact supported rules.
+
 ## Progression validation on October 13, 2026
 
 The progression update passed **465 Node tests**, **76 UI tests with 665
@@ -182,7 +222,7 @@ and Linux driver/desktop warnings remain. UI test render waits were corrected
 before the passing UI rerun. All 89 owned files and the manifest match their
 generator. These results were recorded before the validated changes were committed.
 
-Current saves use schema 5 / rules v8. Character Point purchases, base/derived
+That validation used schema 5 / rules v8. Character Point purchases, base/derived
 statistics, auto-level schemes, combat/follower XP and original reward modifiers
 remain unfinished. [Character progression](PROGRESSION.md) records the reviewed
 thresholds/point rules and explicit development cap policy.
@@ -801,7 +841,7 @@ write failure rejects the entire batch. Empty containers return `EMPTY_CONTAINER
 Success publishes one revision; its private result includes ordered `itemIds`,
 empty container `items` and the resulting actor `inventory`. Destination slots
 are allocated exactly as sequential Take would allocate them. Current checkpoints
-use document schema 5 and ownership rules v8.
+use document schema 6 and ownership rules v9.
 
 Only the owner's acknowledgement carries the resulting container rows and new
 actor inventory. Public Take/Take All/Put summaries contain the container target and outcome,
@@ -911,11 +951,13 @@ See [Dialogue and quests](DIALOGUE_QUESTS.md) for exact limits and original-game
 references. Original dialogue import, script execution, NPC speech rules, stat
 checks, complete original rewards, timestamps and party conversations remain unfinished.
 
-### Authored character progression
+### Authored character progression and base attributes
 
 The owned actor opts into a server-only progression ledger with
 `Critter.progressionSupported: true` and a matching `rules/Progression.json`
-baseline. It starts at 0 XP, level 1 and 5 unspent Character Points. The guide's
+version-2 baseline with the explicit `neutral-human` profile and all eight base
+attributes. It starts at 0 XP, level 1, 5 unspent Character Points and attributes
+of 8. The guide's
 `rewardExperience: 2100` commits with completion through one preflighted
 transaction; any failed write rolls both back. There is no client XP-award
 command. Declining, accepting, forged/unoffered choices and repeated completion
@@ -926,7 +968,7 @@ Private `character {}` reads are allowed paused and idle, preserving the active
 dialogue turn and public revision. Conversation and journal ACKs include the same
 canonical private character view, keeping quest/reward presentation together.
 The client validates bounds and revisions, clears stale values after external
-reply/load, and reads the journal plus progression once after an uncertain reply;
+reply/load/purchase, and reads the journal plus progression once after an uncertain reply;
 it never retries the choice or calculates a reward. Public snapshots and command
 summaries contain no character balances.
 
@@ -935,8 +977,33 @@ one Character Point plus one extra at multiples of five; the bank caps at 56.
 XP saturation at 1,300,000 and level 50 is a declared development policy because
 the inspected CE level-51 sentinel control flow needs reference-executable
 verification. See [Character progression](PROGRESSION.md) for the complete table
-and primary-source evidence. Point purchases, derived statistics, auto-leveling,
-combat/follower XP and complete original rewards remain unfinished.
+and primary-source evidence. Other Character Point purchases, complete derived
+gameplay effects, auto-leveling, combat/follower XP and original rewards remain unfinished.
+
+`buy-attribute { statId, expectedRevision }` purchases one permanent increment of
+one supported base attribute. The host derives the one-point cost, checks the
+cap of 20 and available budget, and commits the point debit, attribute and ordered
+event together. A successful purchase invalidates the current dialogue turn and
+publishes only `kind: 'buy-attribute'`; the chosen attribute and balances remain
+private. The client validates exactly one increment and one debit, applies no
+optimistic changes and rereads character state once after an uncertain ACK.
+Purchases require an idle unpaused actor; private reads remain available paused.
+There is no refund, decrement or respec command.
+
+The private view includes server-selected attribute labels, values, caps, costs
+and availability, plus a folded derived preview. The pure neutral profile
+computes maximum HP/fatigue, carry capacity, damage bonus, armor adjustment,
+speed, healing, poison recovery, reaction and follower limit. It preserves C
+integer truncation, extraordinary-at-20 changes and effective stat clamps.
+These previews do not install damage, movement-speed, encumbrance, reaction or
+follower gameplay. See [Attributes](ATTRIBUTES.md) for exact rules and evidence.
+
+Progression records a bounded ordered history of quest completions and attribute
+purchases. Replay begins at the authored baseline, applies each level-up grant
+with the 56-point cap at that moment, then checks each purchase's current budget
+and cap. Spending before or after an overflowing award can leave different valid
+balances. There are at most 256 events; no client supplies this history through
+a gameplay command.
 
 This ledger does not reinterpret or mutate legacy `Critter.stats`. Imported
 actor data remains unsupported without explicit reviewed opt-in and baseline,
@@ -951,11 +1018,12 @@ normal configuration. Save replaces that slot; load explicitly restores it.
 Starting a new host still begins at the development spawn. There is no automatic
 resume, autosave, shutdown save, slot browser or migration workflow.
 
-The version-5 `openarcanum-local-checkpoint` document contains the actor ID and
+The version-6 `openarcanum-local-checkpoint` document contains the actor ID and
 integer position, the complete managed door set, the map ID, a save timestamp,
 the rules version, a content identity, verified ownership and a complete authored
 quest-state array and a character progression record (`null` for unsupported
-actors). The ownership
+actors). Supported records include eight attributes and ordered quest/purchase
+events; derived previews are recomputed rather than saved. The ownership
 section contains complete known owner arrays/counts and item parent links plus
 `groundLocation` (`null` while held/container-owned, integer pair while loose).
 Only explicitly reviewed whole Generic items can become parentless ground
@@ -972,7 +1040,7 @@ including the player template and loose-file overlays. ZIP timestamps and
 client texture archives do not affect it. Loaded filenames are relative to the
 data root, so relocating identical data preserves identity. A different map,
 rules version or simulation-content identity is rejected. The current rules
-identity is `movement-doors-ownership-progression-v8`, using document schema version 5.
+identity is `movement-doors-ownership-attributes-v9`, using document schema version 6.
 Only current development saves are supported; old-rule hashes, compatibility
 branches and migration paths are not maintained.
 
@@ -988,10 +1056,12 @@ original owner and sparse slot. Supported key-opened door poses can restore afte
 the key is put away: eligibility comes from the immutable attainable key universe,
 while a new opening attempt still checks current possession. Unsupported doors
 and doors with no attainable verified key retain their initial pose.
-XP is reconstructed from the immutable baseline and completed authored quests;
-level and banked points must agree with that result. A forged XP, level or point
-balance rejects before world writes. Loading an earlier active quest resets the
-reward timeline; completing it again awards once in that restored timeline.
+The bounded history must contain exactly one event for each completed authored
+quest and legal one-point attribute increments in chronological order. Replay
+reconstructs XP, levels, point overflow/debits and attributes from the immutable
+baseline. Forged balances, changed caps, overspending, duplicate rewards or
+purchase-before-reward histories reject before world writes. Loading an earlier
+checkpoint restores that earlier purchase/reward timeline.
 
 Ownership writes, actor placement, doors, authored quests and character progression
 are preflighted before commit and rolled back together on failure. A fresh host can restore taken-item ownership

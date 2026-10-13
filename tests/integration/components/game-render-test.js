@@ -1655,6 +1655,139 @@ module('Integration | Component | game-render', function(hooks) {
     assert.dom('[data-runtime-state]').hasAttribute('data-runtime-state', 'error')
   })
 
+  const baseAttributeIds = ['strength', 'dexterity', 'constitution', 'beauty', 'intelligence', 'perception', 'willpower', 'charisma']
+  const attributeRows = () => baseAttributeIds.map(id => ({ id, label: id[0].toUpperCase() + id.slice(1),
+    value: 8, maximum: 20, pointCost: 1, canIncrease: true }))
+  const derivedPreview = () => ({ maxHealth: 30, maxFatigue: 30, carryWeight: 4000, damageBonus: -1,
+    armorClassAdjustment: -2, speed: 8, healRate: 3, poisonRecovery: 8, reactionModifier: -7, maxFollowers: 2 })
+  function provideAttributeClient({ purchase = async () => {}, attributes = attributeRows(), unspentPoints = 5 } = {}) {
+    const fixture = provideCharacterClient({ state: { experiencePoints: 0, level: 1, unspentPoints,
+      nextLevelExperience: 2100, attributes, derived: derivedPreview() } })
+    fixture.client.spendCharacterPoint = (...args) => purchase(fixture.client, args)
+    return fixture
+  }
+
+  test('attribute purchase forwards only a server stat ID and waits for private balances, values and preview', async function(assert) {
+    const calls = []
+    let finish
+    provideAttributeClient({ purchase(replica, args) {
+      calls.push(args)
+      return new Promise(resolve => { finish = () => {
+        replica.events.emit('Player:CharacterUpdated', { ...replica.characterState, status: 'ready', unspentPoints: 4,
+          attributes: attributeRows().map(row => row.id === 'strength' ? { ...row, value: 9 } : row),
+          derived: { ...derivedPreview(), maxHealth: 32 }, message: 'Attribute increased.' })
+        resolve()
+      } })
+    } })
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    assert.dom('[data-action="increase-attribute"]').exists({ count: 8 })
+    assert.dom('[data-attribute-id="strength"] [data-attribute-value]').hasText('8')
+    assert.dom('[data-character-points]').hasText('5')
+    assert.dom('[data-stat-id="strength"]').hasAttribute('aria-label', 'Increase Strength')
+    await click('[data-stat-id="strength"]')
+    assert.deepEqual(calls, [['strength']], 'value, point cost and balance remain server-owned')
+    assert.dom('[data-character-status]').hasText('Increasing attribute…')
+    assert.dom('[data-character-values]').doesNotExist('the view never spends a point or raises a stat optimistically')
+    assert.dom('[data-action="increase-attribute"]').doesNotExist('a pending purchase cannot be repeated')
+    assert.dom('[data-action="refresh-character"]').isDisabled()
+    assert.dom('[data-action="begin-conversation"]').isDisabled()
+    assert.dom('[data-action="pickup-ground-item"]').isDisabled()
+    assert.dom('[data-action="save-checkpoint"]').isDisabled()
+    assert.dom('[data-action="toggle-pause"]').isDisabled()
+    finish()
+    await waitUntil(() => this.element.querySelector('[data-attribute-value]'))
+    assert.dom('[data-attribute-id="strength"] [data-attribute-value]').hasText('9')
+    assert.dom('[data-attribute-id="dexterity"] [data-attribute-value]').hasText('8')
+    assert.dom('[data-character-points]').hasText('4')
+    assert.dom('[data-derived-stat="maxHealth"]').hasText('32')
+    assert.dom('[data-action="increase-attribute"]').exists({ count: 8 })
+  })
+
+  test('attribute availability and escaped cap or point reasons come from the private server view', async function(assert) {
+    const reason = 'Not enough Character Points. <img src=x onerror=alert(1)>'
+    provideAttributeClient({ unspentPoints: 0, attributes: attributeRows().map(row => row.id === 'strength'
+      ? { ...row, value: 20, canIncrease: false, reason: 'Attribute is at its maximum.' }
+      : { ...row, canIncrease: false, reason, label: `Dexterity <img src=x onerror=alert(1)>` }) })
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    assert.dom('[data-stat-id="strength"]').isDisabled()
+    assert.dom('[data-stat-id="dexterity"]').isDisabled()
+    assert.dom('[data-attribute-id="strength"]').includesText('Attribute is at its maximum.')
+    assert.dom('[data-attribute-id="dexterity"] [data-attribute-reason]').hasText(reason)
+    assert.dom('[data-stat-id="dexterity"]').hasAttribute('aria-label', 'Increase Dexterity <img src=x onerror=alert(1)>')
+    assert.dom('[data-character-attributes] img').doesNotExist()
+    assert.dom('[data-character-points]').hasText('0')
+    assert.dom('[data-action="respec-attributes"]').doesNotExist()
+  })
+
+  test('attribute purchases stop while paused but the folded preview and private refresh remain available', async function(assert) {
+    const { client } = provideAttributeClient()
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    assert.false(this.element.querySelector('[data-character-derived]').open)
+    assert.dom('[data-character-derived]').includesText('Carry capacity (stone)')
+    assert.dom('[data-character-derived]').includesText('Effects on combat, movement and carried weight are in development.')
+    assert.dom('[data-character-derived] [data-derived-stat]').exists({ count: 10 })
+    client.events.emit('Player:PauseUpdated', { supported: true, paused: true, moving: false, status: 'completed', message: 'Paused.' })
+    await waitUntil(() => this.element.querySelector('[data-stat-id="strength"]').disabled)
+    assert.dom('[data-stat-id="strength"]').isDisabled()
+    assert.dom('[data-action="refresh-character"]').isNotDisabled()
+    client.events.emit('Player:PauseUpdated', { supported: true, paused: false, moving: false, status: 'completed', message: 'Running.' })
+    await waitUntil(() => !this.element.querySelector('[data-stat-id="strength"]').disabled)
+    client.events.emit('Player:CheckpointUpdated', { status: 'pending', message: 'Loading…' })
+    await waitUntil(() => this.element.querySelector('[data-stat-id="strength"]').disabled)
+    assert.dom('[data-stat-id="strength"]').isDisabled()
+  })
+
+  test('attribute purchase rejection is escaped and never invents a point refund or stat change', async function(assert) {
+    const message = 'Attribute purchase rejected <img src=x onerror=alert(1)>'
+    const { client } = provideAttributeClient({ purchase: async () => { throw new Error(message) } })
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    await click('[data-stat-id="strength"]')
+    assert.dom('[data-character-status]').hasText(message)
+    assert.dom('[data-character-status] img').doesNotExist()
+    assert.dom('[data-character-values]').doesNotExist()
+    assert.dom('[data-action="refresh-character"]').isNotDisabled()
+    client.events.emit('Player:CharacterUpdated', { ...client.characterState, status: 'ready', message: 'Character loaded.' })
+    await waitUntil(() => this.element.querySelector('[data-character-points]'))
+    assert.dom('[data-character-points]').hasText('5')
+    assert.dom('[data-attribute-id="strength"] [data-attribute-value]').hasText('8')
+    assert.dom('[role="alert"]').doesNotExist()
+  })
+
+  test('teardown discards late attribute purchase values and point balances', async function(assert) {
+    let finish
+    const { client, listeners } = provideAttributeClient({ purchase: () => new Promise(resolve => { finish = resolve }) })
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    await click('[data-stat-id="strength"]')
+    await clearRender()
+    assert.strictEqual(listeners.get('Player:CharacterUpdated').size, 0)
+    client.events.emit('Player:CharacterUpdated', { ...client.characterState, status: 'ready', unspentPoints: 4,
+      attributes: attributeRows().map(row => ({ ...row, value: 9 })) })
+    finish()
+    assert.dom('[data-character-panel]').doesNotExist()
+  })
+
+  test('an uncertain purchase keeps the verified recovery view when the client rejects the original acknowledgement', async function(assert) {
+    provideAttributeClient({ purchase: async replica => {
+      replica.events.emit('Player:CharacterUpdated', { ...replica.characterState, status: 'ready', unspentPoints: 4,
+        attributes: attributeRows().map(row => row.id === 'strength' ? { ...row, value: 9 } : row),
+        derived: { ...derivedPreview(), maxHealth: 32 }, message: 'Character verified after an uncertain purchase.' })
+      throw new Error('Original purchase acknowledgement timed out')
+    } })
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    await click('[data-stat-id="strength"]')
+    assert.dom('[data-character-status]').hasAttribute('data-character-status', 'ready')
+    assert.dom('[data-character-status]').hasText('Character verified after an uncertain purchase.')
+    assert.dom('[data-character-points]').hasText('4')
+    assert.dom('[data-attribute-id="strength"] [data-attribute-value]').hasText('9')
+    assert.dom('[data-action="refresh-character"]').isNotDisabled()
+  })
+
   function providePauseClient(action) {
     const fixture = provideContainerClient(async () => {})
     fixture.client.authorityState.pause = { supported: true, paused: false }

@@ -179,8 +179,8 @@ test('socket ground pickup and drop conserve one identity across public floors, 
     const savedLocation = actor(context.server.getSnapshot()).location
     assert.equal((await command(owner, 15, 'save')).ok, true)
     const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
-    assert.equal(saved.version, 5)
-    assert.equal(saved.rulesVersion, 'movement-doors-ownership-progression-v8')
+    assert.equal(saved.version, 6)
+    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-v9')
     assert.deepEqual(saved.ownership.items.find(item => item.id === GROUND_ITEM_ID),
       { id: GROUND_ITEM_ID, parent: null, groundLocation: savedLocation })
     assert.deepEqual(await fs.readFile(path.join(context.dataPath, GROUND_ITEM_ID)), bytes, 'world transfers do not rewrite authored assets')

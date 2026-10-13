@@ -2328,8 +2328,15 @@ test('native guide clicks route to conversation and local Close cannot leave usa
   assert.throws(() => client.closeConversation(), { code: 'BUSY' })
 })
 
+const attributeNames = ['strength', 'dexterity', 'constitution', 'beauty', 'intelligence', 'perception', 'willpower', 'charisma']
+const neutralDerived = { maxHealth: 30, maxFatigue: 30, carryWeight: 4000, damageBonus: -1, armorClassAdjustment: -2,
+  speed: 8, healRate: 3, poisonRecovery: 8, reactionModifier: -7, maxFollowers: 2 }
 const characterView = (changes = {}) => ({ kind: 'character', supported: true,
-  experiencePoints: 0, level: 1, unspentPoints: 5, nextLevelExperience: 2100, ...changes })
+  experiencePoints: 0, level: 1, unspentPoints: 5, nextLevelExperience: 2100,
+  attributes: attributeNames.map(id => ({ id, label: id[0].toUpperCase() + id.slice(1), value: 8, maximum: 20,
+    pointCost: 1, canIncrease: changes.unspentPoints !== 0, ...(changes.unspentPoints === 0 ? { reason: 'Not enough Character Points.' } : {}) })),
+  derived: { ...neutralDerived, ...(changes.level === 2 ? { maxHealth: 32, maxFatigue: 32 } :
+    changes.level === 50 ? { maxHealth: 128, maxFatigue: 128 } : {}) }, ...changes })
 
 function characterReplica() {
   const replica = conversationReplica(), { client } = replica
@@ -2455,4 +2462,136 @@ test('the character cap view accepts server saturation without calculating an XP
   assert.equal(client.characterState.level, 50)
   assert.equal(client.characterState.unspentPoints, 56)
   assert.equal(client.characterState.nextLevelExperience, null)
+})
+
+function boughtStrength(before) {
+  return { ...before, unspentPoints: before.unspentPoints - 1,
+    attributes: before.attributes.map(row => ({ ...row, value: row.value + (row.id === 'strength' ? 1 : 0) })),
+    derived: { ...before.derived, maxHealth: 32, carryWeight: 4500, damageBonus: 0 } }
+}
+
+test('attribute purchase waits for private conservation and tolerates its public commit before ACK', async () => {
+  const { client, apply } = characterReplica()
+  await client.refreshCharacter()
+  const before = characterView(), after = boughtStrength(before), commandId = client.authority.nextId
+  let acknowledge, submitted
+  const sent = new Promise(resolve => { submitted = resolve })
+  client.authority.buyAttribute = (actorId, statId, revision) => {
+    assert.deepEqual([actorId, statId, revision], ['0', 'strength', 1]); submitted()
+    return new Promise(resolve => { acknowledge = resolve })
+  }
+  const buying = client.spendCharacterPoint('strength')
+  await sent
+  assert.equal(client.characterState.status, 'pending')
+  assert.equal(client.characterState.attributes, undefined, 'no optimistic attribute increment')
+  await assert.rejects(client.refreshCharacter(), { code: 'BUSY' })
+  await assert.rejects(client.movePlayerTo([3, 2]), { code: 'BUSY' })
+  await assert.rejects(client.saveCheckpoint(), { code: 'BUSY' })
+  apply({ revision: 2, lastCommand: { id: commandId, type: 'buy-attribute', status: 'completed', result: { kind: 'buy-attribute' } } })
+  assert.equal(client.characterState.status, 'pending')
+  acknowledge({ status: 'completed', revision: 2, result: { kind: 'buy-attribute', statId: 'strength', character: after } })
+  await buying
+  assert.equal(client.characterState.attributes[0].value, 9)
+  assert.equal(client.characterState.unspentPoints, 4)
+  assert.equal(client.characterState.derived.damageBonus, 0)
+  assert.equal(client.characterRequest, null)
+})
+
+test('buy uses a current world revision while unchanged private attributes may predate movement', async () => {
+  const { client, apply } = characterReplica()
+  await client.refreshCharacter()
+  apply({ revision: 7, location: [3, 2], lastCommand: { id: 50, status: 'completed' } })
+  client.authority.buyAttribute = async (_actor, _statId, revision) => {
+    assert.equal(revision, 7)
+    return { status: 'completed', revision: 8, result: { kind: 'buy-attribute', statId: 'strength', character: boughtStrength(characterView()) } }
+  }
+  await client.spendCharacterPoint('strength')
+  assert.equal(client.characterState.revision, 8)
+})
+
+test('attribute purchases reject unknown, unavailable, unsupported and paused choices before transport', async () => {
+  const { client } = characterReplica()
+  client.authority.buyAttribute = () => assert.fail('Invalid purchase reached transport')
+  await assert.rejects(client.spendCharacterPoint('strength'), { code: 'PROGRESSION_UNAVAILABLE' })
+  await client.refreshCharacter()
+  await assert.rejects(client.spendCharacterPoint('luck'), { code: 'INVALID_ATTRIBUTE' })
+  client.characterState.attributes[0].canIncrease = false
+  client.characterState.attributes[0].reason = 'Attribute is at its maximum.'
+  await assert.rejects(client.spendCharacterPoint('strength'), { code: 'ATTRIBUTE_UNAVAILABLE' })
+  client.authorityState.pause = { supported: true, paused: true }
+  await assert.rejects(client.spendCharacterPoint('dexterity'), { code: 'PAUSED' })
+})
+
+test('malformed attribute rows and derived values never enter private character presentation', async () => {
+  for (const change of [view => { view.attributes[1].id = view.attributes[0].id }, view => { view.attributes.pop() },
+    view => { view.attributes[0].value = 21 }, view => { view.attributes[0].pointCost = 0 },
+    view => { view.attributes[0].maximum = 30 }, view => { view.attributes[0].canIncrease = 'yes' },
+    view => { view.derived.speed = 26 }, view => { delete view.derived.maxHealth }, view => { view.derived.damageBonus = -5 }]) {
+    const { client } = characterReplica(), view = characterView(); change(view)
+    client.authority.character = async () => ({ status: 'completed', revision: 1, result: view })
+    await assert.rejects(client.refreshCharacter(), /invalid/i)
+    assert.equal(client.characterState.attributes, undefined)
+    assert.equal(client.characterState.derived, undefined)
+  }
+})
+
+test('malformed purchase ACK cannot grant extra stats or points and rereads once', async () => {
+  for (const change of [view => { view.unspentPoints = 5 }, view => { view.attributes[0].value = 10 },
+    view => { view.attributes[1].value = 9 }, view => { view.experiencePoints = 2100 }]) {
+    const { client } = characterReplica()
+    await client.refreshCharacter()
+    let reads = 0, purchases = 0
+    const invalid = boughtStrength(characterView()); change(invalid)
+    client.authority.buyAttribute = async () => { purchases++; return { status: 'completed', revision: 2,
+      result: { kind: 'buy-attribute', statId: 'strength', character: invalid } } }
+    client.authority.character = async () => { reads++; return { status: 'completed', revision: 2, result: characterView() } }
+    await assert.rejects(client.spendCharacterPoint('strength'), /invalid|inconsistent/i)
+    assert.equal(reads, 1); assert.equal(purchases, 1)
+    assert.equal(client.characterState.unspentPoints, 5)
+    assert.equal(client.characterState.attributes[0].value, 8)
+    assert.equal(client.characterState.status, 'ready')
+  }
+})
+
+test('a timed-out purchase reloads committed private stats without retrying or losing the recovery view', async () => {
+  const { client, apply } = characterReplica()
+  await client.refreshCharacter()
+  let writes = 0, reads = 0
+  client.authority.buyAttribute = async () => {
+    writes++
+    apply({ revision: 2, lastCommand: { id: client.authority.nextId, type: 'buy-attribute', status: 'completed', result: { kind: 'buy-attribute' } } })
+    throw new Error('Purchase ACK timed out')
+  }
+  client.authority.character = async () => { reads++; return { status: 'completed', revision: 2, result: boughtStrength(characterView()) } }
+  await assert.rejects(client.spendCharacterPoint('strength'), /timed out/)
+  assert.equal(writes, 1); assert.equal(reads, 1)
+  assert.equal(client.characterState.attributes[0].value, 9)
+  assert.equal(client.characterState.unspentPoints, 4)
+  assert.equal(client.characterState.status, 'ready')
+})
+
+test('external purchases invalidate private values and old read ACKs cannot overwrite them', async () => {
+  const { client, apply } = characterReplica()
+  await client.refreshCharacter()
+  let acknowledge
+  client.authority.character = () => new Promise(resolve => { acknowledge = resolve })
+  const reading = client.refreshCharacter()
+  apply({ revision: 9, lastCommand: { id: 80, type: 'buy-attribute', status: 'completed', result: { kind: 'buy-attribute' } } })
+  assert.equal(client.characterState.status, 'stale')
+  acknowledge({ status: 'completed', revision: 1, result: characterView() })
+  await assert.rejects(reading, { code: 'CHARACTER_SUPERSEDED' })
+  assert.equal(client.characterState.attributes, undefined)
+})
+
+test('late purchase ACK after stop cannot restore attributes, balances or recovery requests', async () => {
+  const { client } = characterReplica()
+  await client.refreshCharacter()
+  let acknowledge
+  client.authority.buyAttribute = () => new Promise(resolve => { acknowledge = resolve })
+  client.authority.character = () => assert.fail('Stopped purchase must not read again')
+  const buying = client.spendCharacterPoint('strength')
+  client.stop()
+  acknowledge({ status: 'completed', revision: 2, result: { kind: 'buy-attribute', statId: 'strength', character: boughtStrength(characterView()) } })
+  await assert.rejects(buying, /stopped/i)
+  assert.equal(client.characterState, null)
 })

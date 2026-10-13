@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 
-export const CHECKPOINT_RULES_VERSION = 'movement-doors-ownership-progression-v8'
+export const CHECKPOINT_RULES_VERSION = 'movement-doors-ownership-attributes-v9'
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)

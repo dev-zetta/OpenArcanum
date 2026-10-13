@@ -13,6 +13,32 @@ source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
 
 ## 2026-10-13
 
+- Committed and pushed the previously validated local-authority foundation as
+  [`11aa4cb`](https://github.com/dev-zetta/OpenArcanum/commit/11aa4cb84ee8a979fd12ca9f34911c898eab2639).
+  Publication review confirmed owned Workshop binaries and excluded retail
+  inputs, reference captures, credentials and build output.
+- Added permanent purchases for the eight owned neutral-human base attributes:
+  one point per increment, capped at 20. The server checks current revision,
+  budget, actor permissions and idle/unpaused state, then commits the attribute
+  and debit atomically. Private ACK conservation checks and one-time recovery
+  reads prevent optimistic or duplicated purchases.
+- Added ten private derived previews with reviewed rounding, extraordinary
+  values and clamps. These values are separate from incomplete legacy stats;
+  combat, movement speed, weight enforcement, effects and follower behavior
+  remain unfinished. Refunds, respec and other point purchases remain absent.
+- Added progression definition version 2 and checkpoint schema 6 / rules v9.
+  Ordered quest/purchase events preserve the moment of bank overflow, validate
+  every point debit and match the completed quest set. Save/load restores the
+  corresponding purchase/reward timeline and recomputes previews. Expanded the
+  owned fixture and [attribute documentation](docs/ATTRIBUTES.md).
+- Passed 506 Node tests, 82 UI tests with 712 assertions and production build.
+  Native Workshop input spent the five starting points, restored an earlier
+  purchase checkpoint, earned and spent the quest point, rejected an unfunded
+  purchase, and displayed the reviewed derived values. The full scenario took
+  about 102 seconds before lifecycle checks. Private observer boundaries and
+  unchanged legacy stats were verified. Bates rendering, movement, doors,
+  containers, pause, checkpoints and lifecycle passed; both game reports captured
+  no application errors or failed requests. Existing build/desktop warnings remain.
 - Added authoritative owned-character XP, level and banked Character Points.
   The Workshop actor explicitly starts at 0 XP, level 1 and 5 points; completing
   **A closer look** now grants 2,100 XP, reaches level 2 and banks a sixth point.

@@ -71,6 +71,9 @@ class GameRender extends Component {
   @computed('character.status', 'character.supported')
   get characterValuesAvailable() { return this.character?.status === 'ready' && this.character?.supported === true }
 
+  @computed('characterValuesAvailable', 'character.attributes')
+  get characterAttributes() { return this.characterValuesAvailable ? this.character.attributes || [] : [] }
+
   @computed('checkpointBusy', 'interactionBusy', 'pauseBusy', 'pause.moving', 'inventoryBusy', 'groundBusy', 'conversationBusy', 'journalBusy', 'characterBusy')
   get journalControlsBusy() { return this.checkpointBusy || this.interactionBusy || this.pauseBusy || this.pause?.moving === true || this.inventoryBusy || this.groundBusy || this.conversationBusy || this.journalBusy || this.characterBusy }
 
@@ -490,6 +493,22 @@ class GameRender extends Component {
     try { await this.client.refreshCharacter() }
     catch (error) {
       if (!this.isDestroying && !this.isDestroyed && this.running) {
+        this.set('character', { ...this.character, status: 'rejected', message: error.message })
+      }
+    } finally {
+      if (!this.isDestroying && !this.isDestroyed && this.characterPending === request) this.set('characterPending', null)
+    }
+  }
+
+  @action
+  async increaseAttribute(statId) {
+    if (!this.running || this.controlsBusy || !this.characterValuesAvailable ||
+        !this.characterAttributes.some(attribute => attribute.id === statId && attribute.canIncrease === true)) return
+    const request = { statId }
+    this.setProperties({ characterPending: request, character: { ...this.character, status: 'pending', message: 'Increasing attribute…' } })
+    try { await this.client.spendCharacterPoint(statId) }
+    catch (error) {
+      if (!this.isDestroying && !this.isDestroyed && this.running && this.character?.status !== 'ready') {
         this.set('character', { ...this.character, status: 'rejected', message: error.message })
       }
     } finally {

@@ -136,7 +136,7 @@ test('putting the authorizing key inside the locked container loses access immed
   assert.deepEqual(first.server.ownership.checkpointStates(), before)
   assert.equal((await first.command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8')
-  assert.equal(JSON.parse(bytes).rulesVersion, 'movement-doors-ownership-progression-v8')
+  assert.equal(JSON.parse(bytes).rulesVersion, 'movement-doors-ownership-attributes-v9')
   await first.server.stop()
   const second = await start()
   assert.equal((await second.command('load')).ok, true)

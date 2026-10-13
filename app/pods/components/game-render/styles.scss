@@ -151,6 +151,13 @@
   dl > div { display: flex; justify-content: space-between; gap: 0.5rem; margin: 0.25rem 0; }
   dt { font-weight: normal; }
   dd { margin: 0; font-variant-numeric: tabular-nums; }
+  h4 { font-size: 0.95rem; margin: 0.65rem 0 0.3rem; }
+  [data-character-attributes] { list-style: none; padding: 0; }
+  [data-character-attributes] > li { display: block; border-top: 1px solid #6a5731; padding-top: 0.4rem; }
+  .attribute-value, .attribute-purchase { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+  .attribute-purchase { font-size: 0.8rem; margin-top: 0.2rem; }
+  [data-attribute-reason] { font-size: 0.8rem; }
+  summary { cursor: pointer; padding: 0.4rem 0; }
 }
 
 &.owned-workshop {

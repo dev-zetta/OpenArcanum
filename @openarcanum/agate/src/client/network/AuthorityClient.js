@@ -114,6 +114,10 @@ export default class AuthorityClient {
 
   async character(actorId) { return this.command(actorId, 'character', {}) }
 
+  async buyAttribute(actorId, statId, expectedRevision) {
+    return this.command(actorId, 'buy-attribute', { statId, expectedRevision })
+  }
+
   async save(actorId) { return this.command(actorId, 'save', {}) }
 
   async load(actorId) { return this.command(actorId, 'load', {}) }

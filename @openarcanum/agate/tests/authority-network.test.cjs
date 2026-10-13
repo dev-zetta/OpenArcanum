@@ -657,8 +657,8 @@ test('owner saves and restores actor occupancy and open door collision while obs
   const bytes = await fs.readFile(filename, 'utf8')
   const document = JSON.parse(bytes)
   assert.equal(document.format, 'openarcanum-local-checkpoint')
-  assert.equal(document.version, 5)
-  assert.equal(document.rulesVersion, 'movement-doors-ownership-progression-v8')
+  assert.equal(document.version, 6)
+  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-v9')
   assert.match(document.contentIdentity, /^[a-f0-9]{64}$/)
   assert.deepEqual(document.actor, { id: '0', location: [94, 99] })
   assert.deepEqual(document.doors, [{ id: doorId('front'), open: true }])
@@ -768,7 +768,7 @@ test('checkpoint load rejects malformed, incomplete, incompatible and blocked ca
     ['content mismatch', value => { value.contentIdentity = 'a'.repeat(64) }, 'CHECKPOINT_INCOMPATIBLE'],
     ['map mismatch', value => { value.mapId = 'Another map' }, 'CHECKPOINT_INCOMPATIBLE'],
     ['rules mismatch', value => { value.rulesVersion = 'future-rules' }, 'CHECKPOINT_INCOMPATIBLE'],
-    ['version mismatch', value => { value.version = 6 }, 'CHECKPOINT_INCOMPATIBLE'],
+    ['version mismatch', value => { value.version = 7 }, 'CHECKPOINT_INCOMPATIBLE'],
   ]
   let id = 3
   for (const [name, change, code = 'CHECKPOINT_INVALID'] of cases) {

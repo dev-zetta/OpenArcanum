@@ -74,12 +74,12 @@ Private item labels now use [system descriptions with identification-aware
 fallback](ITEM_DISPLAY.md). Missing unknown text cannot reveal an identified
 name. The workshop explicitly names its token, keepsake and pebble; module-specific/key names,
 identification services and full examination remain unfinished.
-One manual checkpoint using schema 5 saves position, managed doors, supported
-reciprocal item ownership, the owned quest journal and its XP/level/unspent CP. Current rules
-`movement-doors-ownership-progression-v8` validate the known owners,
+One manual checkpoint using schema 6 saves position, managed doors, supported
+reciprocal item ownership, the owned quest journal and its XP/level/CP, purchased attributes and ordered history. Current rules
+`movement-doors-ownership-attributes-v9` validate the known owners,
 complete item set, reachable sparse slots and consistent quest/progression states before applying
 a load, including legitimate holes left by Put; unknown original metadata remains untouched. Only the
-current schema 5/rules v8 contract is accepted. An authored key door can restore
+current schema 6/rules v9 contract is accepted. An authored key door can restore
 an open pose after the key is put away when the fixed verified attainable key
 universe establishes that state.
 
@@ -131,7 +131,7 @@ data-only conversation chooses offer, active or completed replies from the
 server's quest state. Showing the exact held item completes the private journal
 entry without consuming or transferring it. The same transaction grants
 **2,100 XP** once: the owned actor advances from level 1 / 0 XP / 5 unspent CP
-to level 2 / 2,100 XP / 6 unspent CP. The private character view and checkpoint
+to level 2 / 2,100 XP / 6 unspent CP when the starting points were not spent. The private character view and checkpoint
 carry that committed progression; repeat conversations cannot award it again. Dropping or
 putting it away first makes that reply ineligible. Checkpoints preserve active
 and completed state; completion persists after the pebble is put away, while
@@ -140,7 +140,13 @@ does not execute original dialogue or script files, or implement social checks,
 failure states, timestamps, original reward modifiers or shared-party quest rules.
 [Progression](PROGRESSION.md) uses the verified XP curve and level CP grants,
 with explicit XP saturation at 1,300,000 / level 50 and a bank of at most 56 CP.
-Point purchases and their derived-stat effects remain unfinished.
+[Attribute purchases](ATTRIBUTES.md) now spend one CP for a permanent +1 in
+any of the eight neutral-human attributes, capped at 20. Spend the five starting
+points, earn the quest's level-up point and spend it too. The private character
+view supplies ten reviewed derived previews; ordered quest/purchase history
+restores the exact budget and build. These values do not yet drive movement,
+combat, inventory weight, healing or followers. Races, backgrounds, effects,
+refunds and complete character advancement remain unfinished.
 
 This is the first local authority foundation: one controlled actor, a fixed development speed and read-only observer synchronization. It does not yet supply original world time, complete campaign saving, playable co-op or MMORPG operation. Original combat, dialogue/script execution, campaign quests, full inventory rules, character progression, followers, travel and campaign persistence remain substantial implementation work. M2, the complete roleplaying slice, remains open. Only Linux has been exercised in the current validation. The next success is a complete authoritative roleplaying slice, followed by a shared session that proves the same consequences to two controlled clients.
 

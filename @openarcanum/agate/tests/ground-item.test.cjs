@@ -291,7 +291,7 @@ test('unknown actor ownership remains unknown with a public ground object and ca
   assert.throws(() => server.validateCheckpoint(changed), { code: 'CHECKPOINT_INVALID' })
 })
 
-test('checkpoint schema5 restores ground/held/container ownership, visibility, coordinates and registration across a fresh host', async t => {
+test('checkpoint schema6 restores ground/held/container ownership, visibility, coordinates and registration across a fresh host', async t => {
   const { start, checkpointPath } = await fixture(t)
   const first = await start()
   await approachPickup(first)
@@ -299,8 +299,8 @@ test('checkpoint schema5 restores ground/held/container ownership, visibility, c
   assert.equal(transferGround(first, 'drop').ok, true)
   assert.equal((await first.command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8'), saved = JSON.parse(bytes)
-  assert.equal(saved.version, 5)
-  assert.equal(saved.rulesVersion, 'movement-doors-ownership-progression-v8')
+  assert.equal(saved.version, 6)
+  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-v9')
   assert.deepEqual(saved.ownership.items.find(row => row.id === GROUND_ITEM_ID), { id: GROUND_ITEM_ID, parent: null, groundLocation: [5, 5] })
   assert.equal(transferGround(first, 'pickup').ok, true)
   assert.equal((await first.command('load')).ok, true)
@@ -347,7 +347,7 @@ test('checkpoint tampering with ground positions, parent/list reciprocity and un
   ordinary.ownership.owners.find(row => row.id === BOX_ID).inventoryIndex = 0
   Object.assign(ordinary.ownership.items.find(row => row.id === TOKEN_ID), { parent: null, groundLocation: [4, 4] })
   assert.throws(() => server.validateCheckpoint(ordinary), { code: 'CHECKPOINT_INVALID' })
-  for (const version of [1, 2, 3, 4]) {
+  for (const version of [1, 2, 3, 4, 5]) {
     const previous = { ...original, version }
     assert.throws(() => server.validateCheckpoint(previous), { code: 'CHECKPOINT_INCOMPATIBLE' })
   }

@@ -3,7 +3,7 @@
 The historical C++ converter discarded inventory ownership relationships. This
 note records the local recovery tool, private container inspection and the
 narrow whole Generic/standalone-Key Take/Put and atomic Take All paths added on
-October 12, 2026. The owned workshop supplies its known-actor transfer witness and schema 5
+October 12, 2026. The owned workshop supplies its known-actor transfer witness and schema 6
 ownership checkpoint;
 complete original inventory rules remain unfinished. Original and converted
 game data remain private in ignored local storage.
@@ -352,8 +352,8 @@ publishes one revision; its private acknowledgement carries ordered transferred
 item IDs, remaining container contents and actor inventory. The public command
 summary contains the action and container ID only, with no item IDs or contents.
 
-Checkpoint schema is version 5; current ownership rules are
-`movement-doors-ownership-progression-v8`. The document records every known owner's
+Checkpoint schema is version 6; current ownership rules are
+`movement-doors-ownership-attributes-v9`. The document records every known owner's
 membership/count and every item parent in the established ownership universe.
 Each item record also has `groundLocation`: a supported floor item has a valid
 tile tuple and null parent, while actor/container items have null ground
@@ -376,7 +376,7 @@ an already reached open pose. Opening a closed door still requires possession.
 Supported ownership in the locked crate also persists with the key put away;
 restore does not clear its lock or grant access without a held key.
 The pebble's floor/held state and drop location restore together with actor
-position and door poses. Only the current schema 5/rules v8 contract is accepted.
+position and door poses. Only the current schema 6/rules v9 contract is accepted.
 This is supported
 ownership persistence, not a complete campaign save. Character statistics, NPC
 behavior, quests, timers and RNG remain outside the checkpoint, and M2 remains

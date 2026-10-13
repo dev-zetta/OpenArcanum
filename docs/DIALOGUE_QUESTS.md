@@ -18,7 +18,9 @@ condition when the reply is selected, so an old displayed choice cannot complete
 the quest after the item is dropped or put away. Showing the pebble completes
 the quest without consuming it, transferring it or creating an item. The same
 transaction grants its authored **2,100 XP**, advancing the owned actor from
-level 1 / 5 unspent CP to level 2 / 6 unspent CP. This reward happens once; see
+level 1 / 5 unspent CP to level 2 / 6 unspent CP when none were spent.
+If the five starting points were already spent, it grants the one newly earned
+point for another [attribute purchase](ATTRIBUTES.md). This reward happens once; see
 [Owned character progression](PROGRESSION.md). Later conversations use the
 completed greeting and a closing reply.
 Completion is terminal in this slice.
@@ -50,9 +52,10 @@ requests reject without a quest transition or item mutation. Movement, pause,
 load, stop and other invalidating actions discard the transient conversation;
 the client refreshes the private view instead of deciding a quest outcome.
 
-Current checkpoints use schema 5 and
-`movement-doors-ownership-progression-v8`. They restore the validated quest journal
-and its XP/level/unspent CP with actor position, doors and supported ownership
+Current checkpoints use schema 6 and
+`movement-doors-ownership-attributes-v9`. They restore the validated quest journal
+and its XP/level/unspent CP, attributes and ordered purchase/reward history
+with actor position, doors and supported ownership
 in one load. A reward inconsistent with the saved quest states rejects the load.
 Conversation sessions and displayed replies are transient and must be reopened after load.
 Only the current contract is supported; this is still a limited development

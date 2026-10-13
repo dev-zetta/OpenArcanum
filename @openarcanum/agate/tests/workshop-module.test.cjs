@@ -19,6 +19,16 @@ const { buildFiles, manifest, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID,
   DIRECTIONS } = require('../../../examples/inventory-workshop/generate.cjs')
 let engine
 
+function baselineCharacter() {
+  return { kind: 'character', supported: true, experiencePoints: 0, level: 1, unspentPoints: 5,
+    nextLevelExperience: QUEST_EXPERIENCE_REWARD,
+    attributes: Object.entries(PROGRESSION_BASELINE.attributes).map(([id, value]) => ({
+      id, label: id[0].toUpperCase() + id.slice(1), value, maximum: 20, pointCost: 1, canIncrease: true })),
+    derived: { maxHealth: 30, maxFatigue: 30, carryWeight: 4000, damageBonus: -1,
+      armorClassAdjustment: -2, speed: 8, healRate: 3, poisonRecovery: 8,
+      reactionModifier: -7, maxFollowers: 2 } }
+}
+
 before(async () => {
   const { build } = await import('esbuild')
   const { transformAsync } = await import('@babel/core')
@@ -90,7 +100,9 @@ test('owned workshop source, metadata and generated archives reproduce exactly w
   assert.deepEqual(JSON.parse(files.get('16086.json')).Critter,
     { inventory: [], inventoryIndex: 0, inventorySource: 0, progressionSupported: true })
   assert.deepEqual(JSON.parse(files.get('rules/Progression.json')),
-    { version: 1, actorId: '16086.json', baseline: PROGRESSION_BASELINE })
+    { version: 2, actorId: '16086.json', profile: 'neutral-human', baseline: PROGRESSION_BASELINE })
+  assert.equal(Object.hasOwn(JSON.parse(files.get('16086.json')).Critter, 'stats'), false,
+    'authored progression does not mirror the legacy stat component')
   assert.equal(JSON.parse(files.get('16086.json')).Base.prototype, 900001)
   assert.deepEqual(JSON.parse(files.get(`${MAP_ID}/Map.json`)).startLocation, [4, 4])
   assert.deepEqual(JSON.parse(files.get(BOX_ID)).Container.inventory, [{ id: TOKEN_ID, slot: 3 }])
@@ -263,7 +275,7 @@ test('the owned workshop loads headlessly and privately inspects its reciprocal 
   const checkpoint = JSON.parse(await fs.readFile(path.join(temporary, 'checkpoint.json'), 'utf8'))
   assert.deepEqual(checkpoint.actor.location, [5, 4])
   assert.deepEqual(checkpoint.doors, [{ id: DOOR_ID, open: false }, { id: LOCKED_DOOR_ID, open: false }])
-  assert.equal(checkpoint.version, 5)
+  assert.equal(checkpoint.version, 6)
   assert.deepEqual(checkpoint.ownership, { owners: [
     { id: '16086.json', inventoryIndex: 0, items: [] },
     { id: BOX_ID, inventoryIndex: 1, items: [{ id: TOKEN_ID, slot: 3 }] },
@@ -447,8 +459,8 @@ test('the authored ground pebble is conserved through pickup, actor-tile drop an
     'held location canonicalizes to its authored value')
   assert.equal((await first.request('save')).ok, true)
   const heldCheckpoint = JSON.parse(await fs.readFile(checkpointPath, 'utf8'))
-  assert.equal(heldCheckpoint.version, 5)
-  assert.equal(heldCheckpoint.rulesVersion, 'movement-doors-ownership-progression-v8')
+  assert.equal(heldCheckpoint.version, 6)
+  assert.equal(heldCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-v9')
   assert.deepEqual(heldCheckpoint.ownership.items.find(item => item.id === GROUND_ITEM_ID),
     { id: GROUND_ITEM_ID, parent: '16086.json', groundLocation: null })
   const location = [first.server.player.base.location.x, first.server.player.base.location.y]
@@ -514,10 +526,10 @@ test('the owned guide atomically awards its persistent quest experience only onc
   assert.equal(first.server.map.isTileBlocked(9, 8), true, 'the stationary guide occupies its tile')
   assert.equal(first.talk().code, 'OUT_OF_RANGE')
   assert.deepEqual(first.journal(), [])
-  const baseline = { kind: 'character', supported: true, ...PROGRESSION_BASELINE,
-    nextLevelExperience: QUEST_EXPERIENCE_REWARD }
-  const rewarded = { kind: 'character', supported: true, experiencePoints: QUEST_EXPERIENCE_REWARD,
-    level: 2, unspentPoints: 6, nextLevelExperience: 4600 }
+  const baseline = baselineCharacter()
+  const rewarded = { ...baseline, experiencePoints: QUEST_EXPERIENCE_REWARD,
+    level: 2, unspentPoints: 6, nextLevelExperience: 4600,
+    derived: { ...baseline.derived, maxHealth: 32, maxFatigue: 32 } }
   assert.deepEqual(first.character(), baseline)
   assert.equal(first.server.ownership.owners.has(NPC_ID), false, 'unknown NPC inventory is not manufactured')
   first.approach(NPC_ID)
@@ -541,10 +553,10 @@ test('the owned guide atomically awards its persistent quest experience only onc
   assert.deepEqual(first.character(), baseline, 'accepting and invalid replies award nothing')
   assert.equal((await first.request('save')).ok, true)
   const activeCheckpoint = JSON.parse(await fs.readFile(checkpointPath, 'utf8'))
-  assert.equal(activeCheckpoint.version, 5)
-  assert.equal(activeCheckpoint.rulesVersion, 'movement-doors-ownership-progression-v8')
+  assert.equal(activeCheckpoint.version, 6)
+  assert.equal(activeCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-v9')
   assert.deepEqual(activeCheckpoint.quests, [{ id: QUEST_ID, status: 'active' }])
-  assert.deepEqual(activeCheckpoint.character, PROGRESSION_BASELINE)
+  assert.deepEqual(activeCheckpoint.character, { ...PROGRESSION_BASELINE, history: [] })
   assert.equal((await first.request('load')).ok, true)
   assert.equal(first.reply(page, 'leave').ok, false, 'load expires transient conversation turns')
   assert.deepEqual(first.journal(), [activeEntry])
@@ -590,7 +602,9 @@ test('the owned guide atomically awards its persistent quest experience only onc
   assert.equal((await first.request('save')).ok, true)
   const saved = await fs.readFile(checkpointPath, 'utf8')
   assert.deepEqual(JSON.parse(saved).quests, [{ id: QUEST_ID, status: 'completed' }])
-  assert.deepEqual(JSON.parse(saved).character, { experiencePoints: QUEST_EXPERIENCE_REWARD, level: 2, unspentPoints: 6 })
+  assert.deepEqual(JSON.parse(saved).character, { experiencePoints: QUEST_EXPERIENCE_REWARD, level: 2,
+    unspentPoints: 6, attributes: PROGRESSION_BASELINE.attributes,
+    history: [{ kind: 'quest', questId: QUEST_ID }] })
   const forged = JSON.parse(saved)
   forged.character.unspentPoints++
   await fs.writeFile(checkpointPath, JSON.stringify(forged))
@@ -611,6 +625,131 @@ test('the owned guide atomically awards its persistent quest experience only onc
   assert.deepEqual(second.character(), rewarded, 'reopening a completed conversation awards nothing')
   assert.equal(second.server.ownership.items.size, 4)
   assert.equal(await fs.readFile(checkpointPath, 'utf8'), saved)
+})
+
+test('owned purchases spend the starting and quest-earned points once and restore their ordered builds', async t => {
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'agate-owned-workshop-attributes-'))
+  const checkpointPath = path.join(temporary, 'checkpoint.json'), hosts = []
+  t.after(async () => {
+    for (const host of hosts) await host.stop()
+    await fs.rm(temporary, { recursive: true, force: true })
+  })
+  const start = async () => {
+    const server = engine.createAuthorityServer({ dataPath, mapId: MAP_ID, checkpointPath })
+    hosts.push(server)
+    await server.loadWorld()
+    const owner = { data: { joined: true, role: 'owner' } }
+    let id = 0
+    const request = (type, extra = {}) => server.command(owner,
+      { version: 1, id: ++id, actorId: '0', type, ...extra })
+    const approach = targetId => {
+      assert.equal(request('use', { targetId }).ok, true)
+      server.advanceMovement(performance.now() + 10000)
+    }
+    const buy = (statId, expectedRevision = server.revision) => request('buy-attribute', { statId, expectedRevision })
+    const character = () => request('character').result
+    return { server, request, approach, buy, character }
+  }
+  const first = await start()
+  assert.deepEqual(first.character(), baselineCharacter())
+  const previousRevision = first.server.revision
+  const strengthPurchase = first.buy('strength')
+  assert.equal(strengthPurchase.ok, true)
+  assert.equal(strengthPurchase.result.kind, 'buy-attribute')
+  assert.equal(strengthPurchase.result.statId, 'strength')
+  assert.equal(strengthPurchase.result.character.unspentPoints, 4)
+  assert.deepEqual(strengthPurchase.result.character.derived, { ...baselineCharacter().derived,
+    maxHealth: 32, carryWeight: 4500, damageBonus: 0 })
+  const afterStrength = first.character()
+  assert.equal(first.buy('dexterity', previousRevision).ok, false, 'a stale purchase cannot spend again')
+  assert.deepEqual(first.character(), afterStrength)
+  assert.equal(first.request('pause').ok, true)
+  assert.equal(first.buy('dexterity').code, 'PAUSED')
+  assert.deepEqual(first.character(), afterStrength)
+  assert.equal(first.request('resume').ok, true)
+  const initialPurchases = ['strength', 'dexterity', 'constitution', 'beauty', 'intelligence']
+  for (const statId of initialPurchases.slice(1)) assert.equal(first.buy(statId).ok, true)
+  const spentStarting = first.character()
+  assert.equal(spentStarting.unspentPoints, 0)
+  assert.deepEqual(spentStarting.attributes.map(row => [row.id, row.value]),
+    Object.keys(PROGRESSION_BASELINE.attributes).map(id => [id, initialPurchases.includes(id) ? 9 : 8]))
+  assert.equal(spentStarting.attributes.every(row => row.canIncrease === false), true)
+  assert.deepEqual(spentStarting.derived, { maxHealth: 32, maxFatigue: 32, carryWeight: 4500,
+    damageBonus: 0, armorClassAdjustment: -1, speed: 9, healRate: 3,
+    poisonRecovery: 9, reactionModifier: -3, maxFollowers: 2 })
+  assert.equal(first.buy('willpower').ok, false, 'the sixth purchase needs another earned point')
+  assert.deepEqual(first.character(), spentStarting)
+  assert.equal(first.buy('not-an-attribute').ok, false)
+  first.approach(NPC_ID)
+  let page = first.request('talk', { targetId: NPC_ID }).result
+  assert.equal(first.request('reply', { targetId: NPC_ID, conversationId: page.conversationId,
+    optionId: 'accept', expectedRevision: first.server.revision }).ok, true)
+  assert.equal((await first.request('save')).ok, true)
+  const activeSave = await fs.readFile(checkpointPath, 'utf8')
+  const activeCheckpoint = JSON.parse(activeSave)
+  assert.equal(activeCheckpoint.version, 6)
+  assert.deepEqual(activeCheckpoint.character.history,
+    initialPurchases.map(statId => ({ kind: 'attribute', statId })))
+  assert.equal(activeCheckpoint.character.unspentPoints, 0)
+  assert.deepEqual(activeCheckpoint.quests, [{ id: QUEST_ID, status: 'active' }])
+
+  first.approach(GROUND_ITEM_ID)
+  assert.equal(first.request('pickup', { targetId: GROUND_ITEM_ID, expectedRevision: first.server.revision }).ok, true)
+  first.approach(NPC_ID)
+  page = first.request('talk', { targetId: NPC_ID }).result
+  assert.equal(first.request('reply', { targetId: NPC_ID, conversationId: page.conversationId,
+    optionId: 'show', expectedRevision: first.server.revision }).ok, true)
+  const levelUp = first.character()
+  assert.equal(levelUp.experiencePoints, QUEST_EXPERIENCE_REWARD)
+  assert.equal(levelUp.level, 2)
+  assert.equal(levelUp.unspentPoints, 1, 'level-up adds one point after the starting five were spent')
+  assert.equal(levelUp.derived.maxHealth, 34)
+  assert.equal(levelUp.derived.maxFatigue, 34)
+  const finalPurchase = first.buy('willpower')
+  assert.equal(finalPurchase.ok, true)
+  const completedBuild = first.character()
+  assert.equal(completedBuild.unspentPoints, 0)
+  assert.equal(completedBuild.attributes.find(row => row.id === 'willpower').value, 9)
+  assert.equal(completedBuild.derived.maxHealth, 35)
+  assert.equal(completedBuild.derived.maxFatigue, 35)
+  assert.equal(first.server.player.critter.stats, undefined, 'the private build does not rewrite legacy stats')
+  assert.equal((await first.request('save')).ok, true)
+  const completedSave = await fs.readFile(checkpointPath, 'utf8')
+  const completedCheckpoint = JSON.parse(completedSave)
+  assert.deepEqual(completedCheckpoint.character.history, [
+    ...initialPurchases.map(statId => ({ kind: 'attribute', statId })),
+    { kind: 'quest', questId: QUEST_ID }, { kind: 'attribute', statId: 'willpower' }])
+  const publicState = JSON.stringify(first.server.getSnapshot())
+  assert.equal(publicState.includes('"attributes"'), false)
+  assert.equal(publicState.includes('"derived"'), false)
+  assert.equal(publicState.includes('"history"'), false)
+
+  await fs.writeFile(checkpointPath, activeSave)
+  assert.equal((await first.request('load')).ok, true)
+  assert.deepEqual(first.character(), spentStarting)
+  assert.equal(first.request('journal').result.entries[0].status, 'active')
+  assert.deepEqual(first.request('inventory').result.items, [])
+  await fs.writeFile(checkpointPath, completedSave)
+  assert.equal((await first.request('load')).ok, true)
+  assert.deepEqual(first.character(), completedBuild)
+  const held = first.server.ownership.checkpointStates()
+  const invalidOrder = JSON.parse(completedSave)
+  invalidOrder.character.history.splice(initialPurchases.length, 2,
+    { kind: 'attribute', statId: 'willpower' }, { kind: 'quest', questId: QUEST_ID })
+  await fs.writeFile(checkpointPath, JSON.stringify(invalidOrder))
+  assert.equal((await first.request('load')).ok, false, 'a purchase before its earning quest cannot replay')
+  assert.deepEqual(first.character(), completedBuild)
+  assert.equal(first.request('journal').result.entries[0].status, 'completed')
+  assert.deepEqual(first.server.ownership.checkpointStates(), held)
+  await fs.writeFile(checkpointPath, completedSave)
+  await first.server.stop()
+  const second = await start()
+  assert.deepEqual(second.character(), baselineCharacter())
+  assert.equal((await second.request('load')).ok, true)
+  assert.deepEqual(second.character(), completedBuild)
+  assert.equal(second.request('journal').result.entries[0].status, 'completed')
+  assert.equal(second.request('inventory').result.items[0].id, GROUND_ITEM_ID)
+  assert.equal(await fs.readFile(checkpointPath, 'utf8'), completedSave)
 })
 
 test('the owned positive-XP quest cannot complete or load completed for an actor without progression opt-in', async t => {

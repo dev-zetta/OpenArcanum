@@ -84,8 +84,8 @@ new use, inspection and transfer requests to the locked crate reject. The
 keepsake, token and key retain stable IDs and reciprocal ownership; the actor
 still starts empty. No original game data is required.
 
-Current checkpoints use document schema 5 and rules
-`movement-doors-ownership-progression-v8`. They persist the same complete door poses and
+Current checkpoints use document schema 6 and rules
+`movement-doors-ownership-attributes-v9`. They persist the same complete door poses and
 supported reciprocal ownership. An open door can be saved after its key is put
 away: restore checks whether the immutable supported key universe could supply
 access, rather than requiring the current actor to hold it. Unsupported doors

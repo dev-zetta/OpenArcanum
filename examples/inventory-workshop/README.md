@@ -105,10 +105,10 @@ conversation gives a reminder. Pick up the pebble and return while holding it:
 actor's current inventory. Selecting it completes the quest and its private
 journal entry. The pebble remains yours. Completion grants **2,100 XP** once,
 raising the owned actor from level 1 / 0 XP / 5 unspent CP to
-level 2 / 2,100 XP / 6 unspent CP. Declining, accepting, reopening dialogue and
+level 2 / 2,100 XP / 6 unspent CP if the starting points were not spent. Declining, accepting, reopening dialogue and
 repeated completion do not award XP. The private character panel displays
 committed experience, level, banked points and the next cumulative threshold.
-There are no point purchases or item rewards yet.
+There are no item rewards.
 A pebble on the ground or in a crate does not qualify, and stale replies cannot
 bypass the server's condition. After completion the guide thanks you and offers
 a closing reply.
@@ -125,9 +125,20 @@ quest declares `rewardExperience: 2100`. Original Bates character fields do not
 opt into this authored policy. See [Owned dialogue and quests](../../docs/DIALOGUE_QUESTS.md)
 and [Character progression](../../docs/PROGRESSION.md).
 
+The version-2 progression document selects the explicit **neutral-human**
+profile, with all eight attributes initially 8. Each permanent **+1** costs one
+CP and is capped at 20. Spend the five starting points, complete the guide quest
+to gain one more, then make a sixth purchase. The private panel shows committed
+attributes and ten derived previews. For example, Strength 8 → 9 changes the
+neutral level-1 HP preview 30 → 32, carry capacity 4,000 → 4,500 stone and damage
+bonus −1 → 0. Ten stone is one pound in the manual's glossary. These previews
+do not change the current movement clock, combat or inventory weight limits.
+There is no refund/respec, race/effect implementation or legacy stat mirror.
+See [Attribute purchases](../../docs/ATTRIBUTES.md).
+
 **Save checkpoint** stores actor position, managed doors and supported item
 ownership, including the pebble's floor/held state and ground location, plus the
-owned quest journal and XP/level/unspent CP. Save
+owned quest journal, XP/level/unspent CP and purchased attributes/history. Save
 before pickup and load after taking to restore it to the floor; save while held
 and load after dropping to restore actor ownership. Save before taking, take the
 token, then load to restore it to the crate's original slot `3`; save after taking
@@ -144,16 +155,20 @@ opening a closed door still requires current possession. The same checkpoint
 can restore the keepsake's supported ownership with the key put away; the locked
 crate remains locked and inaccessible. The initial attainable-source closure
 cannot bootstrap a key behind its own lock or a disconnected key cycle.
-Active and completed quest states and their exact earned progression also
+Active and completed quest states, purchased attributes and their exact earned
+progression also
 survive load and fresh-host restore;
 transient conversations close and must be reopened. Completed status does not
 require continuing to hold the pebble afterward. Loading the earlier active
 quest restores its earlier progression too, so completion can award once in
-that restored state. Inconsistent quest/character values reject the whole load.
+that restored state. The checkpoint replays ordered purchases and quest rewards,
+including available points and cap behavior, before restoring any state.
+Inconsistent quest/character values or a purchase before its points were earned
+reject the whole load.
 
 This narrow slice does not implement equipment, stacks, weight/capacity,
-keyrings, retail ground transfers, barter, attribute purchases or unrestricted
-transfers. XP saturates at 1,300,000 / level 50 as an explicit development
+keyrings, retail ground transfers, barter, complete character creation or
+unrestricted transfers. XP saturates at 1,300,000 / level 50 as an explicit development
 policy; banked CP is bounded at 56. Original cap-edge behavior is unverified. It does not
 complete the M2 roleplaying slice or supply complete campaign saving.
 
@@ -173,8 +188,8 @@ convention while referring to frames in the actual `tiles.png` atlas.
 Module-specific runtime saves and reports belong under ignored `local-data/`,
 outside this checked-in example. Neither the example source nor generated
 archives should change when a session is played. The default manual slot is
-`local-data/saves/inventory-workshop.json`. Current checkpoints use schema 5
-and rules `movement-doors-ownership-progression-v8`; only this current contract is
+`local-data/saves/inventory-workshop.json`. Current checkpoints use schema 6
+and rules `movement-doors-ownership-attributes-v9`; only this current contract is
 accepted. Startup does not auto-load the manual slot. Description text remains
 outside simulation identity. This is not complete original-game take-all
 behavior for retail loot, corpses, equipment or weight.

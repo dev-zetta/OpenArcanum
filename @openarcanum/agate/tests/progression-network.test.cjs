@@ -164,9 +164,15 @@ function journal(result, status) {
   assert.ok(entry.text.length > 0 && entry.text.length <= 2048)
 }
 
-const baseline = () => ({ kind: 'character', supported: true, ...PROGRESSION_BASELINE, nextLevelExperience: 2100 })
-const rewarded = () => ({ kind: 'character', supported: true, experiencePoints: QUEST_EXPERIENCE_REWARD,
-  level: 2, unspentPoints: 6, nextLevelExperience: 4600 })
+const ATTRIBUTE_IDS = ['strength', 'dexterity', 'constitution', 'beauty', 'intelligence', 'perception', 'willpower', 'charisma']
+const baseAttributes = () => Object.fromEntries(ATTRIBUTE_IDS.map(id => [id, 8]))
+const rows = () => ATTRIBUTE_IDS.map(id => ({ id, label: id[0].toUpperCase() + id.slice(1), value: 8, maximum: 20, pointCost: 1, canIncrease: true }))
+const baseDerived = () => ({ maxHealth: 30, maxFatigue: 30, carryWeight: 4000, damageBonus: -1,
+  armorClassAdjustment: -2, speed: 8, healRate: 3, poisonRecovery: 8, reactionModifier: -7, maxFollowers: 2 })
+const baseline = () => ({ kind: 'character', supported: true, experiencePoints: 0, level: 1, unspentPoints: 5,
+  nextLevelExperience: 2100, attributes: rows(), derived: baseDerived() })
+const rewarded = () => ({ ...baseline(), experiencePoints: QUEST_EXPERIENCE_REWARD,
+  level: 2, unspentPoints: 6, nextLevelExperience: 4600, derived: { ...baseDerived(), maxHealth: 32, maxFatigue: 32 } })
 async function character(context, client, expected) {
   const read = await send(context, client, 'character')
   assert.equal(read.ok, true, read.message)
@@ -193,7 +199,7 @@ test('quest XP, derived level and banked points stay private and restore togethe
     const owner = await context.connect(), observer = await context.connect('observer')
     const joined = await join(owner); await join(observer)
     publicState(joined.snapshot)
-    assert.deepEqual(PROGRESSION_BASELINE, { experiencePoints: 0, level: 1, unspentPoints: 5 })
+    assert.deepEqual(PROGRESSION_BASELINE, { experiencePoints: 0, level: 1, unspentPoints: 5, attributes: baseAttributes() })
     assert.equal(QUEST_EXPERIENCE_REWARD, 2100)
     const actorBytes = await fs.readFile(path.join(context.dataPath, OWNER_ID))
     const rulesBytes = await fs.readFile(path.join(context.dataPath, 'rules/Progression.json'))
@@ -214,7 +220,7 @@ test('quest XP, derived level and banked points stay private and restore togethe
     const savedActive = await send(context, owner, 'save')
     assert.equal(savedActive.ok, true, savedActive.message)
     const activeDocument = JSON.parse(await fs.readFile(context.server.checkpointStore.filename, 'utf8'))
-    assert.deepEqual(activeDocument.character, PROGRESSION_BASELINE)
+    assert.deepEqual(activeDocument.character, { ...PROGRESSION_BASELINE, history: [] })
     assert.deepEqual(activeDocument.quests, [{ id: QUEST_ID, status: 'active' }])
 
     const first = await showPebble(context, owner)
@@ -252,9 +258,9 @@ test('quest XP, derived level and banked points stay private and restore togethe
     const savedComplete = await send(context, owner, 'save')
     assert.equal(savedComplete.ok, true, savedComplete.message)
     const document = JSON.parse(await fs.readFile(context.server.checkpointStore.filename, 'utf8'))
-    assert.equal(document.version, 5)
-    assert.equal(document.rulesVersion, 'movement-doors-ownership-progression-v8')
-    assert.deepEqual(document.character, { experiencePoints: 2100, level: 2, unspentPoints: 6 })
+    assert.equal(document.version, 6)
+    assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-v9')
+    assert.deepEqual(document.character, { experiencePoints: 2100, level: 2, unspentPoints: 6, attributes: baseAttributes(), history: [{ kind: 'quest', questId: QUEST_ID }] })
     assert.deepEqual(document.quests, [{ id: QUEST_ID, status: 'completed' }])
     const pages = [offered.result, active.result, first.talked.result, first.completed.result, terminal.result, second.completed.result]
     const late = await context.connect('observer'); publicState((await join(late)).snapshot, pages)
