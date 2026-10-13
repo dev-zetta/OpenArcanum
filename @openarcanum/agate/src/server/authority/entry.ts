@@ -12,7 +12,7 @@ let pendingStop = false
 
 function authorityOptions(value: unknown): AuthorityOptions {
   if (!record(value) || typeof value.dataPath !== 'string') throw new Error('A converted dataPath is required')
-  for (const key of ['mapId', 'ownerToken', 'observerToken', 'checkpointPath', 'sessionFile']) {
+  for (const key of ['mapId', 'ownerToken', 'observerToken', 'checkpointPath', 'sessionFile', 'scriptManifestPath']) {
     if (value[key] !== undefined && typeof value[key] !== 'string') throw new Error(`${key} must be a string`)
   }
   for (const key of ['port', 'tickMs']) {

@@ -51,7 +51,7 @@ async function setup(t: import("node:test").TestContext, mutate?) {
     servers.push(server)
     const session = await server.start()
     async function connect(role = 'owner') {
-      const socket = io(session.url, { auth: { version: 1, token: role === 'owner' ? session.ownerToken : session.observerToken },
+      const socket = io(session.url, { auth: { version: 2, token: role === 'owner' ? session.ownerToken : session.observerToken },
         transports: ['websocket'], autoConnect: false, reconnection: false, forceNew: true, timeout: 2000 })
       const client = { socket, snapshots: [] }
       clients.push(client)
@@ -66,9 +66,9 @@ async function setup(t: import("node:test").TestContext, mutate?) {
   return { dataPath, start, ...(await start()) }
 }
 
-function join(client) { return client.socket.timeout(3000).emitWithAck('authority:join', { version: 1 }) }
+function join(client) { return client.socket.timeout(3000).emitWithAck('authority:join', { version: 2 }) }
 function command(client, id, type, data = {}) {
-  return client.socket.timeout(3000).emitWithAck('authority:command', { version: 1, id, actorId: '0', type, ...data })
+  return client.socket.timeout(3000).emitWithAck('authority:command', { version: 2, id, actorId: '0', type, ...data })
 }
 function take(client, id, revision, changes = {}) {
   return command(client, id, 'take', { targetId: BOX_ID, itemId: TOKEN_ID, expectedRevision: revision, ...changes })
@@ -81,7 +81,7 @@ function takeAll(client, id, revision, changes = {}) {
 }
 function rejection(response, code: string, id?: number) {
   assert.equal(response.ok, false)
-  assert.equal(response.version, 1)
+  assert.equal(response.version, 2)
   assert.equal(response.code, code)
   if (id !== undefined) assert.equal(response.id, id)
   assert.ok(Number.isSafeInteger(response.revision))
@@ -228,7 +228,7 @@ test('take and inventory reject unauthorized, malformed, replayed and out-of-ran
   rejection(await command(observer, 100, 'inventory'), 'FORBIDDEN', 100)
   rejection(await take(observer, 101, initial.snapshot.revision), 'FORBIDDEN', 101)
   rejection(await take(owner, 1, initial.snapshot.revision, { actorId: 'another' }), 'FORBIDDEN', 1)
-  rejection(await take(owner, 1, initial.snapshot.revision, { version: 2 }), 'VERSION_MISMATCH', 1)
+  rejection(await take(owner, 1, initial.snapshot.revision, { version: 3 }), 'VERSION_MISMATCH', 1)
   for (const changes of [{ itemId: null }, { itemId: '' }, { itemId: 'x'.repeat(1025) }, { targetId: '' },
     { targetId: null }, { targetId: 'x'.repeat(1025) }, { expectedRevision: -1 }, { expectedRevision: null },
     { expectedRevision: 1.5 }, { expectedRevision: Number.MAX_SAFE_INTEGER + 1 }, { expectedRevision: '1' },
@@ -337,7 +337,7 @@ test('a fresh host restores the transferred identity and reciprocal ownership wi
   assert.equal((await command(owner, 4, 'save')).ok, true)
   const filename = path.join(context.dataPath, 'saves/local-checkpoint.json')
   const document = JSON.parse(await fs.readFile(filename, 'utf8'))
-  assert.equal(document.version, 6)
+  assert.equal(document.version, 7)
   assert.ok(JSON.stringify(document).includes(TOKEN_ID), 'versioned checkpoint persists the unique item')
   assert.ok(JSON.stringify(document).includes(OWNER_ID), 'checkpoint persists its current owner')
   await context.server.stop()
@@ -425,7 +425,7 @@ test('put socket intentions enforce schema, authority, revision, access, pause, 
   const initial = await join(owner); await join(observer)
   rejection(await put(observer, 100, initial.snapshot.revision), 'FORBIDDEN', 100)
   rejection(await put(owner, 1, initial.snapshot.revision, { actorId: 'another' }), 'FORBIDDEN', 1)
-  rejection(await put(owner, 1, initial.snapshot.revision, { version: 2 }), 'VERSION_MISMATCH', 1)
+  rejection(await put(owner, 1, initial.snapshot.revision, { version: 3 }), 'VERSION_MISMATCH', 1)
   for (const changes of [{ itemId: null }, { itemId: '' }, { itemId: 'x'.repeat(1025) }, { targetId: '' },
     { targetId: null }, { targetId: 'x'.repeat(1025) }, { expectedRevision: -1 }, { expectedRevision: null },
     { expectedRevision: 1.5 }, { expectedRevision: Number.MAX_SAFE_INTEGER + 1 }, { expectedRevision: '1' },
@@ -486,7 +486,7 @@ test('a fresh host restores a saved put with an actor sparse hole and permits fu
     inventory: inventoryView([itemRow(1, DOOR_ID)]) })
   assert.equal((await command(owner, 6, 'save')).ok, true)
   const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
-  assert.equal(saved.version, 6)
+  assert.equal(saved.version, 7)
   assert.deepEqual(saved.ownership.owners.find(value => value.id === OWNER_ID).items, [{ id: DOOR_ID, slot: 1 }])
   assert.deepEqual(saved.ownership.owners.find(value => value.id === BOX_ID).items, [{ id: TOKEN_ID, slot: 0 }])
   await context.server.stop()
@@ -546,8 +546,8 @@ test('take-all commits the server-ordered whole set privately in one revision an
   assert.equal(context.server.ownership.items.get(TOKEN_ID).entity, second)
   assert.equal((await command(owner, 4, 'save')).ok, true)
   const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
-  assert.equal(saved.version, 6)
-  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+  assert.equal(saved.version, 7)
+  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
   assert.deepEqual(saved.ownership.owners.find(value => value.id === OWNER_ID).items,
     [{ id: DOOR_ID, slot: 0 }, { id: TOKEN_ID, slot: 1 }])
   await context.server.stop()
@@ -618,7 +618,7 @@ test('take-all socket intentions enforce exact envelopes, ownership, access, rep
   const initial = await join(owner); await join(observer)
   rejection(await takeAll(observer, 100, initial.snapshot.revision), 'FORBIDDEN', 100)
   rejection(await takeAll(owner, 1, initial.snapshot.revision, { actorId: 'another' }), 'FORBIDDEN', 1)
-  rejection(await takeAll(owner, 1, initial.snapshot.revision, { version: 2 }), 'VERSION_MISMATCH', 1)
+  rejection(await takeAll(owner, 1, initial.snapshot.revision, { version: 3 }), 'VERSION_MISMATCH', 1)
   for (const changes of [{ targetId: '' }, { targetId: null }, { targetId: 'x'.repeat(1025) },
     { expectedRevision: -1 }, { expectedRevision: null }, { expectedRevision: 1.5 },
     { expectedRevision: Number.MAX_SAFE_INTEGER + 1 }, { expectedRevision: '1' },
@@ -805,7 +805,7 @@ test('a private held Key opens a reviewed locked door without unlocking or consu
     assert.equal(keyEntity.item.invLocation, 0)
     assert.equal((await command(owner, 21, 'save')).ok, true, 'an already open door remains savable after putting away its key')
     const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
-    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
     assert.deepEqual(saved.doors.find(value => value.id === LOCKED_DOOR_ID), { id: LOCKED_DOOR_ID, open: true })
     assert.deepEqual(saved.ownership.owners.find(value => value.id === OWNER_ID).items, [])
     assert.deepEqual(saved.ownership.owners.find(value => value.id === KEY_BOX_ID).items, [{ id: KEY_ID, slot: 0 }])
@@ -938,7 +938,7 @@ test('reviewed locked container access requires a currently held Key for inspect
     assert.equal(context.server.ownership.items.get(PRIZE_ID).entity.item.parent, LOCKED_BOX_ID)
     assert.equal((await command(owner, 24, 'save')).ok, true, 'static eligibility preserves ownership after the authorizing key is put away')
     const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
-    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
     assert.deepEqual(saved.ownership.owners.find(value => value.id === LOCKED_BOX_ID).items,
       [{ id: PRIZE_ID, slot: 0 }, { id: KEY_ID, slot: 1 }])
     assert.deepEqual(saved.ownership.owners.find(value => value.id === OWNER_ID).items, [])

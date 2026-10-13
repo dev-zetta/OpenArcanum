@@ -26,11 +26,11 @@ function deferred() {
 }
 
 function snapshot(revision = 1) {
-  return { version: 1, revision, mapId: 'Synthetic map', actors: [{ id: '0', location: [92, 99] }] }
+  return { version: 2, revision, scriptEpoch: 1, scriptObjects: [], mapId: 'Synthetic map', actors: [{ id: '0', location: [92, 99] }] }
 }
 
 function joined(overrides = {}) {
-  return { ok: true, version: 1, role: 'owner', actorId: '0', nextCommandId: 11,
+  return { ok: true, version: 2, role: 'owner', actorId: '0', nextCommandId: 11,
     mapId: 'Synthetic map', snapshot: snapshot(), ...overrides }
 }
 
@@ -79,14 +79,15 @@ class FakeSocket extends EventEmitter {
 
 function fixture(t: import("node:test").TestContext, options = {}) {
   const socket = new FakeSocket(options)
-  const snapshots = [], errors = [], connections = []
-  const client = new AuthorityClient({ url: 'http://127.0.0.1:12345', token: 'private-test-token', protocolVersion: 1 }, {
+  const snapshots = [], presentations = [], errors = [], connections = []
+  const client = new AuthorityClient({ url: 'http://127.0.0.1:12345', token: 'private-test-token', protocolVersion: 2 }, {
     onSnapshot: value => snapshots.push(value),
+    onPresentation: value => presentations.push(value),
     onError: error => errors.push(error),
     socketFactory(url, config) { connections.push({ url, config }); return socket }
   })
   t.after(() => client.close())
-  return { client, socket, snapshots, errors, connections }
+  return { client, socket, snapshots, presentations, errors, connections }
 }
 
 const flush = () => new Promise<void>(resolve => setImmediate(resolve))
@@ -97,11 +98,11 @@ test('joins with the protocol request and resumes the server command sequence wi
   assert.equal(client.start(), starting)
   assert.equal((await starting).actorId, '0')
   assert.equal(connections.length, 1)
-  assert.deepEqual(socket.requests[0].payload, { version: 1 })
+  assert.deepEqual(socket.requests[0].payload, { version: 2 })
   const moving = client.move('0', [94, 99])
   const command = socket.requests[1]
-  assert.deepEqual(command.payload, { version: 1, id: 11, actorId: '0', type: 'move', target: [94, 99] })
-  command.resolve({ ok: true, version: 1, id: 11, actorId: '0', status: 'accepted', path: [[92, 99], [94, 99]] })
+  assert.deepEqual(command.payload, { version: 2, id: 11, actorId: '0', type: 'move', target: [94, 99] })
+  command.resolve({ ok: true, version: 2, id: 11, actorId: '0', status: 'accepted', path: [[92, 99], [94, 99]] })
   assert.equal((await moving).id, 11)
 })
 
@@ -195,7 +196,7 @@ test('invalid ownership metadata and invalid join snapshots fail before startup 
 test('a presentation callback failure closes the transport and rejects startup', async t => {
   const socket = new FakeSocket()
   const errors = []
-  const client = new AuthorityClient({ protocolVersion: 1 }, {
+  const client = new AuthorityClient({ protocolVersion: 2 }, {
     onSnapshot() { throw new Error('Invalid controlled actor') },
     onError: error => errors.push(error),
     socketFactory: () => socket
@@ -216,9 +217,9 @@ test('use sends only the authoritative target intention and preserves a normal l
   })
   const request = socket.requests[1]
   assert.deepEqual(request.payload, {
-    version: 1, id: 11, actorId: '0', type: 'use', targetId: 'Synthetic map/Sector/1/1/Portal/door.json'
+    version: 2, id: 11, actorId: '0', type: 'use', targetId: 'Synthetic map/Sector/1/1/Portal/door.json'
   })
-  request.resolve({ ok: false, version: 1, id: 11, code: 'LOCKED', message: 'Door is locked.' })
+  request.resolve({ ok: false, version: 2, id: 11, code: 'LOCKED', message: 'Door is locked.' })
   await rejected
   assert.deepEqual(errors, [])
   assert.equal(client.closed, false)
@@ -230,7 +231,7 @@ test('close during use cancels the acknowledgement without losing later snapshot
   const rejected = assert.rejects(client.use('0', 'door'), /client closed/)
   client.close()
   await rejected
-  socket.requests[1].resolve({ ok: true, id: 11, status: 'accepted', targetId: 'door', path: [[92, 99]] })
+  socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'accepted', targetId: 'door', path: [[92, 99]] })
   socket.emit('authority:snapshot', snapshot(5))
   await flush()
   assert.deepEqual(snapshots.map(value => value.revision), [1])
@@ -245,9 +246,9 @@ test('save and load send only checkpoint intentions and never install acknowledg
   for (const [index, action] of ['save', 'load'].entries()) {
     const result = client[action]('0')
     const request = socket.requests[index + 1]
-    assert.deepEqual(request.payload, { version: 1, id: 11 + index, actorId: '0', type: action })
+    assert.deepEqual(request.payload, { version: 2, id: 11 + index, actorId: '0', type: action })
     assert.equal(client.snapshot, original, 'pending actions do not optimistically rewrite world state')
-    request.resolve({ ok: true, version: 1, id: 11 + index, actorId: '0', status: 'completed',
+    request.resolve({ ok: true, version: 2, id: 11 + index, actorId: '0', status: 'completed',
       result: { kind: action, savedAt } })
     assert.equal((await result).result.kind, action)
     assert.equal(client.snapshot, original, 'only broadcasts carry the restored world')
@@ -261,7 +262,7 @@ test('missing or incompatible checkpoints remain normal recoverable command reje
   for (const [index, action] of ['save', 'load'].entries()) {
     const code = action === 'save' ? 'CHECKPOINT_IO_ERROR' : 'CHECKPOINT_INCOMPATIBLE'
     const rejected = assert.rejects(client[action]('0'), (error: NodeJS.ErrnoException) => error.code === code && error.message === 'Checkpoint could not be used.')
-    socket.requests[index + 1].resolve({ ok: false, version: 1, id: 11 + index, code,
+    socket.requests[index + 1].resolve({ ok: false, version: 2, id: 11 + index, code,
       message: 'Checkpoint could not be used.' })
     await rejected
     assert.equal(client.closed, false)
@@ -277,7 +278,7 @@ test('teardown cancels save and load acknowledgements and consumes late transpor
     const rejected = assert.rejects(client[action]('0'), /client closed/)
     client.close()
     await rejected
-    socket.requests[1].resolve({ ok: true, id: 11, status: 'completed',
+    socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'completed',
       result: { kind: action, savedAt: '2026-10-12T12:00:00.000Z' } })
     socket.emit('authority:snapshot', snapshot(8))
     await flush()
@@ -293,10 +294,10 @@ test('inspection sends only a target intention and keeps private item rows outsi
   const targetId = 'Synthetic map/Sector/1/1/Container/box.json'
   const inspecting = client.inspect('0', targetId)
   const request = socket.requests[1]
-  assert.deepEqual(request.payload, { version: 1, id: 11, actorId: '0', type: 'inspect', targetId })
+  assert.deepEqual(request.payload, { version: 2, id: 11, actorId: '0', type: 'inspect', targetId })
   const result = { kind: 'container', targetId,
     items: [{ id: 'item-a', slot: 0, label: 'Weapon', type: 'Weapon', prototypeId: 2001, quantity: 2 }] }
-  request.resolve({ ok: true, version: 1, id: 11, status: 'completed', targetId, result })
+  request.resolve({ ok: true, version: 2, id: 11, status: 'completed', targetId, result })
   assert.deepEqual((await inspecting).result, result)
   assert.deepEqual(snapshots, [snapshot()])
   assert.equal(JSON.stringify(client.snapshot).includes('item-a'), false)
@@ -312,7 +313,7 @@ test('inspection rejection is recoverable and teardown drops a late private cont
   const cancelled = assert.rejects(client.inspect('0', 'box'), /client closed/)
   client.close()
   await cancelled
-  socket.requests[2].resolve({ ok: true, id: 12, status: 'completed',
+  socket.requests[2].resolve({ ok: true, version: 2, id: 12, status: 'completed',
     result: { kind: 'container', targetId: 'box', items: [{ id: 'late-private-item' }] } })
   await flush()
   assert.equal(client.pending.size, 0)
@@ -327,8 +328,8 @@ test('pause and resume send only strict session intentions and never optimistica
     const paused = action === 'pause'
     const command = client[action]('0')
     const request = socket.requests[index + 1]
-    assert.deepEqual(request.payload, { version: 1, id: 11 + index, actorId: '0', type: action })
-    request.resolve({ ok: true, version: 1, id: 11 + index, status: 'completed', revision: 2 + index,
+    assert.deepEqual(request.payload, { version: 2, id: 11 + index, actorId: '0', type: action })
+    request.resolve({ ok: true, version: 2, id: 11 + index, status: 'completed', revision: 2 + index,
       result: { kind: action, paused } })
     assert.deepEqual((await command).result, { kind: action, paused })
     assert.deepEqual(snapshots, [snapshot()], 'an ACK is never promoted into a public snapshot')
@@ -355,7 +356,7 @@ test('teardown cancels pause and resume acknowledgements without late pause stat
     const cancelled = assert.rejects(client[action]('0'), /client closed/)
     client.close()
     await cancelled
-    socket.requests[1].resolve({ ok: true, id: 11, status: 'completed', revision: 5,
+    socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'completed', revision: 5,
       result: { kind: action, paused: action === 'pause' } })
     socket.emit('authority:snapshot', { ...snapshot(5), pause: { supported: true, paused: action === 'pause' } })
     await flush()
@@ -369,14 +370,14 @@ test('private inventory reads and revision-checked Take send intentions without 
   const { client, socket, snapshots } = fixture(t)
   await client.start()
   const read = client.inventory('0')
-  assert.deepEqual(socket.requests[1].payload, { version: 1, id: 11, actorId: '0', type: 'inventory' })
-  socket.requests[1].resolve({ ok: true, id: 11, status: 'completed', revision: 1,
+  assert.deepEqual(socket.requests[1].payload, { version: 2, id: 11, actorId: '0', type: 'inventory' })
+  socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'completed', revision: 1,
     result: { kind: 'inventory', ownerId: '16086.json', items: [] } })
   await read
   const taking = client.take('0', 'box', 'token', 1)
-  assert.deepEqual(socket.requests[2].payload, { version: 1, id: 12, actorId: '0', type: 'take',
+  assert.deepEqual(socket.requests[2].payload, { version: 2, id: 12, actorId: '0', type: 'take',
     targetId: 'box', itemId: 'token', expectedRevision: 1 })
-  socket.requests[2].resolve({ ok: true, id: 12, status: 'completed', revision: 2,
+  socket.requests[2].resolve({ ok: true, version: 2, id: 12, status: 'completed', revision: 2,
     result: { kind: 'take', targetId: 'box', itemId: 'token', items: [], inventory: { ownerId: '16086.json', items: [{ id: 'token' }] } } })
   await taking
   assert.deepEqual(snapshots, [snapshot()])
@@ -386,10 +387,10 @@ test('Put sends only the selected IDs and inspected revision, and teardown cance
   const { client, socket, snapshots } = fixture(t)
   await client.start()
   const rejected = assert.rejects(client.put('0', 'box', 'token', 7), /client closed/)
-  assert.deepEqual(socket.requests[1].payload, { version: 1, id: 11, actorId: '0', type: 'put',
+  assert.deepEqual(socket.requests[1].payload, { version: 2, id: 11, actorId: '0', type: 'put',
     targetId: 'box', itemId: 'token', expectedRevision: 7 })
   client.close()
-  socket.requests[1].resolve({ ok: true, id: 11, status: 'completed', revision: 8,
+  socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'completed', revision: 8,
     result: { kind: 'put', targetId: 'box', itemId: 'token', items: [{ id: 'token' }], inventory: { ownerId: '16086.json', items: [] } } })
   await rejected
   await flush()
@@ -401,16 +402,16 @@ test('Take All sends a container and revision without client-selected items or p
   const { client, socket, snapshots } = fixture(t)
   await client.start()
   const taking = client.takeAll('0', 'box', 7)
-  assert.deepEqual(socket.requests[1].payload, { version: 1, id: 11, actorId: '0', type: 'take-all',
+  assert.deepEqual(socket.requests[1].payload, { version: 2, id: 11, actorId: '0', type: 'take-all',
     targetId: 'box', expectedRevision: 7 })
-  socket.requests[1].resolve({ ok: true, id: 11, status: 'completed', revision: 8,
+  socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'completed', revision: 8,
     result: { kind: 'take-all', targetId: 'box', itemIds: ['first', 'second'], items: [],
       inventory: { ownerId: '16086.json', items: [{ id: 'first' }, { id: 'second' }] } } })
   assert.deepEqual((await taking).result.itemIds, ['first', 'second'])
   assert.deepEqual(snapshots, [snapshot()])
   const cancelled = assert.rejects(client.takeAll('0', 'box', 8), /client closed/)
   client.close()
-  socket.requests[2].resolve({ ok: true, id: 12, status: 'completed', revision: 9 })
+  socket.requests[2].resolve({ ok: true, version: 2, id: 12, status: 'completed', revision: 9 })
   await cancelled
   await flush()
   assert.equal(client.pending.size, 0)
@@ -421,14 +422,14 @@ test('ground intentions send only an item target and revision, never location or
   const { client, socket } = fixture(t)
   await client.start()
   const picking = client.pickup('0', 'ground-item', 7)
-  assert.deepEqual(socket.requests[1].payload, { version: 1, id: 11, actorId: '0', type: 'pickup',
+  assert.deepEqual(socket.requests[1].payload, { version: 2, id: 11, actorId: '0', type: 'pickup',
     targetId: 'ground-item', expectedRevision: 7 })
-  socket.requests[1].resolve({ ok: true, id: 11, status: 'completed', revision: 8 })
+  socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'completed', revision: 8 })
   await picking
   const dropping = client.drop('0', 'ground-item', 8)
-  assert.deepEqual(socket.requests[2].payload, { version: 1, id: 12, actorId: '0', type: 'drop',
+  assert.deepEqual(socket.requests[2].payload, { version: 2, id: 12, actorId: '0', type: 'drop',
     itemId: 'ground-item', expectedRevision: 8 })
-  socket.requests[2].resolve({ ok: true, id: 12, status: 'completed', revision: 9 })
+  socket.requests[2].resolve({ ok: true, version: 2, id: 12, status: 'completed', revision: 9 })
   await dropping
 })
 
@@ -436,17 +437,17 @@ test('dialogue intentions carry a server turn token and choice, never conditions
   const { client, socket, snapshots } = fixture(t)
   await client.start()
   const talking = client.talk('0', 'guide')
-  assert.deepEqual(socket.requests[1].payload, { version: 1, id: 11, actorId: '0', type: 'talk', targetId: 'guide' })
-  socket.requests[1].resolve({ ok: true, id: 11, status: 'completed', revision: 7 })
+  assert.deepEqual(socket.requests[1].payload, { version: 2, id: 11, actorId: '0', type: 'talk', targetId: 'guide' })
+  socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'completed', revision: 7 })
   await talking
   const replying = client.reply('0', 'guide', 'turn-1', 'accept', 7)
-  assert.deepEqual(socket.requests[2].payload, { version: 1, id: 12, actorId: '0', type: 'reply', targetId: 'guide',
+  assert.deepEqual(socket.requests[2].payload, { version: 2, id: 12, actorId: '0', type: 'reply', targetId: 'guide',
     conversationId: 'turn-1', optionId: 'accept', expectedRevision: 7 })
-  socket.requests[2].resolve({ ok: true, id: 12, status: 'completed', revision: 8 })
+  socket.requests[2].resolve({ ok: true, version: 2, id: 12, status: 'completed', revision: 8 })
   await replying
   const reading = client.journal('0')
-  assert.deepEqual(socket.requests[3].payload, { version: 1, id: 13, actorId: '0', type: 'journal' })
-  socket.requests[3].resolve({ ok: true, id: 13, status: 'completed', revision: 8 })
+  assert.deepEqual(socket.requests[3].payload, { version: 2, id: 13, actorId: '0', type: 'journal' })
+  socket.requests[3].resolve({ ok: true, version: 2, id: 13, status: 'completed', revision: 8 })
   await reading
   assert.deepEqual(snapshots, [snapshot()], 'private ACKs do not synthesize public snapshots')
 })
@@ -455,8 +456,8 @@ test('character read sends no client-proposed experience, level or point balance
   const { client, socket, snapshots } = fixture(t)
   await client.start()
   const reading = client.character('0')
-  assert.deepEqual(socket.requests[1].payload, { version: 1, id: 11, actorId: '0', type: 'character' })
-  socket.requests[1].resolve({ ok: true, id: 11, status: 'completed', revision: 1,
+  assert.deepEqual(socket.requests[1].payload, { version: 2, id: 11, actorId: '0', type: 'character' })
+  socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'completed', revision: 1,
     result: { kind: 'character', supported: true, experiencePoints: 0, level: 1, unspentPoints: 5, nextLevelExperience: 2100 } })
   assert.equal((await reading).result.unspentPoints, 5)
   assert.deepEqual(snapshots, [snapshot()])
@@ -466,7 +467,64 @@ test('attribute purchase sends only the stat ID and revision, never client-selec
   const { client, socket } = fixture(t)
   await client.start()
   const buying = client.buyAttribute('0', 'strength', 7)
-  assert.deepEqual(socket.requests[1].payload, { version: 1, id: 11, actorId: '0', type: 'buy-attribute', statId: 'strength', expectedRevision: 7 })
-  socket.requests[1].resolve({ ok: true, id: 11, status: 'completed', revision: 8 })
+  assert.deepEqual(socket.requests[1].payload, { version: 2, id: 11, actorId: '0', type: 'buy-attribute', statId: 'strength', expectedRevision: 7 })
+  socket.requests[1].resolve({ ok: true, version: 2, id: 11, status: 'completed', revision: 8 })
   await buying
+})
+
+const presentation = (changes = {}) => ({ version: 2, epoch: 1, sequence: 1, revision: 1,
+  type: 'message', text: 'Private scripted door message', targetId: 'owned-door', ...changes })
+
+test('private script presentation waits for its committed revision and drops duplicate or old sequences', async t => {
+  const { client, socket, presentations } = fixture(t)
+  await client.start()
+  socket.emit('authority:presentation', presentation({ revision: 3 }))
+  assert.deepEqual(presentations, [])
+  socket.emit('authority:snapshot', snapshot(2))
+  assert.deepEqual(presentations, [])
+  socket.emit('authority:snapshot', snapshot(3))
+  assert.equal(presentations.length, 1)
+  socket.emit('authority:presentation', presentation({ text: 'Duplicate' }))
+  assert.equal(presentations.length, 1)
+  socket.emit('authority:presentation', presentation({ sequence: 3, revision: 3 }))
+  socket.emit('authority:presentation', presentation({ sequence: 2, revision: 3 }))
+  assert.deepEqual(presentations.map(value => value.sequence), [1, 3])
+})
+
+test('checkpoint epochs discard queued old effects and allow a new sequence without replaying on join', async t => {
+  const { client, socket, presentations } = fixture(t)
+  await client.start()
+  assert.deepEqual(presentations, [], 'joining does not replay historical messages')
+  socket.emit('authority:presentation', presentation({ revision: 4 }))
+  socket.emit('authority:snapshot', { ...snapshot(2), scriptEpoch: 2 })
+  socket.emit('authority:presentation', presentation({ epoch: 1, sequence: 2, revision: 2 }))
+  socket.emit('authority:presentation', presentation({ epoch: 2, sequence: 1, revision: 2 }))
+  assert.equal(presentations.length, 1)
+  assert.equal(presentations[0].epoch, 2)
+  socket.emit('authority:snapshot', { ...snapshot(4), scriptEpoch: 2 })
+  assert.equal(presentations.length, 1, 'the old queued message stays discarded')
+  client.close()
+  socket.emit('authority:presentation', presentation({ epoch: 2, sequence: 2, revision: 4 }))
+  assert.equal(presentations.length, 1)
+})
+
+test('malformed private script events and script object snapshots fail the transport before dispatch', async t => {
+  for (const bad of [presentation({ epoch: 0 }), presentation({ sequence: 0 }), presentation({ revision: -1 }),
+    presentation({ text: '' }), presentation({ text: 'bad\u0000text' }), presentation({ targetId: 3 }),
+    presentation({ ownerToken: 'never accepted' })]) {
+    const { client, socket, presentations, errors } = fixture(t)
+    await client.start()
+    socket.emit('authority:presentation', bad)
+    assert.equal(client.closed, true)
+    assert.equal(presentations.length, 0)
+    assert.match(errors[0].message, /Invalid authoritative script presentation/)
+  }
+  for (const scriptObjects of [[{ id: 'npc', off: 'yes' }], [{ id: 'npc', off: true }, { id: 'npc', off: false }],
+    [{ id: 'npc', off: true, privateData: {} }]]) {
+    const { client, socket, errors } = fixture(t)
+    await client.start()
+    socket.emit('authority:snapshot', { ...snapshot(2), scriptObjects })
+    assert.equal(client.closed, true)
+    assert.match(errors[0].message, /Invalid authoritative world snapshot/)
+  }
 })

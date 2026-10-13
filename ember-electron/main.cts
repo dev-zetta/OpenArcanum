@@ -4,7 +4,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, ipcMain, net, protocol, session, type IpcMainInvokeEvent, type WebContents } from 'electron'
 import { resolveProtocolFile, type ProtocolFileOptions } from './protocol-files.cjs'
-import { LocalServerHost } from './local-server.cjs'
+import { LocalServerHost, validateInitialScriptFlags } from './local-server.cjs'
 import { LocalSessionController } from './local-session.cjs'
 import { errorMessage, errorStack, type ProjectConfig } from './desktop-contracts.cjs'
 
@@ -16,8 +16,9 @@ interface RendererReport {
   [detail: string]: unknown
 }
 interface SmokeResult extends RendererReport { ok?: boolean; error?: string; cleanupError?: string }
-interface SmokeOptions { timeout?: number; testInput?: boolean }
+interface SmokeOptions { timeout?: number; testInput?: boolean; moduleId?: string; checkpointPath?: string }
 interface SmokeModule {
+  runScriptSmoke?: (contents: WebContents, options: SmokeOptions) => Promise<SmokeResult>
   runGameSmoke?: (contents: WebContents, options: SmokeOptions) => Promise<SmokeResult>
   runWorkshopSmoke?: (contents: WebContents, options: SmokeOptions) => Promise<SmokeResult>
   runDoorSmoke?: (contents: WebContents, options: SmokeOptions) => Promise<SmokeResult>
@@ -40,10 +41,11 @@ const uiRoot = path.join(projectRoot, 'dist')
 const appUrl = 'serve://app/'
 const smoke = process.argv.includes('--smoke')
 const uiTest = process.argv.includes('--ui-test')
-// The current suite has 85 application cases plus Ember's onerror validation.
+// The current suite has 86 application cases plus Ember's onerror validation.
 // Missing test discovery must fail even when QUnit's own validation passes.
-const minimumUiTestCount = 86
+const minimumUiTestCount = 87
 const gameSmoke = process.argv.includes('--smoke-game')
+const scriptSmoke = gameSmoke && process.argv.includes('--smoke-scripts')
 const automated = smoke || uiTest || gameSmoke
 const loadUrl = uiTest ? `${appUrl}tests/index.html` : appUrl
 const option = (name: string): string | null => {
@@ -51,7 +53,9 @@ const option = (name: string): string | null => {
   const argument = process.argv.find(value => value.startsWith(prefix))
   return argument ? argument.slice(prefix.length) : null
 }
-const defaultTimeout = gameSmoke ? 120000 : uiTest ? 60000 : 15000
+// The complete native Workshop loop includes serial travel, inventory, quest,
+// checkpoint and host-lifecycle checks and takes over two minutes at 30 FPS.
+const defaultTimeout = gameSmoke ? (scriptSmoke ? 120000 : 180000) : uiTest ? 60000 : 15000
 const configuredTimeout = Number(option('--game-smoke-timeout') || option('--ui-test-timeout') || option('--smoke-timeout') || defaultTimeout)
 const smokeTimeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : defaultTimeout
 const smokeReport = option('--game-smoke-report') || option('--ui-test-report') || option('--smoke-report')
@@ -67,10 +71,20 @@ let quitting = false
 let quitReady = false
 // Automated scene checks get their own slot and never replace a user's save.
 const checkpointFixture = gameSmoke ? fs.mkdtempSync(path.join(os.tmpdir(), 'openarcanum-checkpoint-smoke-')) : null
+// A private fixture may initialize original global flags for this bounded
+// reference check. Ordinary startup never reads this argument or exposes it.
+const scriptFlagsFile = scriptSmoke ? option('--script-test-flags') : null
+const initialScriptFlags = scriptFlagsFile ? (() => {
+  const filename = path.resolve(scriptFlagsFile)
+  if (fs.statSync(filename).size > 65536) throw new Error('Script smoke flag fixture is too large')
+  return validateInitialScriptFlags(JSON.parse(fs.readFileSync(filename, 'utf8')) as unknown)
+})() : undefined
 const localServer = new LocalServerHost({
   entryPath: path.join(projectRoot, '@openarcanum/agate/dist/authority.cjs'),
   dataPath: config.dataPath,
+  ...(initialScriptFlags ? { initialScriptFlags } : {}),
   mapId: config.developmentMap || 'Bates Mansion Lev 2',
+  ...(config.scriptManifestPath ? { scriptManifestPath: config.scriptManifestPath } : {}),
   ...(checkpointFixture ? { checkpointPath: path.join(checkpointFixture, 'checkpoint.json') } :
     config.checkpointPath ? { checkpointPath: config.checkpointPath } : {})
 })
@@ -274,18 +288,20 @@ ipcMain.on('openarcanum:renderer-ready', (event, renderer: RendererReport) => {
     if (gameSmokeStarted) return
     gameSmokeStarted = true
     const workshop = config.moduleId === 'inventory-workshop'
-    const runGameSmoke = workshop ? smokeModule('workshop').runWorkshopSmoke! : smokeModule('game').runGameSmoke!
+    const runGameSmoke = scriptSmoke ? smokeModule('script').runScriptSmoke! :
+      workshop ? smokeModule('workshop').runWorkshopSmoke! : smokeModule('game').runGameSmoke!
     // Keep this owned window throughout asynchronous smoke checks.
     const smokeWindow = mainWindow
     if (process.argv.includes('--show')) mainWindow.focus()
-    runGameSmoke(smokeWindow.webContents, { timeout: smokeTimeout - 1000, testInput: process.argv.includes('--show') }).then(async result => {
-      if (!workshop && !result.error) {
+    runGameSmoke(smokeWindow.webContents, { timeout: smokeTimeout - 1000, testInput: process.argv.includes('--show'),
+      ...(scriptSmoke ? { moduleId: config.moduleId, checkpointPath: path.join(checkpointFixture!, 'checkpoint.json') } : {}) }).then(async result => {
+      if (!scriptSmoke && !workshop && !result.error) {
         const runDoorSmoke = smokeModule('door').runDoorSmoke!
         const doors = await runDoorSmoke(smokeWindow.webContents, { testInput: process.argv.includes('--show') })
         result.doors = doors
         if (!doors.ok) result.error = doors.error || 'Door interaction check failed'
       }
-      if (!workshop && !result.error) {
+      if (!scriptSmoke && !workshop && !result.error) {
         const runCheckpointSmoke = smokeModule('checkpoint').runCheckpointSmoke!
         const checkpoint = await runCheckpointSmoke(smokeWindow.webContents, {
           testInput: process.argv.includes('--show')
@@ -293,7 +309,7 @@ ipcMain.on('openarcanum:renderer-ready', (event, renderer: RendererReport) => {
         result.checkpoint = checkpoint
         if (!checkpoint.ok) result.error = checkpoint.error || 'Checkpoint check failed'
       }
-      if (!workshop && !result.error) {
+      if (!scriptSmoke && !workshop && !result.error) {
         const runContainerSmoke = smokeModule('container').runContainerSmoke!
         const containers = await runContainerSmoke(smokeWindow.webContents, {
           testInput: process.argv.includes('--show')
@@ -301,7 +317,7 @@ ipcMain.on('openarcanum:renderer-ready', (event, renderer: RendererReport) => {
         result.containers = containers
         if (!containers.ok) result.error = containers.error || 'Container inspection check failed'
       }
-      if (!workshop && !result.error) {
+      if (!scriptSmoke && !workshop && !result.error) {
         const runPauseSmoke = smokeModule('pause').runPauseSmoke!
         const pause = await runPauseSmoke(smokeWindow.webContents, {
           testInput: process.argv.includes('--show')

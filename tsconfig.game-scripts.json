@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.engine.json",
+  "compilerOptions": {
+    "paths": {
+      "@openarcanum/script-api": [
+        "./@openarcanum/agate/src/shared/scripting/ScriptApi.ts"
+      ],
+      "@openarcanum/agate/script-api": [
+        "./@openarcanum/agate/src/shared/scripting/ScriptApi.ts"
+      ]
+    }
+  },
+  "include": [
+    "examples/inventory-workshop/scripts/**/*.ts"
+  ]
+}

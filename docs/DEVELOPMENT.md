@@ -16,6 +16,22 @@ the rest of the campaign simulation remains unfinished. The
 [reference-game oracle](ORACLE.md) documents private Wine/Ghidra tools, captures,
 manual conversion and comparison scenarios.
 
+## Editable game scripting
+
+The [scripting workflow](SCRIPTING.md) describes TS7 imports, non-overwriting reimports,
+scoped state, server/client modules and schema 7 / protocol 2 integration. The
+owned workshop includes an executable scripted door; the local original profile
+enables the verified Bates guard heartbeat. Full campaign and DLG execution remain open.
+
+The October 14 scripting delivery passes **635 Node tests**, **87 native UI tests /
+755 assertions**, and the TS7 production build across 459 authored source/declaration
+files plus all 2,399 private converted scripts. Native Bates and owned Workshop
+checks verify script effects, private presentation, idle callbacks and checkpoint
+restoration. Full gameplay/lifecycle regressions also pass, including child-process
+reaping and stale-session rejection. Reports are private under
+`local-data/test-results/2026-10-14-scripts/`. Original arithmetic evidence comes
+from static Ghidra inspection; corresponding reference-game input cases remain open.
+
 ## TypeScript
 
 The compiler is pinned to **TypeScript 7.0.2**, the stable native compiler from

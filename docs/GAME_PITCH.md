@@ -53,6 +53,14 @@ future work.
 
 ## Where we stand
 
+The [editable scripting foundation](SCRIPTING.md) now converts the local original
+archive to named TypeScript functions. The server executes the verified Bates
+guard heartbeat; an owned scripted door proves shared state, default-action
+vetoes, idle timers and private client-script messages. Original dialogue and
+complete campaign execution remain unfinished. Script globals, RNG, attachment
+state and timed calls now participate in checkpoints.
+
+
 The current TypeScript 7 engine builds in a modern Electron/Ember/PixiJS shell. With compatible local converted assets it renders nine Bates Mansion sectors, animates a controlled actor, rejects blocked movement, handles recovered roofs, and applies original static light masks with ground-sampled object colors. The desktop starts an owned headless Node child on a private loopback port. That host loads its own map geometry and prototypes, validates versioned movement and door-use commands, rejects unauthorized or replayed actions, and advances movement on its own clock. Supported doors can be approached, opened and closed, with collision and committed original art poses replicated to the client. The client interpolates movement snapshots for presentation. Server-controlled local pause freezes movement and world animation without interrupting pending actions; idle checkpoints remain available.
 
 Recovered original inventory links support server-controlled container approach
@@ -74,12 +82,12 @@ Private item labels now use [system descriptions with identification-aware
 fallback](ITEM_DISPLAY.md). Missing unknown text cannot reveal an identified
 name. The workshop explicitly names its token, keepsake and pebble; module-specific/key names,
 identification services and full examination remain unfinished.
-One manual checkpoint using schema 6 saves position, managed doors, supported
+One manual checkpoint using schema 7 saves position, managed doors, supported
 reciprocal item ownership, the owned quest journal and its XP/level/CP, purchased attributes and ordered history. Current rules
-`movement-doors-ownership-attributes-v9` validate the known owners,
+`movement-doors-ownership-attributes-weight-scripts-v11` validate the known owners,
 complete item set, reachable sparse slots and consistent quest/progression states before applying
 a load, including legitimate holes left by Put; unknown original metadata remains untouched. Only the
-current schema 6/rules v9 contract is accepted. An authored key door can restore
+current schema 7/rules v11 contract is accepted. An authored key door can restore
 an open pose after the key is put away when the fixed verified attainable key
 universe establishes that state.
 
@@ -136,7 +144,7 @@ carry that committed progression; repeat conversations cannot award it again. Dr
 putting it away first makes that reply ineligible. Checkpoints preserve active
 and completed state; completion persists after the pebble is put away, while
 the transient conversation must be reopened after load. This authored scenario
-does not execute original dialogue or script files, or implement social checks,
+does not execute original dialogue expressions or complete campaign scripts, or implement social checks,
 failure states, timestamps, original reward modifiers or shared-party quest rules.
 [Progression](PROGRESSION.md) uses the verified XP curve and level CP grants,
 with explicit XP saturation at 1,300,000 / level 50 and a bank of at most 56 CP.
@@ -148,6 +156,6 @@ restores the exact budget and build. These values do not yet drive movement,
 combat, inventory weight, healing or followers. Races, backgrounds, effects,
 refunds and complete character advancement remain unfinished.
 
-This is the first local authority foundation: one controlled actor, a fixed development speed and read-only observer synchronization. It does not yet supply original world time, complete campaign saving, playable co-op or MMORPG operation. Original combat, dialogue/script execution, campaign quests, full inventory rules, character progression, followers, travel and campaign persistence remain substantial implementation work. M2, the complete roleplaying slice, remains open. Only Linux has been exercised in the current validation. The next success is a complete authoritative roleplaying slice, followed by a shared session that proves the same consequences to two controlled clients.
+This is the first local authority foundation: one controlled actor, a fixed development speed and read-only observer synchronization. It does not yet supply original world time, complete campaign saving, playable co-op or MMORPG operation. Original combat, complete dialogue/script coverage, campaign quests, full inventory rules, character progression, followers, travel and campaign persistence remain substantial implementation work. M2, the complete roleplaying slice, remains open. Only Linux has been exercised in the current validation. The next success is a complete authoritative roleplaying slice, followed by a shared session that proves the same consequences to two controlled clients.
 
 Manual links refer to the private local conversion and use physical PDF page numbers. That conversion and the original game's content are not part of the public source distribution. This pitch is an authored proposal; the [roadmap](FEATURE_ROADMAP.md) separates manual-derived baseline features from new product decisions.

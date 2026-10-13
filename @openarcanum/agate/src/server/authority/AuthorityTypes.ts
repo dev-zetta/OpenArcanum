@@ -29,6 +29,7 @@ export interface AuthorityEntity {
   gold?: { quantity: number }
   ground?: boolean
   portalOpen?: boolean
+  scriptOff?: boolean
 }
 export interface ItemEntity extends AuthorityEntity { item: ItemComponent }
 export interface ActorEntity extends AuthorityEntity { critter: CritterComponent }
@@ -58,7 +59,7 @@ export type OwnWrite = [object: object, key: PropertyKey, value: unknown]
 export interface Transaction { apply(): void; rollback(): void }
 export interface PendingUse { targetId: string; entity: AuthorityEntity; location: Position; expectedOpen?: boolean; signature?: string }
 export interface PreparedUse { path: Position[]; pending: PendingUse }
-export interface UseResult { result: { kind?: string; targetId: string; open?: boolean } }
+export interface UseResult { result: { kind?: string; targetId: string; open?: boolean; defaultAction?: 'skip' | 'run' } }
 export function failure(code: string, message: string): Failure { return { code, message } }
 export function record(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)

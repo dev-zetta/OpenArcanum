@@ -1,3 +1,7 @@
+import ClientScriptEngine from '../shared/scripting/ClientScriptEngine'
+import NodeScriptLoader from '../shared/scripting/NodeScriptLoader'
+import { defineScript, type ClientScriptDefinition, type ScriptPresentation } from '../shared/scripting/ScriptApi'
+import type { AuthorityPresentation, ScriptMessageState, ScriptObjectState } from './ClientScriptTypes'
 import type { AssetDescriptor, AssetTarget } from '../shared/assets/AssetLoader'
 import type ClientMap from './Map'
 import type Visual from '../shared/entity/components/Visual'
@@ -31,6 +35,14 @@ import Player from '../shared/player/Player'
 import StepState from '../shared/StepState';
 import * as PlayerLogic from './logic/player'
 
+const defaultPresentation = defineScript({ apiVersion: 1, id: 'openarcanum:presentation', name: 'Private script messages', realm: 'client',
+  entryPoints: { 0(context) {
+    if (context.event.type === 'message' && typeof context.event.text === 'string') {
+      context.ui.message(context.event.text, typeof context.event.targetId === 'string' ? context.event.targetId : undefined)
+    }
+  } }
+})
+
 type RenderedPlayer = Entity & { visual: Visual & { classes: Record<string, VisualClass> & { current: VisualClass & { sprite: Sprite } } } }
 
 
@@ -51,6 +63,16 @@ function groundItems(rows: unknown): GroundItem[] {
 }
 
 export default class ClientEngine extends ClientNetwork {
+  private scriptRuntime?: ClientScriptEngine
+  private scriptLoader?: NodeScriptLoader
+  private scriptPrograms: ClientScriptDefinition[] = []
+  private scriptPacket?: AuthorityPresentation
+  declare scriptEpoch?: number
+  scriptMessage: ScriptMessageState | null = null
+  scriptObjects = new Map<string, boolean>()
+  scriptVisualReady: Promise<unknown> = Promise.resolve()
+  private scriptSpriteLoads = new Map<Entity, Promise<unknown>>()
+  private scriptSpriteState = new WeakMap<object, { visible: boolean; renderable: boolean; eventMode: Sprite['iso']['eventMode'] }>()
   declare ready: boolean
   declare runtimeError: string | null
   declare checkpointRequest: ActionRequest | null
@@ -156,6 +178,7 @@ export default class ClientEngine extends ClientNetwork {
   async startLocalAuthority(mapId: string, session: AuthoritySession) {
     this.authority = new AuthorityClient(session, {
       onSnapshot: snapshot => this.applyAuthoritySnapshot(snapshot),
+      onPresentation: event => this.receiveScriptPresentation(event),
       onError: error => this.onRuntimeError(error)
     })
     try {
@@ -167,6 +190,7 @@ export default class ClientEngine extends ClientNetwork {
       if (this.player.id !== joined.actorId) throw new Error('Controlled actor identity differs from the server')
       this.applyAuthoritySnapshot(this.authority.snapshot!)
       await this.groundVisualReady
+      await this.scriptVisualReady
       await this.refreshInventory()
       await this.refreshJournal()
       return this
@@ -225,6 +249,11 @@ export default class ClientEngine extends ClientNetwork {
   stop() {
     this.stopped = true
     this.ready = false
+    this.scriptMessage = null
+    this.disposeClientScripts()
+    this.scriptObjects?.clear()
+    this.scriptSpriteLoads?.clear()
+    this.events.emit('Player:ScriptMessage', null)
     this.conversationSession?.invalidate()
     this.conversationRequest = null
     this.journalRequest = null
@@ -303,7 +332,7 @@ export default class ClientEngine extends ClientNetwork {
       lighting: this.scene?.lightLayer?.diagnostics || null,
       lightingAvailable: !!map?.lighting,
       authority: this.authority ? {
-        mode: 'local-server', protocolVersion: 1, connected: !!this.authority.socket?.connected,
+        mode: 'local-server', protocolVersion: 2, connected: !!this.authority.socket?.connected,
         serverPid: (this.options.authoritySession as AuthoritySession | undefined)?.pid || null,
         revision: this.authorityState?.revision ?? null,
         serverTime: this.authorityState?.serverTime ?? null,
@@ -316,6 +345,9 @@ export default class ClientEngine extends ClientNetwork {
         actor: this.authorityState?.actors.find(actor => actor.id === this.player?.id) || null
       } : null,
       interaction,
+      scriptMessage: this.scriptMessage ? { ...this.scriptMessage } : null,
+      clientScriptState: this.scriptRuntime?.snapshot() || {},
+      scriptObjects: [...(this.scriptObjects || [])].map(([id, off]) => ({ id, off })),
       ground: this.groundState ? { ...this.groundState } : null,
       conversation: this.conversationState ? { ...this.conversationState,
         options: this.conversationState.options?.map( (option)=>({...option}))}:null,
@@ -333,7 +365,7 @@ export default class ClientEngine extends ClientNetwork {
         spritePosition: sprite ? [sprite.iso.x, sprite.iso.y] : null,
         rendered: !!(sprite && sprite.iso.parent), moving: !!this.movement } : null,
       camera: center ? [center.x, center.y] : null,
-      unsupported: ['campaign', 'NPC AI', 'combat', 'original dialogue/scripts/quests', 'inventory rules',
+      unsupported: ['campaign', 'NPC AI', 'combat', 'remaining original dialogue/script/quest coverage', 'inventory rules',
         'party', 'magic', 'campaign saves', 'network play', 'roof edge fading',
         'animated/dynamic lighting', 'wall light gradients', 'lighting shadows']
     }
@@ -425,6 +457,7 @@ export default class ClientEngine extends ClientNetwork {
   }
 
   getInteractionTarget(targetId: string): InteractionTarget | undefined {
+    if (this.scriptObjects?.get(targetId) === true) return undefined
     return this.authorityState?.doors?.find(target => target.id === targetId) ||
       this.authorityState?.containers?.find(target => target.id === targetId) ||
       this.authorityState?.groundItems?.find(target => target.id === targetId) ||
@@ -537,6 +570,8 @@ export default class ClientEngine extends ClientNetwork {
           throw new Error('Local server supplied an invalid ground interaction')
         }
         this.setInteractionState(targetId, 'completed', 'Item reached.', completed.result)
+      } else if (completed.result?.kind === 'script' && completed.result.defaultAction === 'skip') {
+        this.setInteractionState(targetId, 'completed', 'The script prevented the default action.', completed.result)
       } else this.setInteractionState(targetId, 'completed', completed.result?.open ? 'Door opened.' : 'Door closed.', completed.result)
       return completed
     } catch (error) {
@@ -1050,7 +1085,119 @@ export default class ClientEngine extends ClientNetwork {
     this.groundVisualReady.catch(error => this.onRuntimeError(error))
   }
 
+  private disposeClientScripts(): void {
+    const runtime = this.scriptRuntime
+    const loader = this.scriptLoader
+    this.scriptRuntime = undefined
+    this.scriptLoader = undefined
+    this.scriptPacket = undefined
+    this.scriptPrograms = []
+    runtime?.dispose()
+    loader?.dispose()
+  }
+
+  initializeClientScripts(): void {
+    this.disposeClientScripts()
+    const programs: ClientScriptDefinition[] = []
+    if (typeof this.options.scriptManifestPath === 'string') {
+      try {
+        const loader = new NodeScriptLoader(this.options.scriptManifestPath, { realm: 'client' })
+        this.scriptLoader = loader
+        for (const entry of loader.manifest.scripts.filter(entry => entry.realm === 'client')) {
+          const definition = loader.resolve(entry.id, 'client')
+          if (!definition || definition.realm !== 'client') throw new Error('Client presentation module has an invalid realm')
+          programs.push(definition)
+        }
+      } catch (error) {
+        this.scriptLoader?.dispose()
+        this.scriptLoader = undefined
+        if (errorCode(error) !== 'ENOENT' || this.options.moduleId === 'inventory-workshop') throw error
+      }
+    }
+    this.scriptPrograms = programs.length ? programs : [defaultPresentation]
+    const epoch = this.scriptEpoch
+    this.scriptRuntime = new ClientScriptEngine({ scripts: this.scriptPrograms, emitPresentation: (effect: ScriptPresentation) => {
+      const packet = this.scriptPacket
+      if (this.stopped || !packet || epoch !== this.scriptEpoch) return
+      this.scriptMessage = { text: effect.text, epoch: packet.epoch, sequence: packet.sequence,
+        ...(effect.targetId ? { targetId: effect.targetId } : {}) }
+      this.events.emit('Player:ScriptMessage', this.scriptMessage)
+    } })
+  }
+
+  receiveScriptPresentation(event: AuthorityPresentation): void {
+    if (this.stopped || event.epoch !== this.scriptEpoch) return
+    if (!this.scriptRuntime) this.initializeClientScripts()
+    this.scriptPacket = event
+    try {
+      for (const program of this.scriptPrograms) this.scriptRuntime!.run(program.id, 0, { ...event })
+    } finally { this.scriptPacket = undefined }
+  }
+
+  applyScriptObjects(rows: ScriptObjectState[]): void {
+    const states = new Map(rows.map(row => [row.id, row.off]))
+    const entities = [...this.world.entityManager.entities.values()].filter(entity => entity.map === this.map && entity.base.type === 'Npc')
+    for (const id of states.keys()) {
+      if (entities.filter(entity => entity.sourcePath === id).length !== 1) throw new Error('Unknown authoritative script object')
+    }
+    this.scriptObjects = states
+    const loading: Promise<unknown>[] = []
+    for (const entity of entities) {
+      if (states.has(entity.sourcePath)) entity.scriptOff = states.get(entity.sourcePath)!
+      else delete entity.scriptOff
+      const off = entity.scriptOff ?? entity.base.flags.has('Off')
+      const sprites = new Set(Object.values(entity.visual?.classes || {}).map(value => value.sprite).filter((value): value is Sprite => !!value))
+      if (!off && !sprites.size && entity.visual) {
+        this.scriptSpriteLoads ||= new Map()
+        let pending = this.scriptSpriteLoads.get(entity)
+        if (!pending) {
+          pending = this.scene.addEntity(entity, this.map.objectGroup).then(() => {
+            if (!this.stopped) this.updateScriptObjectVisibility(entity)
+          }).finally(() => { this.scriptSpriteLoads.delete(entity) })
+          this.scriptSpriteLoads.set(entity, pending)
+        }
+        loading.push(pending)
+      } else this.updateScriptObjectVisibility(entity)
+      if (off && this.interactionState?.targetId === entity.sourcePath) {
+        this.interactionState = null
+        this.events.emit('Player:InteractionUpdated', null)
+      }
+      if (off && this.conversationState?.targetId === entity.sourcePath) this.invalidateConversation()
+    }
+    this.scriptVisualReady = Promise.all(loading)
+    this.scriptVisualReady.catch(error => this.onRuntimeError(error))
+  }
+
+  private updateScriptObjectVisibility(entity: Entity): void {
+    const off = entity.scriptOff ?? entity.base.flags.has('Off')
+    this.scriptSpriteState ||= new WeakMap()
+    for (const sprite of new Set(Object.values(entity.visual?.classes || {}).map(value => value.sprite))) {
+      if (!sprite) continue
+      const iso = sprite.iso
+      const previous = this.scriptSpriteState.get(iso)
+      if (off) {
+        if (!previous) this.scriptSpriteState.set(iso, { visible: iso.visible, renderable: iso.renderable, eventMode: iso.eventMode })
+        iso.visible = false
+        iso.renderable = false
+        iso.eventMode = 'none'
+      } else if (previous) {
+        iso.renderable = previous.renderable
+        iso.eventMode = previous.eventMode
+        const tile = this.map.getTile(entity.base.location.x, entity.base.location.y)
+        iso.visible = this.scene.roofLayer ? tile?.outdoor !== false || !this.scene.roofLayer.isCovered(entity.base.location, true) : previous.visible
+        this.scriptSpriteState.delete(iso)
+      }
+    }
+    this.guiManager?.setEntityVisibility?.(entity, !off)
+  }
+
   applyAuthoritySnapshot(snapshot: AuthoritySnapshot) {
+    if (snapshot.scriptEpoch !== undefined && snapshot.scriptEpoch !== this.scriptEpoch) {
+      this.scriptEpoch = snapshot.scriptEpoch
+      this.initializeClientScripts()
+      this.scriptMessage = null
+      this.events.emit('Player:ScriptMessage', null)
+    }
     this.authorityState = snapshot
     this.authorityReceivedAt = performance.now()
     if (!this.ready || !this.player || !this.map) return
@@ -1059,6 +1206,7 @@ export default class ClientEngine extends ClientNetwork {
         actor.location.length !== 2 || !actor.location.every(Number.isInteger)) {
       throw new Error('Local server supplied an invalid actor state')
     }
+    if (snapshot.scriptObjects) this.applyScriptObjects(snapshot.scriptObjects)
     this.applyAuthorityDoors(snapshot.doors || [])
     this.applyAuthorityContainers(snapshot.containers || [])
     this.applyAuthorityGroundItems(snapshot.groundItems || [])
@@ -1367,6 +1515,7 @@ export default class ClientEngine extends ClientNetwork {
    */
   onObjectClick(gameObject: Record<string, unknown>) {
     if (!gameObject) return
+    if (isRecord(gameObject.data) && gameObject.data.scriptOff === true) return
     if (this.options.standaloneMode === true) {
       if (isRecord(gameObject.data) && ['Tile', 'Facade'].includes(gameObject.data.type as string)) {
         this.movePlayerTo(gameObject.data.location as Location | number[]).catch(error => {

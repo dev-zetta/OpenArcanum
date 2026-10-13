@@ -84,7 +84,7 @@ async function runPauseSmoke(contents, { testInput = false, timeout = 20000 } = 
       report.initial.authority.pause?.supported && !report.initial.authority.pause.paused,
     'Pause regression requires the running restored movement baseline')
     const session = await evaluate('globalThis.AGate._engine.client.options.authoritySession')
-    observer = io(session.url, { auth: { version: 1, token: session.observerToken },
+    observer = io(session.url, { auth: { version: 2, token: session.observerToken },
       transports: ['websocket'], reconnection: false, autoConnect: false, forceNew: true, timeout: 5000 })
     observer.on('authority:snapshot', snapshot => snapshots.push(snapshot))
     await new Promise<void>((resolve, reject) => {
@@ -92,7 +92,7 @@ async function runPauseSmoke(contents, { testInput = false, timeout = 20000 } = 
       observer.once('connect_error', reject)
       observer.connect()
     })
-    const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 1 })
+    const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 2 })
     check(joined?.ok && joined.role === 'observer', 'Pause observer did not join')
     snapshots.push(joined.snapshot)
 

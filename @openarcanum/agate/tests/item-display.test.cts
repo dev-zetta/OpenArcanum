@@ -136,7 +136,7 @@ async function worldFixture(t) {
     await server.loadWorld()
     const owner = { data: { joined: true, role: 'owner' } }
     let id = 0
-    const command = (type, extra = {}) => server.command(owner, { version: 1, id: ++id, actorId: '0', type, ...extra })
+    const command = (type, extra = {}) => server.command(owner, { version: 2, id: ++id, actorId: '0', type, ...extra })
     const approach = () => { command('use', { targetId: BOX_ID }); server.advanceMovement(performance.now() + 10000) }
     const transfer = type => command(type, { targetId: BOX_ID, ...(type === 'take-all' ? {} : { itemId: TOKEN_ID }),
       expectedRevision: server.revision })

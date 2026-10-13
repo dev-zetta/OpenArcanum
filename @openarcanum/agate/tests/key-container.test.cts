@@ -48,7 +48,7 @@ async function fixture(t: import("node:test").TestContext, modify?) {
     await server.loadWorld()
     const owner = { data: { joined: true, role: 'owner' } }
     let id = 0
-    const command = (type, extra = {}) => server.command(owner, { version: 1, id: ++id, actorId: '0', type, ...extra })
+    const command = (type, extra = {}) => server.command(owner, { version: 2, id: ++id, actorId: '0', type, ...extra })
     const finish = () => server.advanceMovement(performance.now() + 120000)
     const use = (targetId, complete = true) => {
       const ack = command('use', { targetId })
@@ -125,7 +125,7 @@ test('putting the authorizing key inside the locked container loses access immed
   assert.deepEqual(first.server.ownership.checkpointStates(), before)
   assert.equal((await first.command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8')
-  assert.equal(JSON.parse(bytes).rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+  assert.equal(JSON.parse(bytes).rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
   await first.server.stop()
   const second = await start()
   assert.equal((await second.command('load')).ok, true)

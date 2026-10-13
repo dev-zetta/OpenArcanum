@@ -1,3 +1,4 @@
+import type { ScriptMessageState } from '../../@openarcanum/agate/src/client/ClientScriptTypes'
 import type { CarryingState } from '../../@openarcanum/agate/src/shared/character/CarryWeight'
 import type { CharacterAttribute, CharacterState, ConversationState, JournalState } from '../../@openarcanum/agate/src/client/SessionTypes'
 import type { DesktopBridge as FullDesktopBridge } from '../../ember-electron/desktop-contracts.cjs'
@@ -66,6 +67,7 @@ export interface ClientEvents {
   'World:GroundItemsUpdated': ItemRow[]
   'World:ConversationTargetsUpdated': DisplayTarget[]
   'Player:InteractionUpdated': InteractionState | null
+  'Player:ScriptMessage': ScriptMessageState | null
   'Player:CheckpointUpdated': CheckpointState | null
   'Player:PauseUpdated': PauseState | null
   'Player:InventoryUpdated': InventoryState | null
@@ -81,6 +83,7 @@ export interface ClientEventBus {
 }
 
 export interface GameClient {
+  scriptMessage?: ScriptMessageState | null
   events: ClientEventBus
   guiManager: import('./widgets').GuiManager
   player?: { id: string }
@@ -132,6 +135,7 @@ export interface GameEngine {
     authoredGui?: false
     mapId?: string
     authoritySession: LocalAuthoritySession
+    scriptManifestPath?: string
     signal: AbortSignal
   }): Promise<GameClient>
 }

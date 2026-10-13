@@ -45,7 +45,7 @@ async function runLocalSessionSmoke(contents, { timeout = 30000 } = {}) {
 
   async function join(session, role) {
     const socket = io(session.url, {
-      auth: { version: 1, token: role === 'observer' ? session.observerToken : session.token },
+      auth: { version: 2, token: role === 'observer' ? session.observerToken : session.token },
       transports: ['websocket'], autoConnect: false, reconnection: false, forceNew: true,
       timeout: Math.min(5000, Math.max(1, deadline - Date.now()))
     })
@@ -59,9 +59,9 @@ async function runLocalSessionSmoke(contents, { timeout = 30000 } = {}) {
       socket.once('connect_error', failed)
       socket.connect()
     }), `connecting the lifecycle ${role}`)
-    const joined = await bounded(socket.timeout(5000).emitWithAck('authority:join', { version: 1 }),
+    const joined = await bounded(socket.timeout(5000).emitWithAck('authority:join', { version: 2 }),
       `joining the lifecycle ${role}`)
-    if (!joined?.ok || joined.version !== 1 || joined.role !== role || joined.mapId !== session.mapId ||
+    if (!joined?.ok || joined.version !== 2 || joined.role !== role || joined.mapId !== session.mapId ||
         !joined.snapshot?.actors?.some(actor => actor.id === joined.actorId)) {
       throw new Error(`The lifecycle ${role} did not join the expected authoritative map`)
     }

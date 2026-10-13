@@ -126,7 +126,7 @@ export default class RoofLayer {
     for (const { entity, sprite } of this.objects.values()) {
       const position = entity.base.location
       const tile = this.map.getTile(position.x, position.y)
-      sprite.iso.visible = tile?.outdoor !== false || !this.isCovered(position, true)
+      sprite.iso.visible = !(entity.scriptOff ?? entity.base.flags.has('Off')) && (tile?.outdoor !== false || !this.isCovered(position, true))
     }
   }
 

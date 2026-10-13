@@ -15,6 +15,7 @@ async function check(directory: string): Promise<void> {
     const relative = `${directory}/${entry.name}`
     // The bundled PSON library and FlatBuffers output are upstream/generated.
     if (relative === '@openarcanum/agate/src/libs/PSON' ||
+        relative === 'examples/inventory-workshop/data/scripts' ||
         relative === '@openarcanum/agate/src/shared/entity/schemas/entity_generated.js') continue
     if (entry.isDirectory()) { await check(relative); continue }
     if (/\.[cm]?js$/.test(entry.name)) {

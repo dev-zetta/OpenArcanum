@@ -51,7 +51,7 @@ async function setup(t: import("node:test").TestContext, mutate?) {
     servers.push(server)
     const session = await server.start()
     async function connect(role = 'owner') {
-      const socket = io(session.url, { auth: { version: 1, token: role === 'owner' ? session.ownerToken : session.observerToken },
+      const socket = io(session.url, { auth: { version: 2, token: role === 'owner' ? session.ownerToken : session.observerToken },
         transports: ['websocket'], autoConnect: false, reconnection: false, forceNew: true, timeout: 2000 })
       const client = { socket, snapshots: [] }
       clients.push(client)
@@ -66,9 +66,9 @@ async function setup(t: import("node:test").TestContext, mutate?) {
   return { dataPath, start, ...(await start()) }
 }
 
-const join = client => client.socket.timeout(3000).emitWithAck('authority:join', { version: 1 })
+const join = client => client.socket.timeout(3000).emitWithAck('authority:join', { version: 2 })
 const command = (client, id, type, data = {}) => client.socket.timeout(3000).emitWithAck('authority:command',
-  { version: 1, id, actorId: '0', type, ...data })
+  { version: 2, id, actorId: '0', type, ...data })
 const pickup = (client, id, revision, changes = {}) => command(client, id, 'pickup',
   { targetId: GROUND_ITEM_ID, expectedRevision: revision, ...changes })
 const drop = (client, id, revision, changes = {}) => command(client, id, 'drop',
@@ -77,7 +77,7 @@ const actor = snapshot => snapshot.actors.find(value => value.id === '0')
 function rejection(result, code: string, id?: number) {
   assert.equal(result.ok, false)
   assert.equal(result.code, code)
-  assert.equal(result.version, 1)
+  assert.equal(result.version, 2)
   if (id !== undefined) assert.equal(result.id, id)
   assert.ok(Number.isSafeInteger(result.revision))
   assert.equal(typeof result.message, 'string')
@@ -171,8 +171,8 @@ test('socket ground pickup and drop conserve one identity across public floors, 
     const savedLocation = actor(context.server.getSnapshot()).location
     assert.equal((await command(owner, 15, 'save')).ok, true)
     const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
-    assert.equal(saved.version, 6)
-    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+    assert.equal(saved.version, 7)
+    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
     assert.deepEqual(saved.ownership.items.find(item => item.id === GROUND_ITEM_ID),
       { id: GROUND_ITEM_ID, parent: null, groundLocation: savedLocation })
     assert.deepEqual(await fs.readFile(path.join(context.dataPath, GROUND_ITEM_ID)), bytes, 'world transfers do not rewrite authored assets')
@@ -221,7 +221,7 @@ test('ground intentions enforce exact envelopes, owner authorization, revision, 
     const first = await join(owner); await join(observer)
     rejection(await pickup(observer, 100, first.snapshot.revision), 'FORBIDDEN', 100)
     rejection(await drop(observer, 101, first.snapshot.revision), 'FORBIDDEN', 101)
-    rejection(await pickup(owner, 1, first.snapshot.revision, { version: 2 }), 'VERSION_MISMATCH', 1)
+    rejection(await pickup(owner, 1, first.snapshot.revision, { version: 3 }), 'VERSION_MISMATCH', 1)
     rejection(await pickup(owner, 1, first.snapshot.revision, { actorId: 'another' }), 'FORBIDDEN', 1)
     for (const changes of [{ targetId: '' }, { targetId: null }, { targetId: 'x'.repeat(1025) },
       { expectedRevision: -1 }, { expectedRevision: null }, { expectedRevision: 0.5 }, { expectedRevision: '1' },

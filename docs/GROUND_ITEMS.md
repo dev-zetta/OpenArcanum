@@ -67,7 +67,7 @@ slice, and original Bates data stays unchanged.
 
 ## Persistence
 
-Current checkpoints use schema 6 and `movement-doors-ownership-attributes-v9`. Every item
+Current checkpoints use schema 7 and `movement-doors-ownership-attributes-weight-scripts-v11`. Every item
 record has `id`, reciprocal `parent` and `groundLocation`: a supported floor
 item has a validated tile tuple and null parent, while held or container-owned
 items have a null ground location. Validation conserves the exact item universe,

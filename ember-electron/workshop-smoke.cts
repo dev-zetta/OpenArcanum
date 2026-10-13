@@ -28,7 +28,9 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
       })])
     } finally { clearTimeout(timer) }
   }
-  const read = () => evaluate(`(() => {
+  let lastRead: Awaited<ReturnType<WebContents['executeJavaScript']>>
+  const read = async () => {
+    const state = await evaluate(`(() => {
     const client = globalThis.AGate?._engine?.client;
     return { status: document.querySelector('[data-runtime-state]')?.getAttribute('data-runtime-state'),
       error: document.querySelector('[role="alert"]')?.textContent || null,
@@ -66,6 +68,10 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
       }),
       visibleItems: [...document.querySelectorAll('[data-container-items] li')].map(item => item.textContent.trim()) };
   })()`)
+    state.elapsedMs = Date.now() - started
+    lastRead = state
+    return state
+  }
   async function waitFor(predicate, message) {
     while (Date.now() - started < timeout) {
       const state = await read()
@@ -153,13 +159,13 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
       JSON.stringify(initial.game.player.location) === '[4,4]' && initial.game.inventory?.known === true && initial.game.inventory.items.length === 0,
     'Workshop startup did not use its own spawn, explicit actor ownership, graphics and GUI mode')
     const session = await evaluate('globalThis.AGate._engine.client.options.authoritySession')
-    observer = io(session.url, { auth: { version: 1, token: session.observerToken },
+    observer = io(session.url, { auth: { version: 2, token: session.observerToken },
       transports: ['websocket'], reconnection: false, autoConnect: false, forceNew: true, timeout: 5000 })
     observer.on('authority:snapshot', snapshot => snapshots.push(snapshot))
     await new Promise<void>((resolve, reject) => {
       observer.once('connect', resolve); observer.once('connect_error', reject); observer.connect()
     })
-    const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 1 })
+    const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 2 })
     check(joined?.ok && joined.role === 'observer', 'Workshop observer did not join')
     snapshots.push(joined.snapshot)
 
@@ -865,7 +871,10 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
     'Dialogue scenario did not restore workshop ownership baseline and terminal quest')
     for (const snapshot of snapshots) privateBoundary(snapshot)
     report.ok = true
-  } catch (error) { report.error = `Workshop check failed: ${error.message}` }
+  } catch (error) {
+    report.error = `Workshop check failed: ${error instanceof Error ? error.message : String(error)}`
+    if (lastRead) report.lastState = lastRead
+  }
   finally { observer?.removeAllListeners(); observer?.disconnect() }
   report.elapsedMs = Date.now() - started
   return report

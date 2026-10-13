@@ -36,7 +36,7 @@ class DeferredHost {
   ready(index = this.starts.length - 1) {
     this.state = 'running'
     this.starts[index].resolve({ url: 'http://127.0.0.1:12345', token: 'private-test-token',
-      observerToken: 'private-observer-token', protocolVersion: 1, pid: this.pid, mapId: 'Synthetic map' })
+      observerToken: 'private-observer-token', protocolVersion: 2, pid: this.pid, mapId: 'Synthetic map' })
   }
 
   fail(index = this.starts.length - 1) {

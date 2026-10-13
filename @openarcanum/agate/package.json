@@ -36,5 +36,15 @@
     "xorshift": "1.2.0"
   },
   "source": "src/AGate.ts",
-  "types": "dist-types/AGate.d.ts"
+  "types": "dist-types/AGate.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist-types/AGate.d.ts",
+      "default": "./dist/index.cjs"
+    },
+    "./script-api": {
+      "types": "./dist-types/shared/scripting/ScriptApi.d.ts",
+      "default": "./dist/script-api.cjs"
+    }
+  }
 }

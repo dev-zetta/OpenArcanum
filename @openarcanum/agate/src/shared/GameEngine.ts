@@ -9,6 +9,7 @@ export interface EngineOptions {
   standaloneMode?: boolean
   authoritySession?: AuthoritySession
   mapId?: string
+  scriptManifestPath?: string
   signal?: AbortSignal
   [key: string]: unknown
 }

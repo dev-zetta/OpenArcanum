@@ -90,6 +90,7 @@
     "Inventory workshop/Sector/0/0/Npc/owned-workshop-guide.json",
     "Inventory workshop/Sector/0/0/Portal/owned-workshop-door.json",
     "Inventory workshop/Sector/0/0/Portal/owned-workshop-locked-door.json",
+    "Inventory workshop/Sector/0/0/Portal/owned-workshop-scripted-door.json",
     "Inventory workshop/Sector/0/0/Sector.json",
     "Prototypes/Container/900002.json",
     "Prototypes/Generic/900003.json",
@@ -105,6 +106,8 @@
     "archives/Prototypes.zip",
     "mes/Description.json",
     "rules/Conversations.json",
-    "rules/Progression.json"
+    "rules/Progression.json",
+    "rules/ScriptBindings.json",
+    "rules/ScriptModule.json"
   ]
 }

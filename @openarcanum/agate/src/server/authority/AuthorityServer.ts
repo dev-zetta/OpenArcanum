@@ -2,7 +2,7 @@ import type { Socket } from 'socket.io'
 import type { AddressInfo } from 'node:net'
 import type { AttributeId } from '../../shared/character/NeutralStats'
 import type { InventoryItem, ItemResult, GroundItem, ActorInventory } from './InventoryOwnership'
-import { exactKeys, record, integer, validPosition, errorCode, errorMessage, type AuthorityEntity, type ActorEntity, type AuthorityMap, type Position, type PendingUse, type OwnWrite, type Transaction } from './AuthorityTypes'
+import { exactKeys, record, integer, validPosition, errorCode, errorMessage, type AuthorityEntity, type ActorEntity, type AuthorityMap, type Position, type PendingUse, type OwnWrite, type Transaction, type Outcome, type UseResult } from './AuthorityTypes'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import http from 'node:http'
@@ -17,6 +17,9 @@ import Utils from '../../shared/misc/Utils'
 import Sector from '../../shared/map/Sector'
 import StreamZip from 'node-stream-zip'
 import DoorInteractions from './DoorInteractions'
+import AuthorityScripts, { type PreparedAuthorityRestore } from './AuthorityScripts'
+import type { ScriptPresentation } from '../../shared/scripting/ScriptApi'
+import { createHash } from 'node:crypto'
 import ContainerInteractions from './ContainerInteractions'
 import GroundInteractions from './GroundInteractions'
 import ConversationInteractions from './ConversationInteractions'
@@ -27,7 +30,7 @@ import { loadItemDisplayCatalog } from './ItemDisplayCatalog'
 import CheckpointStore from './CheckpointStore'
 import { captureContentIdentity, CHECKPOINT_RULES_VERSION as RULES_VERSION } from './ContentIdentity'
 
-export const PROTOCOL_VERSION = 1
+export const PROTOCOL_VERSION = 2
 export const DEFAULT_MAP = 'Bates Mansion Lev 2'
 const STEP_DURATION_MS = 1000
 const ACTOR_ID = '0'
@@ -39,7 +42,7 @@ const CHECKPOINT_ERRORS = {
   CHECKPOINT_IO_ERROR: 'The local checkpoint could not be read or written',
 }
 
-export interface AuthorityOptions { dataPath: string; mapId?: string; port?: number; tickMs?: number; allowPause?: boolean; ownerToken?: string; observerToken?: string; checkpointPath?: string; sessionFile?: string }
+export interface AuthorityOptions { dataPath: string; mapId?: string; port?: number; tickMs?: number; allowPause?: boolean; ownerToken?: string; observerToken?: string; checkpointPath?: string; sessionFile?: string; scriptManifestPath?: string; initialScriptFlags?: Record<string, Record<number, 0 | 1>> }
 interface ResolvedOptions extends AuthorityOptions { port: number; tickMs: number; allowPause: boolean }
 interface AuthorityCore { config: { dataPath: string }; Utils: typeof Utils; getDataPath(value?: string): string; getAppPath(value?: string): string }
 type Logger = (...args: unknown[]) => void
@@ -67,10 +70,10 @@ type AttributeCommand = CommandBase & { type: 'buy-attribute'; statId: Attribute
 type MoveCommand = CommandBase & { type: 'move'; target: Position }
 type Command = TargetCommand | PlainCommand | TransferCommand | GroundCommand | ReplyCommand | AttributeCommand | MoveCommand
 interface CommandSocket { data: { joined?: boolean; role?: string } }
-interface LastCommand { id?: number; type?: string; targetId?: string; status: string; code?: string; message?: string; result?: { kind?: string; targetId?: string; open?: boolean; savedAt?: string } }
+interface LastCommand { id?: number; type?: string; targetId?: string; status: string; code?: string; message?: string; result?: { kind?: string; targetId?: string; open?: boolean; savedAt?: string; defaultAction?: 'skip' | 'run' } }
 interface Movement { commandId: number; path: Position[]; index: number; elapsedMs: number; durationMs: number; startedAt: number; pendingUse?: PendingUse; pendingUseKind?: 'container' | 'ground' | 'conversation' | 'door' }
 interface CheckpointStatus { supported: boolean; busy: boolean; lastAction?: string; savedAt?: string; error?: { code: string; message: string } }
-interface CheckpointCandidate { location: Location; doors: Map<string, boolean>; ownership: Transaction; quests: Transaction; progression: Transaction }
+interface CheckpointCandidate { location: Location; doors: Map<string, boolean>; ownership: Transaction; quests: Transaction; progression: Transaction; scripts: PreparedAuthorityRestore }
 type CheckpointErrorCode = keyof typeof CHECKPOINT_ERRORS
 
 function checkpointError(code: CheckpointErrorCode) {
@@ -171,6 +174,11 @@ export class AuthorityServer {
   declare progression: CharacterProgression
   declare conversations: ConversationInteractions
   declare player: ActorEntity
+  declare scripts: AuthorityScripts
+  declare scriptEpoch: number
+  declare scriptSequence: number
+  declare scriptTickAt: number
+  declare scriptEffects: ScriptPresentation[]
   declare contentIdentity: string
   declare itemDisplay: Awaited<ReturnType<typeof loadItemDisplayCatalog>> | null
   declare httpServer: http.Server
@@ -194,6 +202,10 @@ export class AuthorityServer {
         this.ownerToken === this.observerToken) {
       throw new Error('Distinct owner and observer tokens of at least 32 characters are required')
     }
+    this.scriptEpoch = 1
+    this.scriptSequence = 0
+    this.scriptTickAt = performance.now()
+    this.scriptEffects = []
     this.revision = 0
     this.lastCommandId = 0
     this.lastCommand = null
@@ -278,7 +290,12 @@ export class AuthorityServer {
     const conversationRules = await loadOptionalRules(this.assetLoader, dataPath, 'rules/Conversations.json', 1024 * 1024)
     this.conversations = new ConversationInteractions(this.map, this.ownership, conversationRules, { progression: this.progression })
     if (this.world.entityManager.systems.size !== 0) throw new Error('Headless host activated legacy systems')
-    this.contentIdentity = capture.finish(this.mapId)
+    const scriptBindings = await loadOptionalRules(this.assetLoader, dataPath, 'rules/ScriptBindings.json', 4 * 1024 * 1024)
+    const scriptModule = await loadOptionalRules(this.assetLoader, dataPath, 'rules/ScriptModule.json', 16384)
+    this.scripts = await AuthorityScripts.load({ map: this.map, player: this.player, dataPath,
+      manifestPath: this.options.scriptManifestPath, bindings: scriptBindings, descriptor: scriptModule,
+      initialFlags: this.options.initialScriptFlags, effects: effect => this.scriptEffects.push(effect) })
+    this.contentIdentity = createHash('sha256').update(capture.finish(this.mapId)).update(this.scripts.contentIdentity).digest('hex')
     // Names are private presentation only. Text edits must not invalidate an
     // otherwise compatible ownership checkpoint, and never hot-reload rules.
     this.itemDisplay = await loadItemDisplayCatalog(dataPath)
@@ -317,7 +334,8 @@ export class AuthorityServer {
       })
       this.started = true
       this.revision++
-      this.timer = setInterval(() => this.advanceMovement(performance.now()), this.options.tickMs)
+      this.scriptTickAt = performance.now()
+      this.timer = setInterval(() => this.advanceSimulation(performance.now()), this.options.tickMs)
       const port = (this.httpServer.address() as AddressInfo).port
       return { host: '127.0.0.1', port, url: `http://127.0.0.1:${port}`,
         version: PROTOCOL_VERSION, mapId: this.mapId,
@@ -339,6 +357,7 @@ export class AuthorityServer {
       }
       socket.data.joined = true
       socket.join('authority:joined')
+      if (socket.data.role === 'owner') socket.join('authority:owner')
       acknowledge({ ok: true, version: PROTOCOL_VERSION, role: socket.data.role,
         mapId: this.mapId, actorId: ACTOR_ID, nextCommandId: this.lastCommandId + 1,
         snapshot: this.getSnapshot() })
@@ -444,6 +463,24 @@ export class AuthorityServer {
       status: 'accepted', path: path.map(point => [...point]), revision: this.revision }
   }
 
+  private applyUse(interactions: DoorInteractions | ContainerInteractions | GroundInteractions | ConversationInteractions, pending: PendingUse): Outcome<UseResult> {
+    if (interactions !== this.doors) return interactions.apply(pending, this.player)
+    const defaultAction = this.doors.prepareApply(pending, this.player)
+    if (defaultAction.code !== undefined) return defaultAction
+    let script: ReturnType<AuthorityScripts['prepareUse']> = null
+    try {
+      script = this.scripts.prepareUse(pending.targetId, this.player.id)
+      script?.commit()
+      if (!script || script.runDefault) defaultAction.transaction.apply()
+      script?.flushEffects()
+      return { result: script && !script.runDefault ? { kind: 'script', targetId: pending.targetId, defaultAction: 'skip' } : defaultAction.result }
+    } catch (error) {
+      defaultAction.transaction.rollback()
+      script?.rollback()
+      return { code: 'SCRIPT_FAULT', message: errorMessage(error) }
+    }
+  }
+
   useTarget(command: TargetCommand) {
     const interactions = this.doors.states.has(command.targetId) ? this.doors :
       this.ownership.items.get(command.targetId)?.groundCapable ? this.ground :
@@ -453,7 +490,7 @@ export class AuthorityServer {
     const { path, pending } = prepared
     const record = { id: command.id, type: 'use', targetId: command.targetId }
     if (path.length === 1) {
-      const applied = interactions.apply(pending, this.player)
+      const applied = this.applyUse(interactions, pending)
       if (applied.code !== undefined) return this.reject(command.id, applied.code, applied.message)
       this.conversations?.invalidate()
       this.lastCommand = { ...record, status: 'completed', result: applied.result }
@@ -618,10 +655,11 @@ export class AuthorityServer {
       if (paused) {
         // Commit all progress through this instant, including an interaction
         // that genuinely completes before the pause. Later ticks are frozen.
-        this.advanceMovement(now)
+        this.advanceSimulation(now)
         this.pausedAt = now
       } else {
         if (this.movement) this.movement.startedAt += Math.max(0, now - this.pausedAt!)
+        this.scriptTickAt = now
         this.pausedAt = null
       }
       this.paused = paused
@@ -642,15 +680,15 @@ export class AuthorityServer {
       this.ownership.validateCheckpointWeight(ownership, this.progression.carryCapacity())
     }
     catch (_) { throw checkpointError('CHECKPOINT_INVALID') }
-    return { format: CHECKPOINT_FORMAT, version: 6, rulesVersion: RULES_VERSION,
+    return { format: CHECKPOINT_FORMAT, version: 7, rulesVersion: RULES_VERSION,
       mapId: this.mapId, contentIdentity: this.contentIdentity, savedAt: new Date().toISOString(),
       actor: { id: ACTOR_ID, location: [this.player.base.location.x, this.player.base.location.y] },
-      doors: this.doors.checkpointStates(), ownership, quests, character }
+      doors: this.doors.checkpointStates(), ownership, quests, character, scripts: this.scripts.snapshot() }
   }
 
   validateCheckpoint(document: unknown): CheckpointCandidate {
-    if (record(document) && document.format === CHECKPOINT_FORMAT && [1, 2, 3, 4, 5].includes(document.version as number)) throw checkpointError('CHECKPOINT_INCOMPATIBLE')
-    if (!exactKeys(document, ['format', 'version', 'rulesVersion', 'mapId', 'contentIdentity', 'savedAt', 'actor', 'doors', 'ownership', 'quests', 'character']) ||
+    if (record(document) && document.format === CHECKPOINT_FORMAT && [1, 2, 3, 4, 5, 6].includes(document.version as number)) throw checkpointError('CHECKPOINT_INCOMPATIBLE')
+    if (!exactKeys(document, ['format', 'version', 'rulesVersion', 'mapId', 'contentIdentity', 'savedAt', 'actor', 'doors', 'ownership', 'quests', 'character', 'scripts']) ||
         typeof document.savedAt !== 'string' || !Number.isFinite(Date.parse(document.savedAt)) ||
         new Date(document.savedAt).toISOString() !== document.savedAt ||
         !exactKeys(document.actor, ['id', 'location']) || document.actor.id !== ACTOR_ID ||
@@ -658,14 +696,15 @@ export class AuthorityServer {
         typeof document.contentIdentity !== 'string' || !/^[a-f0-9]{64}$/.test(document.contentIdentity)) {
       throw checkpointError('CHECKPOINT_INVALID')
     }
-    if (document.format !== CHECKPOINT_FORMAT || document.version !== 6 ||
+    if (document.format !== CHECKPOINT_FORMAT || document.version !== 7 ||
         document.rulesVersion !== RULES_VERSION || document.contentIdentity !== this.contentIdentity || document.mapId !== this.mapId) {
       throw checkpointError('CHECKPOINT_INCOMPATIBLE')
     }
     const doors = this.doors.validateCheckpoint(document.doors)
     if (doors.code !== undefined) throw checkpointError('CHECKPOINT_INVALID')
-    let ownership, quests, progression
+    let ownership, quests, progression, scripts
     try {
+      scripts = this.scripts.prepareRestore(document.scripts)
       ownership = this.ownership.validateCheckpoint(document.ownership)
       quests = this.conversations.validateCheckpoint(document.quests)
       progression = prepareOwnWrites(this.progression.checkpointWrites(document.character, document.quests))
@@ -675,11 +714,11 @@ export class AuthorityServer {
     catch (_) { throw checkpointError('CHECKPOINT_INVALID') }
     const [x, y] = document.actor.location
     if (x < 0 || y < 0 || x >= this.map.width * Sector.Width || y >= this.map.height * Sector.Height ||
-        this.checkpointLocationBlocked(x, y, doors.candidate)) throw checkpointError('CHECKPOINT_INVALID')
-    return { location: new Location(document.actor.location), doors: doors.candidate, ownership, quests, progression }
+        this.checkpointLocationBlocked(x, y, doors.candidate, scripts!.transaction.candidate.off)) throw checkpointError('CHECKPOINT_INVALID')
+    return { location: new Location(document.actor.location), doors: doors.candidate, ownership, quests, progression, scripts: scripts! }
   }
 
-  checkpointLocationBlocked(x: number, y: number, candidateDoors: Map<string, boolean>) {
+  checkpointLocationBlocked(x: number, y: number, candidateDoors: Map<string, boolean>, candidateOff: Readonly<Record<string, boolean>>) {
     const tile = this.map.getTile(x, y)
     if (!tile?.type || tile.blocked) return true
     // Inspect the candidate without editing live collision state or moving the
@@ -688,7 +727,7 @@ export class AuthorityServer {
       if (entity === this.player || entity.map !== this.map || !entity.base ||
           entity.base.location.x !== x || entity.base.location.y !== y ||
           !['Wall', 'Portal', 'Npc', 'Pc', 'Scenery', 'Container'].includes(entity.base.type) ||
-          entity.base.flags.hasAny(['Inventory', 'Off', 'Destroyed'])) continue
+          entity.base.flags.hasAny(['Inventory', 'Destroyed']) || (candidateOff[entity.sourcePath] ?? entity.base.flags.has('Off'))) continue
       const door = this.doors.states.get(entity.sourcePath)
       if (entity.base.type === 'Portal' && door?.artSupported && candidateDoors.has(door.id)) {
         if (candidateDoors.get(door.id)) continue
@@ -739,6 +778,11 @@ export class AuthorityServer {
       doors.apply()
       candidate.quests.apply()
       candidate.progression.apply()
+      this.scripts.restore(candidate.scripts)
+      this.scriptEpoch++
+      this.scriptSequence = 0
+      this.scriptEffects = []
+      this.scriptTickAt = performance.now()
     } catch (_) {
       candidate.progression.rollback()
       candidate.quests.rollback()
@@ -799,6 +843,15 @@ export class AuthorityServer {
     }
   }
 
+  advanceSimulation(now: number) {
+    const elapsed = Math.max(0, now - this.scriptTickAt)
+    this.scriptTickAt = now
+    if (this.stopped || this.paused || this.checkpointBusy) return
+    this.advanceMovement(now)
+    const changed = this.scripts?.tick(elapsed, this.player)
+    if (changed || this.scriptEffects.length) this.publish()
+  }
+
   advanceMovement(now: number) {
     const movement = this.movement
     if (!movement || this.stopped || this.paused) return
@@ -823,7 +876,7 @@ export class AuthorityServer {
       if (movement.pendingUse) {
         const interactions = movement.pendingUseKind === 'container' ? this.containers : movement.pendingUseKind === 'ground' ? this.ground :
           movement.pendingUseKind === 'conversation' ? this.conversations : this.doors
-        const applied = interactions.apply(movement.pendingUse, this.player)
+        const applied = this.applyUse(interactions, movement.pendingUse)
         this.lastCommand = applied.code !== undefined ? { ...this.lastCommand, status: 'interrupted',
           code: applied.code, message: applied.message } :
           { ...this.lastCommand, status: 'completed', result: applied.result }
@@ -835,7 +888,7 @@ export class AuthorityServer {
   getSnapshot() {
     if (!this.player) return null
     const movement = this.movement
-    return { version: PROTOCOL_VERSION, mapId: this.mapId, revision: this.revision,
+    return { version: PROTOCOL_VERSION, scriptEpoch: this.scriptEpoch, scriptObjects: this.scripts?.publicObjects() || [], mapId: this.mapId, revision: this.revision,
       serverTime: Date.now(), pause: { supported: this.options.allowPause, paused: this.paused }, checkpoint: { ...this.checkpointState,
         ...(this.checkpointState.error ? { error: { ...this.checkpointState.error } } : {}) },
       doors: this.doors?.snapshots() || [], containers: this.containers?.snapshots() || [],
@@ -853,6 +906,10 @@ export class AuthorityServer {
   publish() {
     this.revision++
     this.io?.to('authority:joined').emit('authority:snapshot', this.getSnapshot())
+    for (const effect of this.scriptEffects.splice(0)) {
+      this.io?.to('authority:owner').emit('authority:presentation', { version: PROTOCOL_VERSION, epoch: this.scriptEpoch,
+        sequence: ++this.scriptSequence, revision: this.revision, ...effect })
+    }
   }
 
   stop() {
@@ -870,6 +927,8 @@ export class AuthorityServer {
         this.assetLoader.archiveEntries?.clear()
       }
       this.engine?.events.removeAllListeners()
+      this.scripts?.dispose()
+      this.scriptEffects = []
       this.doors?.clear()
       this.containers?.clear()
       this.conversations?.clear()

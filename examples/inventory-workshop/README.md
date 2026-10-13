@@ -33,6 +33,13 @@ The independent crate at `(11, 2)` holds **Workshop ballast**, a 4,000-stone
 whole Generic item with its own procedural floor artwork. It leaves all existing
 crate contents and quest paths unchanged.
 
+The separate scripted door at `(11, 5)` loads editable TypeScript from
+[`scripts/door.ts`](scripts/door.ts). Its first Use hides the guide and refuses
+the normal door action. A private client script displays the refusal, followed
+by an idle timer message. The second Use restores the guide and opens the door.
+Checkpoints preserve the counter, custom data, shared state and guide visibility.
+See [Scripting](../../docs/SCRIPTING.md) for editing and rebuilding both modules.
+
 ```sh
 node examples/inventory-workshop/generate.cts
 OPENARCANUM_MODULE=inventory-workshop npm start
@@ -191,7 +198,7 @@ loader or a source of executable rules. `Map.json` declares the validated start
 location. The historical actor filename `16086.json` remains an engine adapter;
 its actual owned prototype is `900001`, with an explicitly empty inventory.
 
-The 95 generated files include readable JSON and PNG files alongside three
+The 98 generated files include readable JSON and PNG files alongside three
 deterministic ZIP catalogs. Existing asset enumeration uses these catalogs;
 loose files take precedence when loading their contents. Regenerate all outputs
 after editing the generator so the catalogs and manifest stay consistent.
@@ -202,8 +209,8 @@ convention while referring to frames in the actual `tiles.png` atlas.
 Module-specific runtime saves and reports belong under ignored `local-data/`,
 outside this checked-in example. Neither the example source nor generated
 archives should change when a session is played. The default manual slot is
-`local-data/saves/inventory-workshop.json`. Current checkpoints use schema 6
-and rules `movement-doors-ownership-attributes-weight-v10`; only this current contract is
+`local-data/saves/inventory-workshop.json`. Current checkpoints use schema 7
+and rules `movement-doors-ownership-attributes-weight-scripts-v11`; only this current contract is
 accepted. Startup does not auto-load the manual slot. Description text remains
 outside simulation identity. This is not complete original-game take-all
 behavior for retail loot, corpses, equipment or the full original weight rules.

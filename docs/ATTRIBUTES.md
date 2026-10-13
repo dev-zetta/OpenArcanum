@@ -78,8 +78,8 @@ without changing either the attribute or CP. The client displays committed
 responses and cannot supply a desired value or point cost. Character attributes
 and derived previews stay private to the owner.
 
-Current checkpoints use schema 6 and
-`movement-doors-ownership-attributes-weight-v10`. They persist the purchased attributes
+Current checkpoints use schema 7 and
+`movement-doors-ownership-attributes-weight-scripts-v11`. They persist the purchased attributes
 and an ordered history of completed-quest rewards and purchases. Loading replays that
 bounded history from the fixed baseline and requires its final attributes,
 budget, XP, level and quest states to match before restoring any world state.

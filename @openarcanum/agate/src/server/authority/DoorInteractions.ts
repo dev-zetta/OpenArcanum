@@ -1,4 +1,4 @@
-import { failure as error, position, samePosition as same, near, type AuthorityEntity, type AuthorityMap, type DoorEntity, type ContainerEntity, type Position, type PendingUse, type PreparedUse, type UseResult, type Outcome, type Failure } from './AuthorityTypes'
+import { failure as error, position, samePosition as same, near, type AuthorityEntity, type AuthorityMap, type DoorEntity, type ContainerEntity, type Position, type PendingUse, type PreparedUse, type UseResult, type Outcome, type Failure, type Transaction } from './AuthorityTypes'
 import Location from '../../shared/Location'
 import { prepareOwnWrites } from './InventoryOwnership'
 
@@ -172,7 +172,7 @@ export default class DoorInteractions {
     return { path, pending: { targetId, entity: state.entity, location, expectedOpen: state.open } }
   }
 
-  apply(pending: PendingUse, actor: AuthorityEntity): Outcome<UseResult> {
+  prepareApply(pending: PendingUse, actor: AuthorityEntity): Outcome<UseResult & { transaction: Transaction }> {
     const state = this.states.get(pending.targetId)
     if (!state || !this.present(state) || state.entity !== pending.entity ||
         !same(position(state.entity), pending.location) || state.open !== pending.expectedOpen) {
@@ -192,16 +192,23 @@ export default class DoorInteractions {
       // actor. Tile terrain/walls stay owned by GameMap's collision policy.
       const occupied = [...this.map.entityManager.entities.values()].some(entity =>
         entity !== state.entity && entity.map === this.map && entity.base &&
-        !entity.base.flags.hasAny(['Off', 'Destroyed', 'Inventory', 'NoBlock']) &&
+        !(entity.scriptOff ?? entity.base.flags.has('Off')) && !entity.base.flags.hasAny(['Destroyed', 'Inventory', 'NoBlock']) &&
         ['Pc', 'Npc', 'Scenery', 'Container', 'Portal'].includes(entity.base.type) &&
         same(position(entity), pending.location))
       if (occupied) return error('OCCUPIED', 'Cannot close a door while its tile is occupied')
     }
     const open = !state.open
     try {
-      prepareOwnWrites([[state, 'open', open], [state.entity, 'portalOpen', open]]).apply()
+      const transaction = prepareOwnWrites([[state, 'open', open], [state.entity, 'portalOpen', open]])
+      return { transaction, result: { targetId: state.id, open } }
     } catch { return error('UNSUPPORTED_DOOR', 'Door state cannot be changed safely') }
-    return { result: { targetId: state.id, open: state.open } }
+  }
+
+  apply(pending: PendingUse, actor: AuthorityEntity): Outcome<UseResult> {
+    const prepared = this.prepareApply(pending, actor)
+    if (prepared.code !== undefined) return prepared
+    try { prepared.transaction.apply(); return { result: prepared.result } }
+    catch { return error('UNSUPPORTED_DOOR', 'Door state cannot be changed safely') }
   }
 
   clear() { this.states.clear() }

@@ -13,6 +13,7 @@ const BOX_ID = `${PREFIX}/Container/owned-workshop-box.json`
 const TOKEN_ID = `${PREFIX}/Generic/owned-workshop-token.json`
 const TOKEN_LABEL = 'Workshop token'
 const DOOR_ID = `${PREFIX}/Portal/owned-workshop-door.json`
+const SCRIPTED_DOOR_ID = `${PREFIX}/Portal/owned-workshop-scripted-door.json`
 const KEY_BOX_ID = `${PREFIX}/Container/owned-workshop-key-box.json`
 const KEY_ID = `${PREFIX}/Key/owned-workshop-key.json`
 const LOCKED_DOOR_ID = `${PREFIX}/Portal/owned-workshop-locked-door.json`
@@ -301,6 +302,11 @@ function buildFiles() {
     Container: { inventory: [{ id: TOKEN_ID, slot: 3 }], inventoryIndex: 1 } })
   json(TOKEN_ID, { Base: { prototype: 900003, location: [6, 4] }, Item: { parent: BOX_ID, invLocation: 7 } })
   json(DOOR_ID, { Base: { prototype: 900004, location: [8, 4] } })
+  json(SCRIPTED_DOOR_ID, { Base: { prototype: 900004, location: [11, 5] } })
+  json('rules/ScriptModule.json', { format: 'openarcanum-script-module', version: 1, manifest: 'scripts/manifest.json' })
+  json('rules/ScriptBindings.json', { format: 'openarcanum-script-bindings', version: 1, objects: {
+    [SCRIPTED_DOOR_ID]: { 1: { scriptId: 'workshop:door', flags: 0, counters: [0, 0, 0, 0] } }
+  } })
   json(KEY_BOX_ID, { Base: { prototype: 900002, location: [3, 7] },
     Container: { inventory: [{ id: KEY_ID, slot: 3 }], inventoryIndex: 1 } })
   json(KEY_ID, { Base: { prototype: 900005, location: [3, 7] },
@@ -387,10 +393,16 @@ async function generate(directory = __dirname) {
   }
   await fs.mkdir(directory, { recursive: true })
   await fs.writeFile(path.join(directory, 'module.json'), `${JSON.stringify(manifest(files), null, 2)}\n`)
+  // External runnable fixtures need the checked TypeScript build as well as
+  // deterministic source data. Compiled modules are deliberately absent from
+  // buildFiles()/module.json and are never checked into the repository.
+  if (path.resolve(directory) !== path.resolve(__dirname)) {
+    await fs.cp(path.join(__dirname, 'data/scripts'), path.join(directory, 'data/scripts'), { recursive: true })
+  }
   return { directory, files: files.size, mapId: MAP_ID }
 }
 
-module.exports = { buildFiles, manifest, generate, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID,
+module.exports = { buildFiles, manifest, generate, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID, SCRIPTED_DOOR_ID,
   KEY_BOX_ID, KEY_ID, LOCKED_DOOR_ID, LOCK_KEY_ID, LOCKED_BOX_ID, PRIZE_ID, PRIZE_LABEL,
   GROUND_ITEM_ID, GROUND_ITEM_LABEL, NPC_ID, NPC_LABEL, CONVERSATION_ID, QUEST_ID, QUEST_TITLE,
   QUEST_EXPERIENCE_REWARD, PROGRESSION_BASELINE, DIRECTIONS, BALLAST_BOX_ID, BALLAST_ID, BALLAST_LABEL, BALLAST_WEIGHT }

@@ -13,6 +13,7 @@ export interface ProjectConfig {
   developmentMap?: string
   moduleManifestPath?: string
   checkpointPath?: string
+  scriptManifestPath?: string
 }
 
 export interface QUnitTestCounts {

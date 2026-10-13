@@ -52,8 +52,8 @@ requests reject without a quest transition or item mutation. Movement, pause,
 load, stop and other invalidating actions discard the transient conversation;
 the client refreshes the private view instead of deciding a quest outcome.
 
-Current checkpoints use schema 6 and
-`movement-doors-ownership-attributes-v9`. They restore the validated quest journal
+Current checkpoints use schema 7 and
+`movement-doors-ownership-attributes-weight-scripts-v11`. They restore the validated quest journal
 and its XP/level/unspent CP, attributes and ordered purchase/reward history
 with actor position, doors and supported ownership
 in one load. A reward inconsistent with the saved quest states rejects the load.

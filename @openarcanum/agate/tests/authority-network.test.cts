@@ -183,7 +183,7 @@ async function setup(t: import("node:test").TestContext, options: {serverOptions
   })
   const connection = await server.start()
   assert.equal(connection.host, '127.0.0.1')
-  assert.equal(connection.version, 1)
+  assert.equal(connection.version, 2)
   assert.equal(connection.mapId, mapId)
   assert.ok(Number.isInteger(connection.port) && connection.port > 0)
   assert.notEqual(connection.ownerToken, connection.observerToken)
@@ -205,25 +205,25 @@ async function setup(t: import("node:test").TestContext, options: {serverOptions
   return { dataPath, server, connection, connect }
 }
 
-function join(client, version = 1) {
+function join(client, version = 2) {
   return client.socket.timeout(2000).emitWithAck('authority:join', { version })
 }
 
 function command(client, id, target, changes = {}) {
   return client.socket.timeout(2000).emitWithAck('authority:command', {
-    version: 1, id, actorId: '0', type: 'move', target, ...changes,
+    version: 2, id, actorId: '0', type: 'move', target, ...changes,
   })
 }
 
 function use(client, id, name, changes = {}) {
   return client.socket.timeout(2000).emitWithAck('authority:command', {
-    version: 1, id, actorId: '0', type: 'use', targetId: doorId(name), ...changes,
+    version: 2, id, actorId: '0', type: 'use', targetId: doorId(name), ...changes,
   })
 }
 
 function checkpoint(client, id, type, changes = {}) {
   return client.socket.timeout(2000).emitWithAck('authority:command', {
-    version: 1, id, actorId: '0', type, ...changes,
+    version: 2, id, actorId: '0', type, ...changes,
   })
 }
 
@@ -236,7 +236,7 @@ function inspect(client, id, name, changes = {}) {
 }
 
 function actor(snapshot) {
-  assert.equal(snapshot.version, 1)
+  assert.equal(snapshot.version, 2)
   assert.equal(snapshot.mapId, mapId)
   assert.ok(Number.isInteger(snapshot.revision) && snapshot.revision >= 0)
   assert.ok(Number.isFinite(snapshot.serverTime))
@@ -268,7 +268,7 @@ async function snapshotWhere(client, predicate, timeout = 4500) {
 
 function rejection(response, code: string, id?: number) {
   assert.equal(response.ok, false)
-  assert.equal(response.version, 1)
+  assert.equal(response.version, 2)
   assert.equal(response.code, code)
   if (id !== undefined) assert.equal(response.id, id)
   assert.equal(typeof response.reason, 'string')
@@ -279,17 +279,17 @@ function rejection(response, code: string, id?: number) {
 test('authority handshake rejects unknown tokens and incompatible protocol versions', { timeout: 10000 }, async t => {
   assert.equal(typeof globalThis.window, 'undefined')
   const context = await setup(t)
-  await assert.rejects(context.connect({ version: 1, token: 'not-a-session-token' }), (error: import("./fixture-types.cjs").FixtureError) => {
+  await assert.rejects(context.connect({ version: 2, token: 'not-a-session-token' }), (error: import("./fixture-types.cjs").FixtureError) => {
     assert.equal(error.data.code, 'UNAUTHORIZED')
     return true
   })
-  await assert.rejects(context.connect({ version: 2, token: context.connection.ownerToken }), (error: import("./fixture-types.cjs").FixtureError) => {
+  await assert.rejects(context.connect({ version: 3, token: context.connection.ownerToken }), (error: import("./fixture-types.cjs").FixtureError) => {
     assert.equal(error.data.code, 'VERSION_MISMATCH')
     return true
   })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   rejection(await command(owner, 1, [93, 99]), 'NOT_JOINED', 1)
-  rejection(await join(owner, 2), 'VERSION_MISMATCH')
+  rejection(await join(owner, 3), 'VERSION_MISMATCH')
   const joined = await join(owner)
   assert.equal(joined.ok, true)
   assert.equal(joined.role, 'owner')
@@ -299,8 +299,8 @@ test('authority handshake rejects unknown tokens and incompatible protocol versi
 
 test('real sockets observe autonomous movement and identical revisioned state without any renderer', { timeout: 10000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   const ownerJoin = await join(owner), observerJoin = await join(observer)
   assert.equal(observerJoin.role, 'observer')
   assert.deepEqual(actor(ownerJoin.snapshot).location, start)
@@ -333,14 +333,14 @@ test('real sockets observe autonomous movement and identical revisioned state wi
 
 test('authority rejects malformed, blocked, void, unreachable and unauthorized movement without mutating actors', { timeout: 10000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   await join(owner)
   await join(observer)
   const before = actor(context.server.getSnapshot())
   rejection(await command(observer, 100, [93, 99]), 'FORBIDDEN', 100)
   rejection(await command(owner, 100, [93, 99], { actorId: 'someone-else' }), 'FORBIDDEN', 100)
-  rejection(await command(owner, 100, [93, 99], { version: 2 }), 'VERSION_MISMATCH', 100)
+  rejection(await command(owner, 100, [93, 99], { version: 3 }), 'VERSION_MISMATCH', 100)
   const malformed = [
     { id: 0 }, { id: -1 }, { id: 1.5 }, { id: '1' },
     { id: Number.MAX_SAFE_INTEGER + 1 },
@@ -372,7 +372,7 @@ test('authority rejects malformed, blocked, void, unreachable and unauthorized m
 
 test('command IDs cannot execute again while moving, after completion, or after owner reconnect', { timeout: 10000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   assert.equal((await command(owner, 1, [93, 99])).ok, true)
   rejection(await command(owner, 1, [94, 99]), 'REPLAYED_COMMAND', 1)
@@ -382,7 +382,7 @@ test('command IDs cannot execute again while moving, after completion, or after 
   rejection(await command(owner, 1, [94, 99]), 'REPLAYED_COMMAND', 1)
   assert.deepEqual(actor(context.server.getSnapshot()), completed)
   owner.socket.disconnect()
-  const reconnected = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const reconnected = await context.connect({ version: 2, token: context.connection.ownerToken })
   const joined = await join(reconnected)
   assert.equal(joined.nextCommandId, 3, 'a rejected BUSY command still consumes its well-formed ID')
   rejection(await command(reconnected, 2, [94, 99]), 'REPLAYED_COMMAND', 2)
@@ -394,8 +394,8 @@ test('command IDs cannot execute again while moving, after completion, or after 
 
 test('owner disconnect does not stop server movement observed by another authenticated client', { timeout: 10000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   await join(owner)
   await join(observer)
   assert.equal((await command(owner, 1, [94, 99])).ok, true)
@@ -404,7 +404,7 @@ test('owner disconnect does not stop server movement observed by another authent
   const complete = await snapshotWhere(observer, snapshot => actor(snapshot).lastCommand?.status === 'completed')
   assert.deepEqual(actor(complete).location, [94, 99])
   assert.equal(actor(complete).movement, null)
-  const reconnected = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const reconnected = await context.connect({ version: 2, token: context.connection.ownerToken })
   assert.deepEqual(actor((await join(reconnected)).snapshot).location, [94, 99])
 })
 
@@ -419,8 +419,8 @@ async function openFixtureArchives(directory) {
 
 test('stop disconnects sockets, releases the loopback listener and ZIP handles, and cancels the movement clock', { timeout: 10000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   await join(owner)
   await join(observer)
   assert.equal((await command(owner, 1, [96, 99])).ok, true)
@@ -472,8 +472,8 @@ test('owner approaches a door on the server clock, observers agree, and prototyp
   const context = await setup(t, { doors: [
     { name: 'front', location: [94, 99] }, { name: 'other', location: [96, 99] },
   ] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   const initial = (await join(owner)).snapshot
   await join(observer)
   const initialDoor = initial.doors.find(door => door.id === doorId('front'))
@@ -537,7 +537,7 @@ test('use validates exact object identity, shape and unsupported lock policies b
     { name: 'unknown-art', location: [98, 102], visual: { side: -1 } },
     { name: 'never-timed', location: [99, 102], flags: ['Locked', 'NeverLocked', 'LockedNight'] },
   ] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   const joined = await join(owner)
   assert.equal(joined.snapshot.doors.length, 7)
   const neverTimed = joined.snapshot.doors.find(door => door.id === doorId('never-timed'))
@@ -565,7 +565,7 @@ test('unreachable door cannot make the destination or diagonal adjacency walkabl
   const context = await setup(t, { doors: [
     { name: 'isolated', location: [98, 99] }, { name: 'diagonal', location: [93, 100] },
   ] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   const approach = await use(owner, 1, 'diagonal')
   assert.equal(approach.status, 'accepted', 'diagonal proximity is not an immediate interaction')
@@ -579,7 +579,7 @@ test('unreachable door cannot make the destination or diagonal adjacency walkabl
 test('initial nonzero converted frame opens collision before spawn and orientation selects terminal frame', { timeout: 10000 }, async t => {
   const context = await setup(t, { doors: [{ name: 'initial-open', location: start,
     baseFlags: ['NoBlock'], visual: { side: 3, stage: 'SouthEast' } }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   const descriptor = (await join(owner)).snapshot.doors[0]
   assert.equal(descriptor.open, true)
   assert.equal(descriptor.openFrame, 3)
@@ -602,7 +602,7 @@ test('approach revalidates changed targets, locks and newly blocked routes witho
   for (const scenario of ['removed', 'moved', 'locked', 'blocked', 'state changed'] as const) {
     await t.test(scenario, async t => {
       const context = await setup(t, { doors: [{ name: 'front', location: [94, 99] }] })
-      const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+      const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
       await join(owner)
       assert.equal((await use(owner, 1, 'front')).status, 'accepted')
       const state = context.server.doors.states.get(doorId('front'))
@@ -633,8 +633,8 @@ test('approach revalidates changed targets, locks and newly blocked routes witho
 
 test('owner saves and restores actor occupancy and open door collision while observers receive the same committed state', { timeout: 14000 }, async t => {
   const context = await setup(t, { doors: [{ name: 'front', location: [94, 99] }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   assert.deepEqual((await join(owner)).snapshot.checkpoint, { supported: true, busy: false })
   await join(observer)
   assert.equal((await use(owner, 1, 'front')).status, 'accepted')
@@ -649,8 +649,8 @@ test('owner saves and restores actor occupancy and open door collision while obs
   const bytes = await fs.readFile(filename, 'utf8')
   const document = JSON.parse(bytes)
   assert.equal(document.format, 'openarcanum-local-checkpoint')
-  assert.equal(document.version, 6)
-  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+  assert.equal(document.version, 7)
+  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
   assert.match(document.contentIdentity, /^[a-f0-9]{64}$/)
   assert.deepEqual(document.actor, { id: '0', location: [94, 99] })
   assert.deepEqual(document.doors, [{ id: doorId('front'), open: true }])
@@ -684,7 +684,7 @@ test('owner saves and restores actor occupancy and open door collision while obs
 
 test('explicit load restores a checkpoint after server restart without auto-loading or reusing old credentials', { timeout: 12000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   await command(owner, 1, [93, 99])
   await snapshotWhere(owner, snapshot => actor(snapshot).lastCommand?.id === 1 && !actor(snapshot).movement)
@@ -694,7 +694,7 @@ test('explicit load restores a checkpoint after server restart without auto-load
   t.after(() => restarted.stop())
   const session = await restarted.start()
   assert.notEqual(session.ownerToken, context.connection.ownerToken)
-  const newOwner = await context.connect({ version: 1, token: session.ownerToken }, session.url)
+  const newOwner = await context.connect({ version: 2, token: session.ownerToken }, session.url)
   const initial = (await join(newOwner)).snapshot
   assert.deepEqual(actor(initial).location, start, 'startup remains an explicit fresh development session')
   assert.deepEqual(initial.checkpoint, { supported: true, busy: false })
@@ -705,8 +705,8 @@ test('explicit load restores a checkpoint after server restart without auto-load
 
 test('save/load uses strict owner command schemas and cannot interrupt movement or a pending door approach', { timeout: 10000 }, async t => {
   const context = await setup(t, { doors: [{ name: 'front', location: [94, 99] }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   await join(owner)
   await join(observer)
   rejection(await checkpoint(observer, 100, 'save'), 'FORBIDDEN', 100)
@@ -733,7 +733,7 @@ test('checkpoint load rejects malformed, incomplete, incompatible and blocked ca
     { name: 'unsupported', location: [96, 102], visual: { side: -1 } },
     { name: 'locked', location: [97, 102], flags: ['Locked'] },
   ] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   rejection(await checkpoint(owner, 1, 'load'), 'CHECKPOINT_NOT_FOUND', 1)
   assert.equal((await checkpoint(owner, 2, 'save')).ok, true)
@@ -760,7 +760,7 @@ test('checkpoint load rejects malformed, incomplete, incompatible and blocked ca
     ['content mismatch', value => { value.contentIdentity = 'a'.repeat(64) }, 'CHECKPOINT_INCOMPATIBLE'],
     ['map mismatch', value => { value.mapId = 'Another map' }, 'CHECKPOINT_INCOMPATIBLE'],
     ['rules mismatch', value => { value.rulesVersion = 'future-rules' }, 'CHECKPOINT_INCOMPATIBLE'],
-    ['version mismatch', value => { value.version = 7 }, 'CHECKPOINT_INCOMPATIBLE'],
+    ['version mismatch', value => { value.version = 8 }, 'CHECKPOINT_INCOMPATIBLE'],
   ] as const
   let id = 3
   for (const [name, change, code = 'CHECKPOINT_INVALID'] of cases) {
@@ -787,8 +787,8 @@ test('checkpoint load rejects malformed, incomplete, incompatible and blocked ca
 
 test('checkpoint IO serializes all mutations, publishes coherent busy state, and preserves the previous save on write failure', { timeout: 10000 }, async t => {
   const context = await setup(t, { doors: [{ name: 'front', location: [94, 99] }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   await join(owner)
   await join(observer)
   await checkpoint(owner, 1, 'save')
@@ -825,7 +825,7 @@ test('checkpoint IO serializes all mutations, publishes coherent busy state, and
 
 test('load refuses symlink checkpoints and late IO completion cannot mutate a stopped authority', { timeout: 10000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   await checkpoint(owner, 1, 'save')
   const filename = path.join(context.dataPath, 'saves', 'local-checkpoint.json')
@@ -845,7 +845,7 @@ test('load refuses symlink checkpoints and late IO completion cannot mutate a st
   candidate.actor.location = [93, 99]
   context.server.checkpointStore.read = async () => { await gate; return candidate }
   const pending = context.server.command({ data: { joined: true, role: 'owner' } },
-    { version: 1, id: 4, actorId: '0', type: 'load' })
+    { version: 2, id: 4, actorId: '0', type: 'load' })
   assert.equal(context.server.checkpointBusy, true)
   await context.server.stop()
   const revision = context.server.revision
@@ -858,7 +858,7 @@ test('load refuses symlink checkpoints and late IO completion cannot mutate a st
 
 test('checkpoint placement preflight and synchronous movement failure leave actor occupancy and doors unchanged', { timeout: 10000 }, async t => {
   const context = await setup(t, { doors: [{ name: 'front', location: [94, 99] }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   await checkpoint(owner, 1, 'save')
   const filename = path.join(context.dataPath, 'saves', 'local-checkpoint.json')
@@ -896,8 +896,8 @@ test('container use approaches on the server clock and private inspection never 
   const entry = { id: itemId('private-gold'), slot: 0 }
   const context = await setup(t, { containers: [{ name: 'box', location: [94, 99], inventory: [entry] }],
     items: [{ name: 'private-gold', parent: containerId('box'), quantity: 62 }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   const initial = (await join(owner)).snapshot
   await join(observer)
   assert.deepEqual(initial.containers, [{ id: containerId('box'), kind: 'container', label: 'Container',
@@ -947,7 +947,7 @@ test('verified empty container returns an empty private view while missing metad
     { name: 'timed', location: [93, 102], flags: ['Locked', 'LockedDay'] },
     { name: 'spawned', location: [94, 102], data: { inventorySource: 3 } },
   ], items: [{ name: 'locked-gold', parent: containerId('locked') }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   const initial = (await join(owner)).snapshot
   assert.equal(initial.containers.length, 6)
   assert.equal(initial.containers.find(container => container.id === containerId('empty')).usable, true)
@@ -966,7 +966,7 @@ test('verified empty container returns an empty private view while missing metad
 
 test('private inspection validates schema, actor ownership and range without choosing a route', { timeout: 10000 }, async t => {
   const context = await setup(t, { containers: [{ name: 'box', location: [94, 99] }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   for (const changes of [{ targetId: null }, { targetId: '' }, { targetId: 4 }, { targetId: 'x'.repeat(1025) },
     { target: [93, 99] }, { items: [] }, { slot: 0 }, { id: 0 }, { id: '1' }] as const) {
@@ -1008,7 +1008,7 @@ test('container ownership requires complete reciprocal parents, unique slots, in
       items: [{ name: 'gold', parent: containerId('box'), slot: 0 }] }
     change(value)
     const context = await setup(t, value)
-    const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+    const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
     const initial = (await join(owner)).snapshot
     assert.equal(initial.containers.find(container => container.id === containerId('box')).usable, false)
     rejection(await useContainer(owner, 1, 'box'), 'UNSUPPORTED_CONTAINER', 1)
@@ -1020,7 +1020,7 @@ test('container ownership requires complete reciprocal parents, unique slots, in
 test('recovered owner array slots are independent of an item inventory or equipment location', { timeout: 10000 }, async t => {
   const context = await setup(t, { containers: [{ name: 'box', location: [93, 99], inventory: [{ id: itemId('gold'), slot: 1 }] }],
     items: [{ name: 'gold', parent: containerId('box'), slot: 2 }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   const result = await inspect(owner, 1, 'box')
   assert.equal(result.ok, true)
@@ -1033,7 +1033,7 @@ test('container approaches reject stale location, lock and recovered content cha
   for (const scenario of ['removed', 'moved', 'locked', 'contents changed', 'route blocked'] as const) await t.test(scenario, async t => {
     const context = await setup(t, { containers: [{ name: 'box', location: [94, 99], inventory: [{ id: itemId('gold'), slot: 0 }] }],
       items: [{ name: 'gold', parent: containerId('box') }] })
-    const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+    const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
     await join(owner)
     assert.equal((await useContainer(owner, 1, 'box')).status, 'accepted')
     const state = context.server.containers.states.get(containerId('box'))
@@ -1058,7 +1058,7 @@ test('container approaches reject stale location, lock and recovered content cha
 
 test('container use and inspection remain busy throughout checkpoint IO while verified ownership is saved privately', { timeout: 10000 }, async t => {
   const context = await setup(t, { containers: [{ name: 'box', location: [93, 99], inventory: [] }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   let release
   const gate = new Promise(resolve => { release = resolve })
@@ -1079,8 +1079,8 @@ test('container use and inspection remain busy throughout checkpoint IO while ve
 
 test('local pause freezes autonomous movement mid-step, preserves its command and resumes without catching up', { timeout: 10000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   assert.deepEqual((await join(owner)).snapshot.pause, { supported: true, paused: false })
   await join(observer)
   assert.equal((await command(owner, 1, [93, 99])).status, 'accepted')
@@ -1107,7 +1107,7 @@ test('local pause freezes autonomous movement mid-step, preserves its command an
   assert.equal(observer.snapshots.length, count)
   assert.deepEqual(actor(context.server.getSnapshot()), actor(frozen))
   assert.ok(context.server.getSnapshot().serverTime > initialWallTime, 'wall time remains a wall clock')
-  const reconnect = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const reconnect = await context.connect({ version: 2, token: context.connection.ownerToken })
   const joined = await join(reconnect)
   assert.deepEqual(joined.snapshot.pause, frozen.pause)
   assert.deepEqual(actor(joined.snapshot), actor(frozen))
@@ -1129,15 +1129,15 @@ test('local pause freezes autonomous movement mid-step, preserves its command an
 test('pause intentions enforce owner, strict shape and consumed IDs while rejecting gameplay in the frozen world', { timeout: 10000 }, async t => {
   const context = await setup(t, { doors: [{ name: 'front', location: [94, 99] }],
     containers: [{ name: 'box', location: [92, 102] }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
-  const observer = await context.connect({ version: 1, token: context.connection.observerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
+  const observer = await context.connect({ version: 2, token: context.connection.observerToken })
   rejection(await checkpoint(owner, 1, 'pause'), 'NOT_JOINED', 1)
   await join(owner)
   await join(observer)
   rejection(await checkpoint(observer, 100, 'pause'), 'FORBIDDEN', 100)
   rejection(await checkpoint(observer, 101, 'resume'), 'FORBIDDEN', 101)
   rejection(await checkpoint(owner, 1, 'pause', { actorId: 'another' }), 'FORBIDDEN', 1)
-  rejection(await checkpoint(owner, 1, 'pause', { version: 2 }), 'VERSION_MISMATCH', 1)
+  rejection(await checkpoint(owner, 1, 'pause', { version: 3 }), 'VERSION_MISMATCH', 1)
   for (const type of ['pause', 'resume'] as const) {
     for (const changes of [{ target: start }, { targetId: doorId('front') }, { paused: true },
       { duration: 1 }, { id: 0 }, { id: '1' }, { id: 1.5 }] as const) {
@@ -1164,7 +1164,7 @@ test('pause intentions enforce owner, strict shape and consumed IDs while reject
   assert.equal((await join(owner)).nextCommandId, 8)
   await context.server.stop()
   rejection(context.server.command({ data: { joined: true, role: 'owner' } },
-    { version: 1, id: 8, actorId: '0', type: 'pause' }), 'SERVER_STOPPED', 8)
+    { version: 2, id: 8, actorId: '0', type: 'pause' }), 'SERVER_STOPPED', 8)
 })
 
 test('hosts can disable local pause explicitly and reject invalid pause policies', { timeout: 10000 }, async t => {
@@ -1172,7 +1172,7 @@ test('hosts can disable local pause explicitly and reject invalid pause policies
     assert.throws(() => createAuthorityServer({ dataPath: os.tmpdir(), allowPause }), /allowPause must be a boolean/)
   }
   const context = await setup(t, { serverOptions: { allowPause: false } })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   assert.deepEqual((await join(owner)).snapshot.pause, { supported: false, paused: false })
   rejection(await checkpoint(owner, 1, 'pause'), 'PAUSE_UNAVAILABLE', 1)
   rejection(await checkpoint(owner, 2, 'resume'), 'PAUSE_UNAVAILABLE', 2)
@@ -1185,7 +1185,7 @@ test('hosts can disable local pause explicitly and reject invalid pause policies
 
 test('pausing a pending door approach preserves its deferred interaction and exact-boundary completion', { timeout: 10000 }, async t => {
   const context = await setup(t, { doors: [{ name: 'front', location: [94, 99] }] })
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   assert.equal((await use(owner, 1, 'front')).status, 'accepted')
   await snapshotWhere(owner, snapshot => actor(snapshot).movement?.progress > 0.1)
@@ -1220,7 +1220,7 @@ test('pausing a pending door approach preserves its deferred interaction and exa
 
 test('idle checkpoints remain available while paused and neither loading nor restarting saves pause state', { timeout: 10000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   assert.equal((await checkpoint(owner, 1, 'pause')).ok, true)
   assert.equal((await checkpoint(owner, 2, 'save')).ok, true)
@@ -1242,7 +1242,7 @@ test('idle checkpoints remain available while paused and neither loading nor res
   const restarted = createAuthorityServer({ dataPath: context.dataPath, mapId, tickMs: 20 })
   t.after(() => restarted.stop())
   const session = await restarted.start()
-  const newOwner = await context.connect({ version: 1, token: session.ownerToken }, session.url)
+  const newOwner = await context.connect({ version: 2, token: session.ownerToken }, session.url)
   assert.deepEqual((await join(newOwner)).snapshot.pause, { supported: true, paused: false })
   assert.equal((await checkpoint(newOwner, 1, 'load')).ok, true)
   assert.deepEqual(restarted.getSnapshot().pause, { supported: true, paused: false })
@@ -1250,7 +1250,7 @@ test('idle checkpoints remain available while paused and neither loading nor res
 
 test('checkpoint IO blocks pause and resume without changing either current pause state', { timeout: 10000 }, async t => {
   const context = await setup(t)
-  const owner = await context.connect({ version: 1, token: context.connection.ownerToken })
+  const owner = await context.connect({ version: 2, token: context.connection.ownerToken })
   await join(owner)
   const write = context.server.checkpointStore.write.bind(context.server.checkpointStore)
   let release

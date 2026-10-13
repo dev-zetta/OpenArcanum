@@ -48,7 +48,7 @@ async function setup(t: import("node:test").TestContext, mutate?) {
     servers.push(server)
     const session = await server.start()
     async function connect(role = 'owner') {
-      const socket = io(session.url, { auth: { version: 1, token: role === 'owner' ? session.ownerToken : session.observerToken },
+      const socket = io(session.url, { auth: { version: 2, token: role === 'owner' ? session.ownerToken : session.observerToken },
         transports: ['websocket'], autoConnect: false, reconnection: false, forceNew: true, timeout: 2000 })
       const client = { socket, snapshots: [] }
       clients.push(client)
@@ -63,9 +63,9 @@ async function setup(t: import("node:test").TestContext, mutate?) {
   return { dataPath, start, nextId: 1, ...(await start()) }
 }
 
-const join = client => client.socket.timeout(3000).emitWithAck('authority:join', { version: 1 })
+const join = client => client.socket.timeout(3000).emitWithAck('authority:join', { version: 2 })
 const command = (client, id, type, data = {}) => client.socket.timeout(3000).emitWithAck('authority:command',
-  { version: 1, id, actorId: '0', type, ...data })
+  { version: 2, id, actorId: '0', type, ...data })
 const pickup = (client, id, revision, changes = {}) => command(client, id, 'pickup',
   { targetId: GROUND_ITEM_ID, expectedRevision: revision, ...changes })
 const drop = (client, id, revision, changes = {}) => command(client, id, 'drop',
@@ -74,7 +74,7 @@ const actor = snapshot => snapshot.actors.find(value => value.id === '0')
 function rejection(result, code: string, id?: number) {
   assert.equal(result.ok, false)
   assert.equal(result.code, code)
-  assert.equal(result.version, 1)
+  assert.equal(result.version, 2)
   if (id !== undefined) assert.equal(result.id, id)
   assert.ok(Number.isSafeInteger(result.revision))
   assert.equal(typeof result.message, 'string')
@@ -247,8 +247,8 @@ test('quest XP, derived level and banked points stay private and restore togethe
     const savedComplete = await send(context, owner, 'save')
     assert.equal(savedComplete.ok, true, savedComplete.message)
     const document = JSON.parse(await fs.readFile(context.server.checkpointStore.filename, 'utf8'))
-    assert.equal(document.version, 6)
-    assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+    assert.equal(document.version, 7)
+    assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
     assert.deepEqual(document.character, { experiencePoints: 2100, level: 2, unspentPoints: 6, attributes: baseAttributes(), history: [{ kind: 'quest', questId: QUEST_ID }] })
     assert.deepEqual(document.quests, [{ id: QUEST_ID, status: 'completed' }])
     const pages = [offered.result, active.result, first.talked.result, first.completed.result, terminal.result, second.completed.result]
@@ -314,7 +314,7 @@ test('private character read enforces exact shape and ownership, works paused id
     rejection(await send(context, owner, 'character'), 'NOT_JOINED')
     await join(owner); await join(observer)
     rejection(await send(context, observer, 'character'), 'FORBIDDEN')
-    rejection(await send(context, owner, 'character', { version: 2 }), 'VERSION_MISMATCH')
+    rejection(await send(context, owner, 'character', { version: 3 }), 'VERSION_MISMATCH')
     rejection(await send(context, owner, 'character', { actorId: 'another' }), 'FORBIDDEN')
     for (const data of [{ targetId: NPC_ID }, { expectedRevision: 0 }, { experiencePoints: 999999 },
       { level: 50 }, { unspentPoints: 56 }, { statId: 'strength' }, { rewardExperience: 2100 }] as const) {

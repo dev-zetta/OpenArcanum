@@ -16,7 +16,7 @@
   "scripts": {
     "build:engine": "node scripts/build-engine.mts",
     "build:ui": "npm run build:config && vite build",
-    "build": "npm run typecheck && npm run build:engine && npm run build:ui && npm run build:desktop && npm run build:converter && npm run build:gui",
+    "build": "npm run typecheck && npm run build:engine && npm run build:ui && npm run build:desktop && npm run build:converter && npm run build:gui && npm run build:scripts",
     "start": "npm run build && node scripts/electron-launch.cts",
     "start:built": "node scripts/electron-launch.cts",
     "start:workshop": "npm run build && node scripts/workshop-launch.cts",
@@ -31,8 +31,8 @@
     "typecheck:engine": "tsc -p tsconfig.engine.json",
     "typecheck:ui": "tsc -p tsconfig.app.json",
     "typecheck:desktop": "tsc -p tsconfig.electron.json --noEmit",
-    "typecheck": "npm run check:typescript-sources && npm run typecheck:engine && npm run typecheck:ui && npm run typecheck:desktop && npm run typecheck:converter && npm run typecheck:tests && npm run typecheck:gui && npm run typecheck:research && npm run typecheck:fixture-tools && npm run typecheck:tooling",
-    "pretest": "npm run build:config && npm run build:desktop && npm run build:converter && npm run build:gui",
+    "typecheck": "npm run check:typescript-sources && npm run typecheck:engine && npm run typecheck:ui && npm run typecheck:desktop && npm run typecheck:converter && npm run typecheck:tests && npm run typecheck:gui && npm run typecheck:research && npm run typecheck:fixture-tools && npm run typecheck:tooling && npm run typecheck:game-scripts",
+    "pretest": "npm run build:config && npm run build:desktop && npm run build:converter && npm run build:gui && npm run build:engine && npm run build:scripts",
     "build:config": "tsc -p tsconfig.config.json && node scripts/prepare-config.mts",
     "build:converter": "tsc -p tsconfig.converter.json",
     "typecheck:converter": "tsc -p tsconfig.converter.json --noEmit",
@@ -43,7 +43,11 @@
     "typecheck:fixture-tools": "tsc -p tsconfig.fixture-tools.json",
     "build:types": "tsc -p tsconfig.engine-types.json",
     "typecheck:tooling": "tsc -p tsconfig.tooling.json && tsc -p tsconfig.config.json --noEmit",
-    "check:typescript-sources": "node scripts/check-typescript-sources.mts"
+    "check:typescript-sources": "node scripts/check-typescript-sources.mts",
+    "build:scripts": "npm run build:types && node scripts/build-script-modules.mts",
+    "import:scripts": "npm run build:converter && node scripts/import-game-scripts.mts",
+    "typecheck:game-scripts": "tsc -p tsconfig.game-scripts.json",
+    "verify:scripts": "npm run build:converter && node scripts/verify-game-scripts.mts"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",

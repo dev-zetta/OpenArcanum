@@ -1,3 +1,4 @@
+import type { ScriptObjectState } from './ClientScriptTypes'
 import type { PrivateItem, InventoryState } from './PrivateInventoryTypes'
 export type { PrivateItem, InventoryState } from './PrivateInventoryTypes'
 import type Location from '../shared/Location'
@@ -8,8 +9,8 @@ export interface InteractionTarget { id: string; kind: string; label: string; lo
 export interface PublicCommand { id: number; type?: string; status: string; code?: string; message?: string; result?: ResponsePayload }
 export interface SnapshotMovement { commandId: number; path: Position[]; index: number; elapsedMs: number; durationMs: number; progress: number }
 export interface SnapshotActor { id: string; location: Position; movement?: SnapshotMovement | null; lastCommand?: PublicCommand | null }
-export interface AuthoritySnapshot { version: number; revision: number; mapId: string; serverTime?: number; actors: SnapshotActor[]; doors?: InteractionTarget[]; containers?: InteractionTarget[]; groundItems?: GroundItem[]; conversationTargets?: import('./SessionTypes').ConversationTarget[]; pause?: { supported: boolean; paused: boolean }; checkpoint?: { supported: boolean; busy: boolean; lastAction?: string; savedAt?: string; error?: { code?: string; message: string } } }
-export interface ResponsePayload { kind: string; targetId?: string; itemId?: string; itemIds?: string[]; items?: unknown; carrying?: unknown; ownerId?: string; inventory?: { ownerId: string; items: unknown; carrying?: unknown }; ground?: unknown; open?: boolean; paused?: boolean; savedAt?: string; character?: unknown }
+export interface AuthoritySnapshot { version: number; revision: number; mapId: string; scriptEpoch: number; scriptObjects: ScriptObjectState[]; serverTime?: number; actors: SnapshotActor[]; doors?: InteractionTarget[]; containers?: InteractionTarget[]; groundItems?: GroundItem[]; conversationTargets?: import('./SessionTypes').ConversationTarget[]; pause?: { supported: boolean; paused: boolean }; checkpoint?: { supported: boolean; busy: boolean; lastAction?: string; savedAt?: string; error?: { code?: string; message: string } } }
+export interface ResponsePayload { kind: string; defaultAction?: 'skip' | 'run'; targetId?: string; itemId?: string; itemIds?: string[]; items?: unknown; carrying?: unknown; ownerId?: string; inventory?: { ownerId: string; items: unknown; carrying?: unknown }; ground?: unknown; open?: boolean; paused?: boolean; savedAt?: string; character?: unknown }
 export interface CommandAck { ok: true; version: number; id: number; actorId: string; status: string; revision: number; targetId?: string; path?: Position[]; result?: ResponsePayload }
 export interface MovementAck extends CommandAck { path: Position[] }
 export interface JoinAck { ok: true; version: number; role: 'owner'; mapId: string; actorId: string; nextCommandId: number; snapshot: AuthoritySnapshot }

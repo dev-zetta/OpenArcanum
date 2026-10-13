@@ -8,7 +8,7 @@ export interface LocalSessionDescriptor {
   url: string
   token: string
   observerToken: string
-  protocolVersion: 1
+  protocolVersion: 2
   pid: number | undefined
   mapId: string
 }
@@ -19,11 +19,32 @@ export interface LocalServerState {
   mapId: string
 }
 
+export type InitialScriptFlags = Readonly<Record<string, Readonly<Record<number, 0 | 1>>>>
+
+/** Trusted host bootstrap data; no renderer or socket command can set flags. */
+export function validateInitialScriptFlags(value: unknown): InitialScriptFlags {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length > 64) throw new Error('Invalid initial script flags')
+  const output: Record<string, Readonly<Record<number, 0 | 1>>> = {}
+  for (const [namespace, raw] of Object.entries(value)) {
+    if (!/^[a-z][a-z0-9_-]*$/.test(namespace) || !raw || typeof raw !== 'object' || Array.isArray(raw) || Object.keys(raw).length > 65536) throw new Error('Invalid initial script flag namespace')
+    const flags: Record<number, 0 | 1> = {}
+    for (const [key, state] of Object.entries(raw)) {
+      const id = Number(key)
+      if (!/^(0|[1-9][0-9]*)$/.test(key) || !Number.isSafeInteger(id) || id > 65535 || (state !== 0 && state !== 1)) throw new Error('Invalid initial script flag value')
+      flags[id] = state
+    }
+    output[namespace] = Object.freeze(flags)
+  }
+  return Object.freeze(output)
+}
+
 export interface LocalServerOptions {
   entryPath: string
   dataPath: string
   mapId: string
   checkpointPath?: string
+  scriptManifestPath?: string
+  initialScriptFlags?: InitialScriptFlags
   fork?: typeof forkProcess
   startupTimeoutMs?: number
   stopTimeoutMs?: number
@@ -87,6 +108,8 @@ export class LocalServerHost extends EventEmitter<{ failure: [Error] }> {
   declare readonly dataPath: string
   declare readonly mapId: string
   declare readonly checkpointPath: string | undefined
+  declare readonly scriptManifestPath: string | undefined
+  declare readonly initialScriptFlags: InitialScriptFlags | undefined
   declare private readonly _fork: typeof forkProcess
   declare private readonly _startupTimeout: number
   declare private readonly _stopTimeout: number
@@ -95,7 +118,7 @@ export class LocalServerHost extends EventEmitter<{ failure: [Error] }> {
   declare private _diagnostics: string
   declare private _secrets: string[]
 
-  constructor({ entryPath, dataPath, mapId, checkpointPath, fork = forkProcess, startupTimeoutMs, stopTimeoutMs, killTimeoutMs }: LocalServerOptions) {
+  constructor({ entryPath, dataPath, mapId, checkpointPath, scriptManifestPath, initialScriptFlags, fork = forkProcess, startupTimeoutMs, stopTimeoutMs, killTimeoutMs }: LocalServerOptions) {
     super()
     if (typeof entryPath !== 'string' || !entryPath) throw new Error('A local server entry path is required')
     if (typeof dataPath !== 'string' || !dataPath) throw new Error('A local server data path is required')
@@ -107,6 +130,11 @@ export class LocalServerHost extends EventEmitter<{ failure: [Error] }> {
       throw new Error('A configured checkpoint path must be a nonempty string')
     }
     this.checkpointPath = checkpointPath === undefined ? undefined : path.resolve(checkpointPath)
+    if (scriptManifestPath !== undefined && (typeof scriptManifestPath !== 'string' || !scriptManifestPath)) {
+      throw new Error('A configured script manifest path must be a nonempty string')
+    }
+    this.scriptManifestPath = scriptManifestPath === undefined ? undefined : path.resolve(scriptManifestPath)
+    this.initialScriptFlags = initialScriptFlags === undefined ? undefined : validateInitialScriptFlags(initialScriptFlags)
     this._fork = fork
     this._startupTimeout = positiveTimeout(startupTimeoutMs, 60000)
     this._stopTimeout = positiveTimeout(stopTimeoutMs, 3000)
@@ -209,7 +237,7 @@ export class LocalServerHost extends EventEmitter<{ failure: [Error] }> {
       try { if (typeof message.url === 'string') url = new URL(message.url) } catch (_) { /* Invalid readiness is handled below. */ }
       if (!url || url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || Number(url.port) <= 0 ||
           url.username || url.password || url.search || url.hash || url.pathname !== '/' ||
-          message.protocolVersion !== 1 || message.mapId !== this.mapId) {
+          message.protocolVersion !== 2 || message.mapId !== this.mapId) {
         this._failStartup(run, this._error('Local server sent invalid readiness information'))
         return
       }
@@ -219,7 +247,7 @@ export class LocalServerHost extends EventEmitter<{ failure: [Error] }> {
         url: url.origin,
         token: ownerToken,
         observerToken,
-        protocolVersion: 1,
+        protocolVersion: 2,
         pid: child.pid,
         mapId: this.mapId
       }
@@ -228,6 +256,8 @@ export class LocalServerHost extends EventEmitter<{ failure: [Error] }> {
     run.onSpawn = () => {
       if (run.state !== 'starting') return
       child.send({ type: 'start', config: { dataPath: this.dataPath, mapId: this.mapId,
+        ...(this.scriptManifestPath ? { scriptManifestPath: this.scriptManifestPath } : {}),
+        ...(this.initialScriptFlags ? { initialScriptFlags: this.initialScriptFlags } : {}),
         ...(this.checkpointPath ? { checkpointPath: this.checkpointPath } : {}), ownerToken, observerToken } }, error => {
         if (error && run.state === 'starting') this._failStartup(run, this._error(`Unable to configure local server: ${errorMessage(error)}`))
       })
@@ -299,4 +329,3 @@ export class LocalServerHost extends EventEmitter<{ failure: [Error] }> {
     return run.stopPromise
   }
 }
-

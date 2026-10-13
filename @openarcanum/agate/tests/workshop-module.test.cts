@@ -12,7 +12,7 @@ const root = path.resolve(__dirname, '../../..')
 const source = path.join(root, '@openarcanum/agate/src')
 const directory = path.join(root, 'examples/inventory-workshop')
 const dataPath = path.join(directory, 'data')
-const { buildFiles, manifest, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID,
+const { buildFiles, manifest, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID, SCRIPTED_DOOR_ID,
   KEY_BOX_ID, KEY_ID, LOCKED_DOOR_ID, LOCK_KEY_ID, LOCKED_BOX_ID, PRIZE_ID,
   PRIZE_LABEL, GROUND_ITEM_ID, GROUND_ITEM_LABEL, NPC_ID, NPC_LABEL, CONVERSATION_ID,
   QUEST_ID, QUEST_TITLE, QUEST_EXPERIENCE_REWARD, PROGRESSION_BASELINE,
@@ -78,7 +78,7 @@ test('owned workshop source, metadata and generated archives reproduce exactly w
   assert.equal(recorded.format, 'openarcanum-owned-module')
   assert.equal(recorded.version, 1)
   assert.equal(recorded.mapId, MAP_ID)
-  assert.equal(recorded.files.length, 95)
+  assert.equal(recorded.files.length, 98)
   assert.equal(new Set(recorded.files).size, recorded.files.length)
   for (const [name, expected] of files) {
     assert.equal(path.posix.normalize(name), name)
@@ -257,7 +257,7 @@ test('the owned workshop loads headlessly and privately inspects its reciprocal 
   assert.equal(server.map.isTileBlocked(12, 10), false)
   assert.equal(server.map.isTileBlocked(6, 4), true)
   const owner = { data: { joined: true, role: 'owner' } }
-  const request = (id, type, extra = {}) => ({ version: 1, id, actorId: '0', type, ...extra })
+  const request = (id, type, extra = {}) => ({ version: 2, id, actorId: '0', type, ...extra })
   const accepted = server.command(owner, request(1, 'use', { targetId: BOX_ID }))
   assert.equal(accepted.status, 'accepted')
   assert.deepEqual(accepted.path, [[4, 4], [5, 4]])
@@ -275,8 +275,8 @@ test('the owned workshop loads headlessly and privately inspects its reciprocal 
   assert.equal((await server.command(owner, request(3, 'save'))).ok, true)
   const checkpoint = JSON.parse(await fs.readFile(path.join(temporary, 'checkpoint.json'), 'utf8'))
   assert.deepEqual(checkpoint.actor.location, [5, 4])
-  assert.deepEqual(checkpoint.doors, [{ id: DOOR_ID, open: false }, { id: LOCKED_DOOR_ID, open: false }])
-  assert.equal(checkpoint.version, 6)
+  assert.deepEqual(checkpoint.doors, [{ id: DOOR_ID, open: false }, { id: LOCKED_DOOR_ID, open: false }, { id: SCRIPTED_DOOR_ID, open: false }])
+  assert.equal(checkpoint.version, 7)
   assert.deepEqual(checkpoint.ownership, { owners: [
     { id: '16086.json', inventoryIndex: 0, items: [] },
     { id: BALLAST_BOX_ID, inventoryIndex: 1, items: [{ id: BALLAST_ID, slot: 3 }] },
@@ -300,7 +300,7 @@ test('the owned key must be taken before opening its authored door and is neithe
   const owner = { data: { joined: true, role: 'owner' } }
   let id = 0
   const request = (type, extra = {}) => server.command(owner,
-    { version: 1, id: ++id, actorId: '0', type, ...extra })
+    { version: 2, id: ++id, actorId: '0', type, ...extra })
   const approach = targetId => {
     const result = request('use', { targetId })
     assert.equal(result.ok, true)
@@ -356,7 +356,7 @@ test('the owned locked crate requires its held key for private access and conser
     await server.loadWorld()
     let id = 0
     const request = (type, extra = {}) => server.command({ data: { joined: true, role: 'owner' } },
-      { version: 1, id: ++id, actorId: '0', type, ...extra })
+      { version: 2, id: ++id, actorId: '0', type, ...extra })
     const approach = targetId => {
       assert.equal(request('use', { targetId }).ok, true)
       server.advanceMovement(performance.now() + 10000)
@@ -422,7 +422,7 @@ test('the ballast advertises Drop and preserves the same weighted identity throu
   await server.loadWorld()
   let id = 0
   const request = (type, extra = {}) => server.command({ data: { joined: true, role: 'owner' } },
-    { version: 1, id: ++id, actorId: '0', type, ...extra })
+    { version: 2, id: ++id, actorId: '0', type, ...extra })
   const ballast = server.ownership.items.get(BALLAST_ID).entity
   assert.equal(ballast.ground, false, 'the first Drop starts from a contained item that was never on the floor')
   assert.equal(request('use', { targetId: BALLAST_BOX_ID }).ok, true)
@@ -473,7 +473,7 @@ test('the authored ground pebble is conserved through pickup, actor-tile drop an
     await server.loadWorld()
     let id = 0
     const request = (type, extra = {}) => server.command({ data: { joined: true, role: 'owner' } },
-      { version: 1, id: ++id, actorId: '0', type, ...extra })
+      { version: 2, id: ++id, actorId: '0', type, ...extra })
     const pickup = () => request('pickup', { targetId: GROUND_ITEM_ID, expectedRevision: server.revision })
     const drop = () => request('drop', { itemId: GROUND_ITEM_ID, expectedRevision: server.revision })
     const ground = () => server.getSnapshot().groundItems
@@ -508,8 +508,8 @@ test('the authored ground pebble is conserved through pickup, actor-tile drop an
     'held location canonicalizes to its authored value')
   assert.equal((await first.request('save')).ok, true)
   const heldCheckpoint = JSON.parse(await fs.readFile(checkpointPath, 'utf8'))
-  assert.equal(heldCheckpoint.version, 6)
-  assert.equal(heldCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+  assert.equal(heldCheckpoint.version, 7)
+  assert.equal(heldCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
   assert.deepEqual(heldCheckpoint.ownership.items.find(item => item.id === GROUND_ITEM_ID),
     { id: GROUND_ITEM_ID, parent: '16086.json', groundLocation: null })
   const location = [first.server.player.base.location.x, first.server.player.base.location.y]
@@ -557,7 +557,7 @@ test('the owned guide atomically awards its persistent quest experience only onc
     const owner = { data: { joined: true, role: 'owner' } }
     let id = 0
     const request = (type, extra = {}) => server.command(owner,
-      { version: 1, id: ++id, actorId: '0', type, ...extra })
+      { version: 2, id: ++id, actorId: '0', type, ...extra })
     const approach = targetId => {
       assert.equal(request('use', { targetId }).ok, true)
       server.advanceMovement(performance.now() + 10000)
@@ -602,8 +602,8 @@ test('the owned guide atomically awards its persistent quest experience only onc
   assert.deepEqual(first.character(), baseline, 'accepting and invalid replies award nothing')
   assert.equal((await first.request('save')).ok, true)
   const activeCheckpoint = JSON.parse(await fs.readFile(checkpointPath, 'utf8'))
-  assert.equal(activeCheckpoint.version, 6)
-  assert.equal(activeCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+  assert.equal(activeCheckpoint.version, 7)
+  assert.equal(activeCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
   assert.deepEqual(activeCheckpoint.quests, [{ id: QUEST_ID, status: 'active' }])
   assert.deepEqual(activeCheckpoint.character, { ...PROGRESSION_BASELINE, history: [] })
   assert.equal((await first.request('load')).ok, true)
@@ -690,7 +690,7 @@ test('owned purchases spend the starting and quest-earned points once and restor
     const owner = { data: { joined: true, role: 'owner' } }
     let id = 0
     const request = (type, extra = {}) => server.command(owner,
-      { version: 1, id: ++id, actorId: '0', type, ...extra })
+      { version: 2, id: ++id, actorId: '0', type, ...extra })
     const approach = targetId => {
       assert.equal(request('use', { targetId }).ok, true)
       server.advanceMovement(performance.now() + 10000)
@@ -736,7 +736,7 @@ test('owned purchases spend the starting and quest-earned points once and restor
   assert.equal((await first.request('save')).ok, true)
   const activeSave = await fs.readFile(checkpointPath, 'utf8')
   const activeCheckpoint = JSON.parse(activeSave)
-  assert.equal(activeCheckpoint.version, 6)
+  assert.equal(activeCheckpoint.version, 7)
   assert.deepEqual(activeCheckpoint.character.history,
     initialPurchases.map(statId => ({ kind: 'attribute', statId })))
   assert.equal(activeCheckpoint.character.unspentPoints, 0)
@@ -814,6 +814,7 @@ test('the owned positive-XP quest cannot complete or load completed for an actor
     await fs.mkdir(path.dirname(filename), { recursive: true })
     await fs.writeFile(filename, bytes)
   }
+  await fs.cp(path.join(dataPath, 'scripts'), path.join(temporaryData, 'scripts'), { recursive: true })
   const actor = JSON.parse(await fs.readFile(path.join(temporaryData, '16086.json'), 'utf8'))
   delete actor.Critter.progressionSupported
   await fs.writeFile(path.join(temporaryData, '16086.json'), JSON.stringify(actor))
@@ -822,7 +823,7 @@ test('the owned positive-XP quest cannot complete or load completed for an actor
   const owner = { data: { joined: true, role: 'owner' } }
   let id = 0
   const request = (type, extra = {}) => server.command(owner,
-    { version: 1, id: ++id, actorId: '0', type, ...extra })
+    { version: 2, id: ++id, actorId: '0', type, ...extra })
   const approach = targetId => {
     assert.equal(request('use', { targetId }).ok, true)
     server.advanceMovement(performance.now() + 10000)

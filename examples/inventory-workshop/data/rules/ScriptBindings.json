@@ -1,0 +1,18 @@
+{
+  "format": "openarcanum-script-bindings",
+  "version": 1,
+  "objects": {
+    "Inventory workshop/Sector/0/0/Portal/owned-workshop-scripted-door.json": {
+      "1": {
+        "scriptId": "workshop:door",
+        "flags": 0,
+        "counters": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  }
+}

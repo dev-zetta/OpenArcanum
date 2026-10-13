@@ -39,6 +39,8 @@ export default class Entity extends GameObject {
   declare ground: boolean
   declare groundInitialLocation: [number, number]
   declare portalOpen: boolean
+  /** Authoritative script state belongs to this instance, never its prototype. */
+  declare scriptOff?: boolean
   declare instanceData: Record<string, unknown>
   declare prototype: Prototype
   declare _update: { _totalUpdates: number; [key: string]: unknown }

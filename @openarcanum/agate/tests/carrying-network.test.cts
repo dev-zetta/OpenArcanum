@@ -41,17 +41,17 @@ async function fixture(t: TestContext) {
     let nextId = 1
     async function connect(role: 'owner' | 'observer' = 'owner') {
       const socket = io(session.url, { transports: ['websocket'], reconnection: false, forceNew: true,
-        autoConnect: false, auth: { version: 1, token: role === 'owner' ? session.ownerToken : session.observerToken } })
+        autoConnect: false, auth: { version: 2, token: role === 'owner' ? session.ownerToken : session.observerToken } })
       sockets.push(socket)
       const snapshots: unknown[] = []
       socket.on('authority:snapshot', snapshot => snapshots.push(snapshot))
       await new Promise<void>((resolve, reject) => {
         socket.once('connect', resolve); socket.once('connect_error', reject); socket.connect()
       })
-      const joined = await socket.timeout(3000).emitWithAck('authority:join', { version: 1 })
+      const joined = await socket.timeout(3000).emitWithAck('authority:join', { version: 2 })
       assert.equal(joined.ok, true)
       const request = (type: string, fields = {}) => socket.timeout(3000).emitWithAck('authority:command',
-        { version: 1, id: nextId++, actorId: '0', type, ...fields })
+        { version: 2, id: nextId++, actorId: '0', type, ...fields })
       return { socket, snapshots, request }
     }
     const owner = await connect()

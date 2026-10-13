@@ -1,3 +1,4 @@
+import type { ScriptMessageState } from '../../../../@openarcanum/agate/src/client/ClientScriptTypes'
 import Component, { setComponentTemplate } from '@ember/component'
 import { service } from '@ember/service'
 import { action, computed } from '@ember/object'
@@ -33,6 +34,7 @@ class GameRender extends Component {
   doors: DoorTarget[] = []
   selectedDoorId = ''
   interaction: InteractionState | null = null
+  scriptMessage: ScriptMessageState | null = null
   containers: ContainerTarget[] = []
   selectedContainerId = ''
   containerInteraction: InteractionState | null = null
@@ -192,6 +194,7 @@ class GameRender extends Component {
   declare onWindowResize: (() => void) | undefined
   declare onRuntimeError: ((error: Error) => void) | undefined
   declare onInteractionsUpdated: (doors: ClientEvents['World:InteractionsUpdated']) => void
+  declare onScriptMessage: (message: ClientEvents['Player:ScriptMessage']) => void
   declare onInteractionUpdated: (interaction: ClientEvents['Player:InteractionUpdated']) => void
   declare onContainersUpdated: (containers: ClientEvents['World:ContainersUpdated']) => void
   declare onCheckpointUpdated: (checkpoint: ClientEvents['Player:CheckpointUpdated']) => void
@@ -246,6 +249,7 @@ class GameRender extends Component {
         ...(ownedModule ? { moduleId: 'inventory-workshop', authoredGui: false } : {}),
         mapId: this.dataStatus.mapId,
         authoritySession,
+        scriptManifestPath: desktop.config.scriptManifestPath,
         signal: this.startupAbort.signal
       })
       if (this.isDestroying || this.isDestroyed) {
@@ -282,6 +286,11 @@ class GameRender extends Component {
       }
       this.client.events.on('World:InteractionsUpdated', this.onInteractionsUpdated)
       this.client.events.on('Player:InteractionUpdated', this.onInteractionUpdated)
+      this.onScriptMessage = message => {
+        if (!this.isDestroying && !this.isDestroyed) this.set('scriptMessage', message)
+      }
+      this.client.events.on('Player:ScriptMessage', this.onScriptMessage)
+      if (this.client.scriptMessage) this.onScriptMessage(this.client.scriptMessage)
       this.client.events.on('World:ContainersUpdated', this.onContainersUpdated)
       this.onCheckpointUpdated = checkpoint => {
         if (this.isDestroying || this.isDestroyed || !checkpoint) return
@@ -597,6 +606,7 @@ class GameRender extends Component {
     if (!this.client) return
     if (this.onInteractionsUpdated) this.client.events.off('World:InteractionsUpdated', this.onInteractionsUpdated)
     if (this.onInteractionUpdated) this.client.events.off('Player:InteractionUpdated', this.onInteractionUpdated)
+    if (this.onScriptMessage) this.client.events.off('Player:ScriptMessage', this.onScriptMessage)
     if (this.onContainersUpdated) this.client.events.off('World:ContainersUpdated', this.onContainersUpdated)
     if (this.onCheckpointUpdated) this.client.events.off('Player:CheckpointUpdated', this.onCheckpointUpdated)
     if (this.onPauseUpdated) this.client.events.off('Player:PauseUpdated', this.onPauseUpdated)

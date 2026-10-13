@@ -99,7 +99,7 @@ async function runContainerSmoke(contents, { testInput = false, timeout = 90000 
     const target = report.initial.authority.containers?.find(container => container.id === TARGET)
     check(target?.usable && !target.locked, 'The original empty dresser is missing recovered ownership or access metadata')
     const session = await evaluate('globalThis.AGate._engine.client.options.authoritySession')
-    observer = io(session.url, { auth: { version: 1, token: session.observerToken },
+    observer = io(session.url, { auth: { version: 2, token: session.observerToken },
       transports: ['websocket'], reconnection: false, autoConnect: false, forceNew: true, timeout: 5000 })
     observer.on('authority:snapshot', snapshot => {
       snapshots.push(snapshot)
@@ -110,7 +110,7 @@ async function runContainerSmoke(contents, { testInput = false, timeout = 90000 
       observer.once('connect_error', reject)
       observer.connect()
     })
-    const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 1 })
+    const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 2 })
     check(joined?.ok && joined.role === 'observer', 'Container observer did not join')
     snapshots.push(joined.snapshot)
 

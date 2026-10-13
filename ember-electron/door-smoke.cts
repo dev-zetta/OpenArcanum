@@ -50,7 +50,7 @@ async function runDoorSmoke(contents, { testInput = false, timeout = 45000 } = {
       if (snapshot) {
         const actor = snapshot.actors.find(actor => actor.id === state.authority.actor.id)
         const door = snapshot.doors?.find(door => door.id === TARGET)
-        check(snapshot.version === 1 && snapshot.mapId === 'Bates Mansion Lev 2' &&
+        check(snapshot.version === 2 && snapshot.mapId === 'Bates Mansion Lev 2' &&
           snapshot.serverTime === state.authority.serverTime &&
           JSON.stringify(actor) === JSON.stringify(state.authority.actor) &&
           JSON.stringify(door) === JSON.stringify(state.door), 'The observer and renderer disagree about the authoritative door interaction')
@@ -97,7 +97,7 @@ async function runDoorSmoke(contents, { testInput = false, timeout = 45000 } = {
       'Door approach verification requires a nonadjacent starting actor')
     const session = await evaluate('globalThis.AGate._engine.client.options.authoritySession')
     observer = io(session.url, {
-      auth: { version: 1, token: session.observerToken },
+      auth: { version: 2, token: session.observerToken },
       transports: ['websocket'], autoConnect: false, reconnection: false, forceNew: true, timeout: 5000
     })
     observer.on('authority:snapshot', snapshot => { snapshots.push(snapshot); if (snapshots.length > 1500) snapshots.shift() })
@@ -108,8 +108,8 @@ async function runDoorSmoke(contents, { testInput = false, timeout = 45000 } = {
       observer.once('connect_error', failed)
       observer.connect()
     })
-    const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 1 })
-    check(joined?.ok && joined.role === 'observer' && joined.version === 1 && joined.mapId === 'Bates Mansion Lev 2',
+    const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 2 })
+    check(joined?.ok && joined.role === 'observer' && joined.version === 2 && joined.mapId === 'Bates Mansion Lev 2',
       'The door observer did not join the same local map')
     snapshots.push(joined.snapshot)
 

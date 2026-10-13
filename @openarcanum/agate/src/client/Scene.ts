@@ -686,7 +686,7 @@ export default class Scene {
 
     const entities = Array.from(sector.entities.values())
     await Promise.all(entities.map(entity => {
-      if (entity.ground === false || entity.base.flags.hasAny(['Off', 'Destroyed']) ||(
+      if (entity.ground === false || (entity.scriptOff ?? entity.base.flags.has('Off')) || entity.base.flags.has('Destroyed') ||(
            entity.ground !== true && entity.base.flags.hasAny(['Inventory']))) return
       return this.onNewEntity(entity)
     }))
@@ -730,7 +730,7 @@ export default class Scene {
   async addEntity(entity: Entity, target: Container) {
     // Inventory objects carry the owner's world location. They are retained in
     // the ECS, but their ground graphics must not be displayed on the floor.
-    if (entity.ground === false || entity.base.flags.hasAny(['Off', 'Destroyed']) ||(
+    if (entity.ground === false || (entity.scriptOff ?? entity.base.flags.has('Off')) || entity.base.flags.has('Destroyed') ||(
          entity.ground !== true && entity.base.flags.hasAny(['Inventory']))) return
     await this.onNewEntity(entity)
 

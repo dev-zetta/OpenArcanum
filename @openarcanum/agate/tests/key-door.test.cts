@@ -48,7 +48,7 @@ async function fixture(t: import("node:test").TestContext, modify?) {
     await server.loadWorld()
     const owner = { data: { joined: true, role: 'owner' } }
     let id = 0
-    const command = (type, extra = {}) => server.command(owner, { version: 1, id: ++id, actorId: '0', type, ...extra })
+    const command = (type, extra = {}) => server.command(owner, { version: 2, id: ++id, actorId: '0', type, ...extra })
     const finish = () => server.advanceMovement(performance.now() + 120000)
     const use = (targetId, complete = true) => {
       const ack = command('use', { targetId })
@@ -317,8 +317,8 @@ test('open locked pose survives save and fresh-host load after putting the attai
   assert.equal((await first.command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8')
   const saved = JSON.parse(bytes)
-  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
-  assert.equal(saved.version, 6)
+  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
+  assert.equal(saved.version, 7)
   assert.equal(saved.doors.find(row => row.id === LOCKED_DOOR_ID).open, true)
   assert.equal(saved.ownership.items.find(row => row.id === KEY_ID).parent, KEY_BOX_ID)
   await first.server.stop()

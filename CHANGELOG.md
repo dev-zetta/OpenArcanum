@@ -11,6 +11,21 @@ converter's unmerged GlobalConverter history is included. Asset-database entries
 document historical work whose retail-derived payloads are excluded from this
 source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
 
+## 2026-10-14
+
+- Added editable TypeScript SCR imports with named symbols, original entry lines,
+  protected reimports and strict TS7 builds. The local archive converts 2,399
+  scripts and indexes 709 dialogue files; retail-derived output remains private.
+- Added transactional server scripting, scoped persistent state, original
+  attachments, saved timers/RNG and a presentation-only client runtime. A verified
+  Bates heartbeat and separate owned Workshop door supply the first witnesses.
+  Schema 7 / rules v11 and protocol 2 replace earlier development contracts.
+  Remaining original opcodes, DLG expressions, AI and campaign coverage are open.
+  See [scripting](docs/SCRIPTING.md).
+- Added declared typed custom-data keys, reviewed local aliases and explicit
+  module/runtime disposal. The complete regression suite passes 635 Node tests
+  and 87 native UI tests; original and owned native gameplay checks pass.
+
 ## 2026-10-13
 
 - Added authoritative carrying capacity for the owned neutral-human character.

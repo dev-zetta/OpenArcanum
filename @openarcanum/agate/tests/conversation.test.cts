@@ -47,7 +47,7 @@ async function fixture(t: import("node:test").TestContext, modify?) {
     await server.loadWorld()
     const owner = { data: { joined: true, role: 'owner' } }
     const command = (type, extra = {}, socket = owner) => server.command(socket, {
-      version: 1, id: server.lastCommandId + 1, actorId: '0', type, ...extra,
+      version: 2, id: server.lastCommandId + 1, actorId: '0', type, ...extra,
     })
     const finish = () => server.advanceMovement(performance.now() + 120000)
     const use = targetId => {
@@ -294,8 +294,8 @@ test('checkpoint stores fixed quest states without dialogue tokens and restores 
   const completed = journal()
   assert.equal((await command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8'), document = JSON.parse(bytes)
-  assert.equal(document.version, 6)
-  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+  assert.equal(document.version, 7)
+  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
   assert.deepEqual(document.quests, [{ id: QUEST_ID, status: 'completed' }])
   for (const value of ['conversationId', 'options', 'speaker', QUEST_TITLE] as const) assert.equal(bytes.includes(value), false, value)
   await server.stop()

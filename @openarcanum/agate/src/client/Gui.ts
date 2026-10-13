@@ -3,7 +3,7 @@ import type Entity from '../shared/entity/Entity'
 import type { AssetDescriptor } from '../shared/assets/AssetLoader'
 import type { SpritesheetData } from './isometric/GeometryTypes'
 interface DebugGui { destroy(): void; addFolder(name: string): DebugGui; add(object: object, key: string): unknown }
-interface GuiWidget { children?: Map<string, GuiWidget>; get(key: 'widget.id'): string; bringToBack(): void; bringToFront(): void; createChild(options: { id: string; type: string; position: number[]; value: string; options: object }): unknown; getChild(id: string): GuiWidget | undefined; update(entity: Entity): void }
+interface GuiWidget { hide(): void; show(): void; children?: Map<string, GuiWidget>; get(key: 'widget.id'): string; get(key: 'widget.visible'): boolean; bringToBack(): void; bringToFront(): void; createChild(options: { id: string; type: string; position: number[]; value: string; options: object }): unknown; getChild(id: string): GuiWidget | undefined; update(entity: Entity): void }
 interface GuiFrame { left: number; top: number; width: number; height: number }
 /* global AGate */
 
@@ -18,6 +18,7 @@ let DatConfig = {
 }
 
 class Manager {
+  private scriptHiddenWidgets = new WeakMap<GuiWidget, boolean>()
   declare gameEngine: GameEngine
   declare sprites: Map<string, Sprite>
   declare widgets: Map<string, GuiWidget>
@@ -378,6 +379,19 @@ class Manager {
 
       }
     })
+  }
+
+  setEntityVisibility(entity: Entity, visible: boolean): void {
+    const widget = this.findWidget('dialogWin')?.getChild(entity.id)
+    if (!widget) return
+    if (!visible) {
+      if (!this.scriptHiddenWidgets.has(widget)) this.scriptHiddenWidgets.set(widget, widget.get('widget.visible'))
+      widget.hide()
+    } else if (this.scriptHiddenWidgets.has(widget)) {
+      if (this.scriptHiddenWidgets.get(widget)) widget.show()
+      else widget.hide()
+      this.scriptHiddenWidgets.delete(widget)
+    }
   }
 
   updateEntityBubble(entity: Entity) {

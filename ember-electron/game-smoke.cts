@@ -44,7 +44,7 @@ async function runGameSmoke(contents, { timeout = 119000, testInput = false } = 
     return { ...state, error: 'The local map, textures and controlled actor are not ready.' }
   }
   const authority = state.game.authority
-  if (authority?.mode !== 'local-server' || authority.protocolVersion !== 1 || !authority.connected ||
+  if (authority?.mode !== 'local-server' || authority.protocolVersion !== 2 || !authority.connected ||
       !Number.isInteger(authority.serverPid) || authority.serverPid <= 0 ||
       !Number.isInteger(authority.revision) || !Number.isFinite(authority.serverTime) ||
       authority.actor?.id !== state.game.player.id ||
@@ -106,19 +106,19 @@ async function runGameSmoke(contents, { timeout = 119000, testInput = false } = 
     movement = await contents.executeJavaScript(`(async () => {
       const client = globalThis.AGate._engine.client;
       const session = client.options.authoritySession;
-      if (!session?.observerToken || session.protocolVersion !== 1) {
+      if (!session?.observerToken || session.protocolVersion !== 2) {
         throw new Error('The local session did not provide observer access.');
       }
       const socketModule = window.requireNode('socket.io-client');
       const observer = socketModule.io(session.url, {
-        auth: { version: 1, token: session.observerToken },
+        auth: { version: 2, token: session.observerToken },
         transports: ['websocket'], autoConnect: false, reconnection: false, forceNew: true, timeout: 5000
       });
       const snapshots = [];
       observer.on('authority:snapshot', snapshot => snapshots.push(snapshot));
       const completedActor = snapshot => snapshot?.actors?.find(actor => actor.id === client.player.id);
       function observeCompletion(commandId, revision) {
-        const matches = snapshot => snapshot.version === 1 && snapshot.mapId === client.map.id &&
+        const matches = snapshot => snapshot.version === 2 && snapshot.mapId === client.map.id &&
           snapshot.revision === revision && completedActor(snapshot)?.lastCommand?.id === commandId &&
           completedActor(snapshot)?.lastCommand?.status === 'completed';
         const existing = snapshots.find(matches);
@@ -138,8 +138,8 @@ async function runGameSmoke(contents, { timeout = 119000, testInput = false } = 
           observer.once('connect_error', failed);
           observer.connect();
         });
-        const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 1 });
-        if (!joined.ok || joined.version !== 1 || joined.role !== 'observer' ||
+        const joined = await observer.timeout(5000).emitWithAck('authority:join', { version: 2 });
+        if (!joined.ok || joined.version !== 2 || joined.role !== 'observer' ||
             joined.mapId !== client.map.id || joined.actorId !== client.player.id ||
             JSON.stringify(completedActor(joined.snapshot)?.location) !== '[92,99]') {
           throw new Error('The second socket did not join the same authoritative world as an observer.');
@@ -189,7 +189,7 @@ async function runGameSmoke(contents, { timeout = 119000, testInput = false } = 
       movement.after.authority.actor.lastCommand.status !== 'completed' || movement.after.authority.actor.movement !== null ||
       JSON.stringify(movement.after.authority.actor.location) !== '[94,99]' ||
       !movement.after.authority.actor.location.every(Number.isInteger) ||
-      movement.observer.role !== 'observer' || movement.observer.protocolVersion !== 1 ||
+      movement.observer.role !== 'observer' || movement.observer.protocolVersion !== 2 ||
       movement.observer.completedRevision !== movement.after.authority.revision ||
       movement.observer.serverTime !== movement.after.authority.serverTime || !movement.observer.progressSnapshots ||
       JSON.stringify(movement.observer.actor) !== JSON.stringify(movement.after.authority.actor) ||

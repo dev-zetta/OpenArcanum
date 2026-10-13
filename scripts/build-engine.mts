@@ -9,6 +9,7 @@ await build({
   entryPoints: {
     index: path.join(engine, 'src/AGate.ts'),
     authority: path.join(engine, 'src/server/authority/entry.ts'),
+    'script-api': path.join(engine, 'src/shared/scripting/ScriptApi.ts'),
   },
   outdir: path.join(engine, 'dist'),
   outExtension: { '.js': '.cjs' },

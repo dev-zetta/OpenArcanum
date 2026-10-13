@@ -104,8 +104,8 @@ values.
 
 Quest completion and its XP/level/CP update commit together or reject together.
 The client displays committed state; it cannot choose XP, a level or a point
-grant. Current checkpoints use schema 6 and
-`movement-doors-ownership-attributes-v9`. The exact character record is
+grant. Current checkpoints use schema 7 and
+`movement-doors-ownership-attributes-weight-scripts-v11`. The exact character record is
 `{experiencePoints, level, unspentPoints, attributes, history}`, or `null` when
 unsupported. Loading replays the bounded ordered quest/purchase history from
 the fixed baseline, checking caps, available points and each once-only reward.

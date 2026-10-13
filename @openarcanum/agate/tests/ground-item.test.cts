@@ -51,7 +51,7 @@ async function fixture(t: import("node:test").TestContext, modify?) {
     await server.loadWorld()
     const owner = { data: { joined: true, role: 'owner' } }
     let id = 0
-    const command = (type, extra = {}) => server.command(owner, { version: 1, id: ++id, actorId: '0', type, ...extra })
+    const command = (type, extra = {}) => server.command(owner, { version: 2, id: ++id, actorId: '0', type, ...extra })
     const finish = () => server.advanceMovement(performance.now() + 120000)
     const use = (targetId, complete = true) => {
       const ack = command('use', { targetId })
@@ -152,7 +152,7 @@ test('ground commands validate strict intentions, revision, range, replay, pause
     assert.equal(transferGround(context, 'pickup', extra).code, 'INVALID_COMMAND')
   }
   assert.equal(server.command({ data: { joined: true, role: 'observer' } }, {
-    version: 1, id: 100, actorId: '0', type: 'pickup', targetId: GROUND_ITEM_ID, expectedRevision: server.revision,
+    version: 2, id: 100, actorId: '0', type: 'pickup', targetId: GROUND_ITEM_ID, expectedRevision: server.revision,
   }).code, 'FORBIDDEN')
   assert.equal(command('pause').ok, true)
   assert.equal(transferGround(context, 'pickup').code, 'PAUSED')
@@ -165,7 +165,7 @@ test('ground commands validate strict intentions, revision, range, replay, pause
   assert.equal(transferGround(context, 'pickup', { expectedRevision: stale }).code, 'STALE_REVISION')
   const picked = transferGround(context, 'pickup')
   assert.equal(picked.ok, true)
-  assert.equal(server.command(context.owner, { version: 1, id: picked.id, actorId: '0', type: 'pickup',
+  assert.equal(server.command(context.owner, { version: 2, id: picked.id, actorId: '0', type: 'pickup',
     targetId: GROUND_ITEM_ID, expectedRevision: server.revision }).code, 'REPLAYED_COMMAND')
   assert.equal(transferGround(context, 'pickup').code, 'UNKNOWN_TARGET')
   server.checkpointBusy = true
@@ -291,8 +291,8 @@ test('checkpoint schema6 restores ground/held/container ownership, visibility, c
   assert.equal(transferGround(first, 'drop').ok, true)
   assert.equal((await first.command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8'), saved = JSON.parse(bytes)
-  assert.equal(saved.version, 6)
-  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+  assert.equal(saved.version, 7)
+  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
   assert.deepEqual(saved.ownership.items.find(row => row.id === GROUND_ITEM_ID), { id: GROUND_ITEM_ID, parent: null, groundLocation: [5, 5] })
   assert.equal(transferGround(first, 'pickup').ok, true)
   assert.equal((await first.command('load')).ok, true)

@@ -23,6 +23,7 @@ before(async () => {
         export { default as Sprite } from './client/Sprite.ts';
         export { default as BaseRenderer } from './client/render/BaseRenderer.ts';
         export { default as Scene } from './client/Scene.ts';
+        export { default as GuiManager } from './client/Gui.ts';
         export { default as RoofLayer } from './client/RoofLayer.ts';
         export { default as Location } from './shared/Location.ts';
         export { default as PathFind } from './shared/map/PathFind.ts';
@@ -131,7 +132,7 @@ test('visible roofs occlude indoor floor and objects using the shifted coverage 
   layer.cells.set('4,5', roof)
   layer.ground.push(indoor, outdoor, outsideFootprint)
   const actorSprite = { iso: { visible: true } }
-  layer.trackEntity({ id: 'actor', base: { location } }, actorSprite)
+  layer.trackEntity({ id: 'actor', base: { location, flags: new Set() } }, actorSprite)
   layer.updateVisibility({ x: 0, y: 0 })
   assert.equal(indoor.sprite.iso.visible, false)
   assert.equal(actorSprite.iso.visible, false)
@@ -427,7 +428,7 @@ test('scene insertion is deterministic and draws same-tile walls before portals'
     ['portal', 'Portal', [5, 6]], ['unrelated', 'Scenery', [7, 8]],
     ['wall', 'Wall', [5, 6]], ['decoration', 'Scenery', [5, 6]]
   ].map(([id, type, location]) => ({ id, base: { type, location: new engine.Location(location),
-    flags: { hasAny: () => false } } }))
+    flags: new engine.Flags() } }))
   const scene = {
     newGroup: () => ({}),
     onNewEntity(entity) { return new Promise(resolve => pending.set(entity.id, resolve)) },
@@ -451,7 +452,7 @@ test('scene insertion is deterministic and draws same-tile walls before portals'
 
 test('scene applies converted byte opacity to artwork including fully transparent objects', async () => {
   const sprite = { iso: { alpha: 1 }, setData() {} }
-  const entity = { base: { flags: { hasAny: () => false }, location: { x: 1, y: 2 }, offset: { x: 0, y: 0 } },
+  const entity = { base: { flags: new engine.Flags(), location: { x: 1, y: 2 }, offset: { x: 0, y: 0 } },
     visual: { classes: { current: { sprite } }, render: { alpha: 128 } } }
   const scene = { client: { options: { standaloneMode: true } }, async onNewEntity() {}, addSprite() {} }
   await engine.Scene.prototype.addEntity.call(scene, entity, {})
@@ -852,6 +853,7 @@ test('the first Scene frame excludes startup time from offline elapsed time', as
 
 test('stopping during Walk atlas preparation rejects without installing movement', async () => {
   const client = Object.create(engine.ClientEngine.prototype)
+  client.gameEngine = { events: new EventEmitter() }
   let finishAtlas
   const atlas = new Promise(resolve => { finishAtlas = resolve })
   client.options = { standaloneMode: true }
@@ -907,7 +909,7 @@ test('authority snapshots alone change occupancy; renderer time only moves the s
     client.applyAuthoritySnapshot(walking)
     return { id: 1, status: 'accepted', path }
   } }
-  const snapshot = (revision, location, movement, status) => ({ version: 1, revision, mapId: 'fixture', actors: [{
+  const snapshot = (revision, location, movement, status) => ({ version: 2, revision, mapId: 'fixture', actors: [{
     id: '0', location, movement, lastCommand: { id: 1, status }
   }] })
   const walking = snapshot(1, [2, 2], { commandId: 1, path, index: 0, elapsedMs: 500, durationMs: 1000 }, 'accepted')
@@ -945,7 +947,7 @@ function doorReplica() {
     moveEntity: (_actor, from, to) => crossings.push([[from.x, from.y], [to.x, to.y]]) }
   client.authority = {}
   const snapshot = ({ revision = 1, location = [2, 2], open = false, movement = null, lastCommand = null } = {}) => ({
-    version: 1, mapId: 'fixture', revision,
+    version: 2, mapId: 'fixture', revision,
     doors: [{ id: door.sourcePath, kind: 'door', label: 'Door', location: [4, 2],
       open, locked: false, usable: true, closedFrame: 0, openFrame: 6 }],
     actors: [{ id: '0', location, movement, lastCommand }]
@@ -1257,6 +1259,7 @@ test('snapshots during replica asset loading are cached until its player sprite 
 
 test('stopping during asynchronous renderer startup cannot restart the client', async () => {
   const client = Object.create(engine.ClientEngine.prototype)
+  client.gameEngine = { events: new EventEmitter() }
   let finishRenderer
   const started = new Promise(resolve => { finishRenderer = resolve })
   let stops = 0
@@ -2733,4 +2736,170 @@ test('malformed purchase carrying metadata cannot commit a new capacity or repla
     assert.equal(client.inventoryState.carrying.capacity, 4000)
     assert.deepEqual(client.inventoryState.items, [item])
   }
+})
+
+test('the authored client module handles private messages with local data and resets at checkpoint epochs', async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'openarcanum-client-script-'))
+  t.after(() => fs.rm(directory, { recursive: true, force: true }))
+  const filename = path.join(root, 'examples/inventory-workshop/scripts/presentation.ts')
+  const sourceBytes = await fs.readFile(filename)
+  const { build } = await import('esbuild')
+  const output = await build({ entryPoints: [filename], bundle: true, write: false, format: 'cjs', platform: 'node',
+    target: 'node24', external: ['@openarcanum/script-api'] })
+  const compiledBytes = output.outputFiles[0].contents
+  const { createHash } = require('node:crypto') as typeof import('node:crypto')
+  const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex')
+  await fs.writeFile(path.join(directory, 'presentation.ts'), sourceBytes)
+  await fs.writeFile(path.join(directory, 'presentation.cjs'), compiledBytes)
+  const manifest = path.join(directory, 'manifest.json')
+  await fs.writeFile(manifest, JSON.stringify({ apiVersion: 1, scripts: [{ id: 'workshop:presentation', realm: 'client',
+    source: 'presentation.ts', sourceSha256: hash(sourceBytes), compiled: 'presentation.cjs', sha256: hash(compiledBytes) }] }))
+  const client = Object.create(engine.ClientEngine.prototype)
+  client.options = { moduleId: 'inventory-workshop', scriptManifestPath: manifest }
+  client.gameEngine = { events: new EventEmitter() }
+  const messages = []
+  client.events.on('Player:ScriptMessage', message => messages.push(message))
+  const snapshot = epoch => ({ scriptEpoch: epoch })
+  const packet = (epoch, sequence, text = 'Authored private message') => ({ version: 2, epoch, sequence, revision: 1, type: 'message', text, targetId: 'scripted-door' })
+  client.applyAuthoritySnapshot(snapshot(1))
+  assert.equal(client.scriptMessage, null, 'joining initializes local state without replaying a message')
+  client.receiveScriptPresentation(packet(1, 1))
+  client.receiveScriptPresentation(packet(1, 2, 'A later private message'))
+  assert.equal(client.scriptMessage.text, 'A later private message')
+  assert.equal(client.scriptMessage.targetId, 'scripted-door')
+  assert.equal(client.getDevelopmentState().clientScriptState['workshop:presentation'].messages, 2,
+    'the actual authored module executes through ClientScriptEngine')
+  const oldRuntime = client.scriptRuntime, oldLoader = client.scriptLoader
+  client.applyAuthoritySnapshot(snapshot(2))
+  assert.throws(() => oldRuntime.run('workshop:presentation'), { code: 'SCRIPT_DISPOSED' }, 'load disables retained old runtime references')
+  assert.throws(() => oldLoader.resolve('workshop:presentation', 'client'), { code: 'SCRIPT_DISPOSED' }, 'load disposes the previous module cache')
+  assert.notEqual(client.scriptLoader, oldLoader, 'the next epoch uses a new loader')
+  assert.equal(client.scriptMessage, null, 'load clears presentation from the previous script epoch')
+  assert.deepEqual(client.getDevelopmentState().clientScriptState, {}, 'load creates fresh module data')
+  client.receiveScriptPresentation(packet(1, 3, 'Stale message'))
+  assert.equal(client.scriptMessage, null)
+  client.receiveScriptPresentation(packet(2, 1))
+  assert.equal(client.getDevelopmentState().clientScriptState['workshop:presentation'].messages, 1)
+  const stoppedRuntime = client.scriptRuntime, stoppedLoader = client.scriptLoader
+  client.stop()
+  assert.throws(() => stoppedRuntime.run('workshop:presentation'), { code: 'SCRIPT_DISPOSED' }, 'teardown disables the active runtime')
+  assert.throws(() => stoppedLoader.resolve('workshop:presentation', 'client'), { code: 'SCRIPT_DISPOSED' }, 'teardown clears the active module cache')
+  assert.equal(client.scriptRuntime, undefined)
+  assert.equal(client.scriptLoader, undefined)
+  assert.equal(client.scriptMessage, null)
+  const count = messages.length
+  client.receiveScriptPresentation(packet(2, 2, 'Disposed message'))
+  assert.equal(messages.length, count, 'disposed sessions publish no effects')
+})
+
+test('script veto reports the skipped default without changing the closed door or erasing its private message', async () => {
+  const { client, door } = doorReplica()
+  client.scriptMessage = { text: 'The door will open on its next use.', epoch: 1, sequence: 1 }
+  client.authority.use = async () => ({ id: 12, status: 'completed', path: [[2, 2]],
+    result: { kind: 'script', targetId: door.sourcePath, defaultAction: 'skip' } })
+  await client.useTarget(door.sourcePath)
+  assert.equal(door.portalOpen, false)
+  assert.equal(client.interactionState.message, 'The script prevented the default action.')
+  assert.equal(client.interactionState.open, false)
+  assert.equal(client.scriptMessage.text, 'The door will open on its next use.')
+})
+
+function scriptNpcReplica(initiallyOff = false) {
+  const client = Object.create(engine.ClientEngine.prototype)
+  const flags = new Set(initiallyOff ? ['Off'] : [])
+  const map = { objectGroup: {}, getTile: () => ({ outdoor: true }) }
+  const iso = { visible: !initiallyOff, renderable: true, eventMode: 'static' }
+  const sprite = { iso }
+  const overlayFields: Pick<import('../dist-types/shared/entity/Entity').default, 'scriptOff'> = {}
+  const entity = { ...overlayFields, id: 'npc', map, sourcePath: 'fixture/Sector/0/0/Npc/guide.json',
+    base: { type: 'Npc', location: new engine.Location(11, 6), flags }, visual: { classes: { current: { sprite } } } }
+  const overlay = []
+  client.map = map
+  client.world = { entityManager: { entities: new Map([['npc', entity]]) } }
+  client.gameEngine = { events: new EventEmitter() }
+  client.scene = { roofLayer: new engine.RoofLayer({ newGroup: () => ({}) }, map), async addEntity() { assert.fail('Existing sprites must be reused') } }
+  client.scene.roofLayer.trackEntity(entity, sprite)
+  client.guiManager = { setEntityVisibility: (current, visible) => overlay.push([current.id, visible]) }
+  client.authorityState = { conversationTargets: [{ id: entity.sourcePath, kind: 'conversation' }] }
+  return { client, entity, iso, flags, overlay }
+}
+
+test('authoritative Off overlays hide NPC artwork, pointer hits and dialogs without mutating inherited flags', async () => {
+  const { client, entity, iso, flags, overlay } = scriptNpcReplica()
+  client.interactionState = { targetId: entity.sourcePath }
+  client.conversationState = { targetId: entity.sourcePath }
+  let invalidated = 0
+  client.invalidateConversation = () => { invalidated++ }
+  client.applyScriptObjects([{ id: entity.sourcePath, off: true }])
+  await client.scriptVisualReady
+  assert.equal(entity.scriptOff, true)
+  assert.deepEqual([...flags], [], 'only the public instance overlay changes')
+  assert.deepEqual(iso, { visible: false, renderable: false, eventMode: 'none' })
+  assert.equal(client.getInteractionTarget(entity.sourcePath), undefined)
+  assert.equal(client.interactionState, null)
+  assert.equal(invalidated, 1)
+  client.scene.roofLayer.updateVisibility(new engine.Location(0, 0))
+  assert.equal(iso.visible, false, 'a later roof pass cannot show an Off NPC')
+  client.applyScriptObjects([{ id: entity.sourcePath, off: false }])
+  assert.deepEqual(iso, { visible: true, renderable: true, eventMode: 'static' })
+  assert.equal(client.getInteractionTarget(entity.sourcePath).kind, 'conversation')
+  assert.deepEqual(overlay, [['npc', false], ['npc', true]])
+  client.applyScriptObjects([])
+  assert.equal(Object.hasOwn(entity, 'scriptOff'), false, 'loading removes an overlay omitted from the saved state')
+  assert.deepEqual([...flags], [])
+})
+
+test('script Off false can reveal originally Off NPCs and removing the overlay restores their original flag', () => {
+  const { client, entity, iso, flags } = scriptNpcReplica(true)
+  client.applyScriptObjects([{ id: entity.sourcePath, off: true }])
+  client.applyScriptObjects([{ id: entity.sourcePath, off: false }])
+  client.scene.roofLayer.updateVisibility(new engine.Location(1, 1))
+  assert.equal(iso.visible, true, 'false overrides the inherited Off bit')
+  assert.deepEqual([...flags], ['Off'])
+  client.applyScriptObjects([])
+  assert.equal(iso.visible, false, 'no saved overlay falls back to the original bit')
+  assert.equal(iso.renderable, false)
+})
+
+test('first artwork load for an enabled Off NPC is deduplicated and cannot revive a later hidden snapshot', async () => {
+  const { client, entity, iso } = scriptNpcReplica(true)
+  delete entity.visual.classes.current.sprite
+  let resolve!: () => void
+  let loads = 0
+  client.scene.addEntity = async () => {
+    loads++
+    await new Promise<void>(yes => { resolve = yes })
+    entity.visual.classes.current.sprite = { iso }
+  }
+  client.applyScriptObjects([{ id: entity.sourcePath, off: false }])
+  client.applyScriptObjects([{ id: entity.sourcePath, off: false }])
+  const pending = client.scriptVisualReady
+  assert.equal(loads, 1)
+  client.applyScriptObjects([{ id: entity.sourcePath, off: true }])
+  resolve()
+  await pending
+  assert.equal(iso.visible, false, 'the completed asset request observes the latest authoritative Off state')
+  assert.equal(iso.eventMode, 'none')
+})
+
+
+test('Off hides authored entity bubbles and restores their prior visibility without opening unrelated hidden bubbles', () => {
+  const manager = new engine.GuiManager({})
+  let visible = false
+  let shown = 0
+  const widget = { get: () => visible, hide: () => { visible = false }, show: () => { visible = true; shown++ } }
+  manager.findWidget = () => ({ getChild: () => widget })
+  manager.setEntityVisibility({ id: 'guide' }, true)
+  assert.equal(visible, false, 'ordinary snapshots preserve hidden authored widgets')
+  manager.setEntityVisibility({ id: 'guide' }, false)
+  manager.setEntityVisibility({ id: 'guide' }, true)
+  assert.equal(visible, false, 'Off does not open a previously hidden bubble on restore')
+  visible = true
+  manager.setEntityVisibility({ id: 'guide' }, false)
+  manager.setEntityVisibility({ id: 'guide' }, false)
+  assert.equal(visible, false)
+  manager.setEntityVisibility({ id: 'guide' }, true)
+  assert.equal(visible, true, 'a previously visible bubble returns once')
+  manager.setEntityVisibility({ id: 'guide' }, true)
+  assert.equal(shown, 1, 'later snapshots leave authored visibility decisions alone')
 })

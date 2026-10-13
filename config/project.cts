@@ -16,11 +16,14 @@ module.exports = function projectConfig() {
       moduleManifestPath: path.join(projectRoot, 'examples/inventory-workshop/module.json'),
       dataPath: path.join(projectRoot, 'examples/inventory-workshop/data'),
       checkpointPath: path.join(projectRoot, 'local-data/saves/inventory-workshop.json'),
+      scriptManifestPath: path.join(projectRoot, 'examples/inventory-workshop/data/scripts/manifest.json'),
       scriptsPath: path.resolve(projectRoot, configured.scriptsPath)
     })
   }
   return Object.assign({}, configured, {
     dataPath: path.resolve(projectRoot, process.env.OPENARCANUM_DATA_PATH || configured.dataPath),
+    scriptManifestPath: path.resolve(projectRoot, process.env.OPENARCANUM_SCRIPT_MANIFEST ||
+      configured.scriptManifestPath || 'local-data/scripts/arcanum/dist/manifest.json'),
     scriptsPath: path.resolve(projectRoot, configured.scriptsPath)
   })
 }

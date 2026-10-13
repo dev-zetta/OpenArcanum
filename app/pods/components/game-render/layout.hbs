@@ -44,6 +44,9 @@
       <p role="status" aria-live="polite" aria-atomic="true" data-checkpoint-status={{this.checkpoint.status}}>{{if this.checkpoint this.checkpoint.message "Choose when to save or load."}}</p>
     </section>
   {{/if}}
+  {{#if this.scriptMessage}}
+    <p role="status" aria-live="polite" aria-atomic="true" data-script-message>{{this.scriptMessage.text}}</p>
+  {{/if}}
   {{#if this.interactionStackAvailable}}
     <div class="interaction-stack" data-interaction-stack>
   {{#if this.doors.length}}

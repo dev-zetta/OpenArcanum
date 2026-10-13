@@ -51,7 +51,7 @@ async function fixture(t: import("node:test").TestContext, modify?) {
     hosts.push(server); await server.loadWorld()
     const owner = { data: { joined: true, role: 'owner' } }
     const command = (type, extra = {}, socket = owner) => server.command(socket, {
-      version: 1, id: server.lastCommandId + 1, actorId: '0', type, ...extra,
+      version: 2, id: server.lastCommandId + 1, actorId: '0', type, ...extra,
     })
     const finish = () => server.advanceMovement(performance.now() + 120000)
     const use = targetId => {
@@ -234,8 +234,8 @@ test('schema6 jointly validates XP, level, points and quest completion before an
   const context = await start(), { server, state, begin, carry, reply } = context
   begin(); reply(carry(), 'show')
   const before = state(), document = server.createCheckpoint()
-  assert.equal(document.version, 6)
-  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+  assert.equal(document.version, 7)
+  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
   assert.deepEqual(document.character, stateOf(advanced))
   for (const mutate of [
     value => { value.character.experiencePoints++ }, value => { value.character.level = 3 },

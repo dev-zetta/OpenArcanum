@@ -68,8 +68,8 @@ full original item insertion policy remain unfinished.
 
 ## Persistence and verification
 
-Current schema 6 checkpoints use
-`movement-doors-ownership-attributes-weight-v10`. Carrying totals are recomputed
+Current schema 7 checkpoints use
+`movement-doors-ownership-attributes-weight-scripts-v11`. Carrying totals are recomputed
 from the validated item ownership and restored character attributes, not saved
 as an independent client-provided balance. Only the current rules contract is
 accepted.

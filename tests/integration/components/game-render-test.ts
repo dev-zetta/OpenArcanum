@@ -18,7 +18,7 @@ module('Integration | Component | game-render', function(hooks) {
   let serverStops: number
   let startedIds: string[]
   let stoppedIds: string[]
-  const authoritySession: import('../../../app/types/runtime').LocalAuthoritySession = { url: 'http://127.0.0.1:1234', token: 'fixture', observerToken: 'fixture-observer', protocolVersion: 1, pid: 123, mapId: 'Bates Mansion Lev 2' }
+  const authoritySession: import('../../../app/types/runtime').LocalAuthoritySession = { url: 'http://127.0.0.1:1234', token: 'fixture', observerToken: 'fixture-observer', protocolVersion: 2, pid: 123, mapId: 'Bates Mansion Lev 2' }
 
   hooks.beforeEach(function() {
     previousRequireNode = globalThis.requireNode
@@ -246,6 +246,33 @@ module('Integration | Component | game-render', function(hooks) {
     assert.dom('[data-interaction-status]').hasAttribute('data-interaction-status', 'completed')
     assert.dom('option:checked').hasText('Door 1 — open')
     assert.dom('[data-action="use-door"]').isNotDisabled()
+  })
+
+  test('private script messages survive Use completion, escape markup and clear with the script session', async function(this: RenderingTestContext, assert) {
+    const text = 'The door script ran. <img src=x onerror=alert(1)>'
+    const { client, listeners } = provideInteractionClient(async (replica, targetId) => {
+      replica.events.emit('Player:ScriptMessage', { text, targetId, epoch: 1, sequence: 1 })
+      replica.events.emit('Player:InteractionUpdated', { targetId, status: 'completed',
+        message: 'The script prevented the default action.', open: false })
+    })
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    assert.dom('[data-script-message]').doesNotExist('joining does not replay script messages')
+    await click('[data-action="use-door"]')
+    assert.dom('[data-script-message]').hasText(text)
+    assert.dom('[data-script-message] img').doesNotExist('script output is escaped text')
+    assert.dom('[data-interaction-status]').hasText('The script prevented the default action.')
+    assert.dom('#door-target option:checked').hasText('Door 1 — closed', 'veto keeps the committed door state')
+    client.events.emit('Player:InteractionUpdated', { targetId: 'synthetic/door-a.json', status: 'completed', message: 'Door opened.', open: true })
+    await settled()
+    assert.dom('[data-script-message]').hasText(text, 'ordinary action status cannot replace script output')
+    client.events.emit('Player:ScriptMessage', null)
+    await settled()
+    assert.dom('[data-script-message]').doesNotExist('checkpoint epoch reset clears old presentation')
+    await clearRender()
+    assert.strictEqual(listeners.get('Player:ScriptMessage')?.size, 0, 'teardown removes the script subscription')
+    client.events.emit('Player:ScriptMessage', { text: 'Late callback', epoch: 1, sequence: 2 })
+    assert.dom('[data-script-message]').doesNotExist('late events cannot resurrect the stopped UI')
   })
 
   test('locked door rejection remains escaped, visible and recoverable without stopping the map', async function(this: RenderingTestContext, assert) {

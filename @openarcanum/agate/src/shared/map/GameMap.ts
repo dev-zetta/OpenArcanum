@@ -267,7 +267,7 @@ export default class GameMap {
     const entities = sector.getTileEntities(tile, [Enums.Entity.Wall, Enums.Entity.Portal,
       Enums.Entity.Npc, Enums.Entity.Pc, Enums.Entity.Scenery, Enums.Entity.Container])
     for (const entity of Object.values(entities)) {
-      if (entity.base.flags.hasAny(['Inventory', 'Off', 'Destroyed'])) continue
+      if ((entity.scriptOff ?? entity.base.flags.has('Off')) || entity.base.flags.hasAny(['Inventory', 'Destroyed'])) continue
       if (entity.base.type === 'Portal' && typeof entity.portalOpen === 'boolean') {
         // A converted open door can inherit NoBlock. Its committed instance
         // state overrides that saved flag when it is subsequently closed.

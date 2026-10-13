@@ -7,7 +7,7 @@ const fs = require('node:fs') as typeof import('node:fs')
 const os = require('node:os') as typeof import('node:os')
 const path = require('node:path') as typeof import('node:path')
 const { test } = require('node:test') as typeof import('node:test')
-const { LocalServerHost } = require('../dist-electron/local-server.cjs')
+const { LocalServerHost, validateInitialScriptFlags } = require('../dist-electron/local-server.cjs')
 
 function fixture(t, mode = 'ready', options = {}) {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'openarcanum-local-host-'))
@@ -37,7 +37,7 @@ function fixture(t, mode = 'ready', options = {}) {
         process.send({
           type: 'ready',
           url: mode === 'invalid' ? 'http://192.0.2.1:1234' : 'http://127.0.0.1:12345',
-          protocolVersion: 1,
+          protocolVersion: 2,
           mapId: config.mapId
         })
         if (mode === 'later-exit') setTimeout(() => process.exit(9), 80)
@@ -86,7 +86,7 @@ test('starts one owned child, sends private configuration over IPC and stops it 
   const session = await first
   assert.equal(session.url, 'http://127.0.0.1:12345')
   assert.equal(session.mapId, 'Bates')
-  assert.equal(session.protocolVersion, 1)
+  assert.equal(session.protocolVersion, 2)
   assert.match(session.token, /^[a-f\d]{64}$/)
   assert.match(session.observerToken, /^[a-f\d]{64}$/)
   assert.notEqual(session.token, session.observerToken)
@@ -222,4 +222,35 @@ test('an asynchronous spawn failure leaves no active session', async t => {
   })
   await assert.rejects(host.start(), /Local server process failed:.*ENOENT/)
   assert.deepEqual(host.getState(), { state: 'stopped', pid: null, mapId: 'Bates' })
+})
+
+
+test('trusted initial script flags are validated, copied and only sent over private server IPC', async t => {
+  const supplied = { arcanum: { 2676: 1 } }
+  let startMessage
+  const { host } = fixture(t, 'ready', { initialScriptFlags: supplied,
+    fork(...args: [modulePath: string, args?: readonly string[], options?: import('node:child_process').ForkOptions]) {
+      const child = fork(...args)
+      const send = child.send.bind(child)
+      child.send = (message, ...rest) => {
+        if (message.type === 'start') startMessage = message
+        return send(message, ...rest)
+      }
+      return child
+    }
+  })
+  supplied.arcanum[2676] = 0
+  const descriptor = await host.start()
+  assert.deepEqual(startMessage.config.initialScriptFlags, { arcanum: { 2676: 1 } })
+  assert.equal(Object.hasOwn(descriptor, 'initialScriptFlags'), false)
+  assert.equal(Object.hasOwn(host.getState(), 'initialScriptFlags'), false)
+  assert.equal(Object.isFrozen(host.initialScriptFlags), true)
+  assert.equal(Object.isFrozen(host.initialScriptFlags.arcanum), true)
+})
+
+test('invalid initial script flag fixtures fail before starting any local process', () => {
+  for (const value of [null, [], { arcanum: [] }, { Arcanum: { 2676: 1 } }, { arcanum: { '01': 1 } },
+    { arcanum: { 65536: 1 } }, { arcanum: { 2676: true } }, { arcanum: { 2676: 2 } },
+    { arcanum: { 2676: '1' } }]) assert.throws(() => validateInitialScriptFlags(value), /Invalid initial script flag/)
+  assert.deepEqual(validateInitialScriptFlags({ arcanum: { 0: 0, 65535: 1 } }), { arcanum: { 0: 0, 65535: 1 } })
 })

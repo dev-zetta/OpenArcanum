@@ -81,3 +81,6 @@ package.json.ember-try
 /@openarcanum/asset-db/compiled-scripts/
 
 /@openarcanum/agate/dist-types/
+
+# Compiled owned script modules; editable TypeScript stays in examples/.../scripts.
+/examples/inventory-workshop/data/scripts/

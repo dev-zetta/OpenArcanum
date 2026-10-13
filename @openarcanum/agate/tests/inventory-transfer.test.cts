@@ -4,7 +4,7 @@ const fs = require('node:fs/promises') as typeof import('node:fs/promises')
 const os = require('node:os') as typeof import('node:os')
 const path = require('node:path') as typeof import('node:path')
 const Module = require('node:module') as typeof import('node:module')
-const { generate, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID, LOCKED_DOOR_ID } = require('../../../examples/inventory-workshop/generate.cts')
+const { generate, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID, SCRIPTED_DOOR_ID, LOCKED_DOOR_ID } = require('../../../examples/inventory-workshop/generate.cts')
 const root = path.resolve(__dirname, '../../..')
 const source = path.join(root, '@openarcanum/agate/src')
 const inventoryView = (items: Array<{ weight: number } & Record<string, unknown>> = [], capacity = 4000) => ({
@@ -46,7 +46,7 @@ async function fixture(t: import("node:test").TestContext, modify?) {
   await server.loadWorld()
   const owner = { data: { joined: true, role: 'owner' } }
   let nextId = 0
-  const command = (type, extra = {}) => server.command(owner, { version: 1, id: ++nextId, actorId: '0', type, ...extra })
+  const command = (type, extra = {}) => server.command(owner, { version: 2, id: ++nextId, actorId: '0', type, ...extra })
   const finish = () => server.advanceMovement(performance.now() + 120000)
   const approach = () => { const result = command('use', { targetId: BOX_ID }); finish(); return result }
   const take = () => command('take', { targetId: BOX_ID, itemId: TOKEN_ID, expectedRevision: server.revision })
@@ -201,8 +201,8 @@ test('checkpoint v3 restores ownership, position and doors together and rejects 
   const saved = await command('save')
   assert.equal(saved.ok, true)
   const transferred = await server.checkpointStore.read()
-  assert.equal(transferred.version, 6)
-  assert.equal(transferred.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
+  assert.equal(transferred.version, 7)
+  assert.equal(transferred.rulesVersion, 'movement-doors-ownership-attributes-weight-scripts-v11')
   assert.equal(transferred.ownership.items.find(row => row.id === TOKEN_ID).parent, '16086.json')
   const restoredOriginal = server.validateCheckpoint(original)
   server.applyCheckpoint(restoredOriginal)
@@ -211,7 +211,7 @@ test('checkpoint v3 restores ownership, position and doors together and rejects 
   assert.equal(server.doors.states.get(DOOR_ID).open, true)
   const loaded = await command('load')
   assert.equal(loaded.ok, true)
-  assert.deepEqual(state(), { location: [5, 4], doors: [{ id: DOOR_ID, open: false }, { id: LOCKED_DOOR_ID, open: false }], ownership: transferred.ownership })
+  assert.deepEqual(state(), { location: [5, 4], doors: [{ id: DOOR_ID, open: false }, { id: LOCKED_DOOR_ID, open: false }, { id: SCRIPTED_DOOR_ID, open: false }], ownership: transferred.ownership })
   const legacy = structuredClone(original)
   legacy.version = 1; delete legacy.ownership
   assert.throws(() => server.validateCheckpoint(legacy), { code: 'CHECKPOINT_INCOMPATIBLE' })
@@ -508,7 +508,7 @@ test('Take All uses the strict server intention, publishes once and never replay
   assert.deepEqual(server.lastCommand.result, { kind: 'take-all', targetId: BOX_ID })
   assert.equal(JSON.stringify(server.getSnapshot()).includes(TOKEN_ID), false)
   const replay = server.command({ data: { joined: true, role: 'owner' } },
-    { version: 1, id: batch.id, actorId: '0', type: 'take-all', targetId: BOX_ID, expectedRevision: revision })
+    { version: 2, id: batch.id, actorId: '0', type: 'take-all', targetId: BOX_ID, expectedRevision: revision })
   assert.equal(replay.code, 'REPLAYED_COMMAND')
   assert.equal(command('take-all', { targetId: BOX_ID, expectedRevision: revision }).code, 'STALE_REVISION')
   assert.equal(command('take-all', { targetId: BOX_ID, expectedRevision: server.revision }).code, 'EMPTY_CONTAINER')
