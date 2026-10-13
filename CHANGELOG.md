@@ -13,6 +13,17 @@ source publication. See [HISTORY](docs/HISTORY.md) for provenance and filtering.
 
 ## 2026-10-13
 
+- Added authoritative carrying capacity for the owned neutral-human character.
+  Whole Generic/Key Take, Take All and Pickup preflight the complete stone weight;
+  exact capacity succeeds and overweight batches leave all ownership intact.
+  Private item/total/capacity views update after Strength purchases, transfers
+  and load. Added a separate 4,000-stone Workshop ballast witness.
+  Schema 6 uses rules v10 and validates saved ownership against saved Strength
+  before any restore. Encumbrance bands are displayed; their movement/fatigue
+  effects remain ahead. Validation: 557 Node tests, 86 UI tests / 746 assertions,
+  strict TS7 checks, production build and native Workshop/Bates gameplay with
+  lifecycle cleanup. See [carrying capacity](docs/WEIGHT.md).
+
 - Completed the owned-source TypeScript 7 migration across the engine/ECS,
   renderer/physics, authority, Ember UI, Electron host, asset converter, authored
   GUI definitions, research tools, launch/build scripts and tests. Production

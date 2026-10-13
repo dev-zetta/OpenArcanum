@@ -7,6 +7,9 @@ const Module = require('node:module') as typeof import('node:module')
 const { generate, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID, LOCKED_DOOR_ID, KEY_BOX_ID, KEY_ID, LOCK_KEY_ID, LOCKED_BOX_ID, PRIZE_ID, PRIZE_LABEL, GROUND_ITEM_ID, GROUND_ITEM_LABEL } = require('../../../examples/inventory-workshop/generate.cts')
 const root = path.resolve(__dirname, '../../..')
 const source = path.join(root, '@openarcanum/agate/src')
+const inventoryView = (items: Array<{ weight: number } & Record<string, unknown>> = [], capacity = 4000) => ({
+  ownerId: '16086.json', items, carrying: { supported: true, weight: items.reduce((total, item) => total + item.weight, 0),
+    capacity, encumbrance: 'none' } })
 let engine
 
 before(async () => {
@@ -72,7 +75,7 @@ async function fixture(t: import("node:test").TestContext, modify?) {
 const groundRow = (location = [4, 7]) => ({ id: GROUND_ITEM_ID, kind: 'ground', label: GROUND_ITEM_LABEL,
   type: 'Generic', prototypeId: 900007, location })
 const ownedRow = (slot = 0) => ({ id: GROUND_ITEM_ID, slot, label: GROUND_ITEM_LABEL,
-  type: 'Generic', prototypeId: 900007, canDrop: true })
+  type: 'Generic', prototypeId: 900007, canDrop: true, weight: 1 })
 const actorContents = server => server.ownership.actorInventory().items
 const transferGround = (context, type, extra = {}) => context.command(type, {
   ...(type === 'drop' ? { itemId: GROUND_ITEM_ID } : { targetId: GROUND_ITEM_ID }),
@@ -97,7 +100,7 @@ test('initial authored ground Generic is public, pickup is private and drop pres
   const originalPosition = [entity.base.location.x, entity.base.location.y]
   const picked = await approachPickup(context)
   assert.deepEqual(picked.result, { kind: 'pickup', targetId: GROUND_ITEM_ID,
-    inventory: { ownerId: '16086.json', items: [ownedRow()] } })
+    inventory: inventoryView([ownedRow()]) })
   assert.equal(entity.ground, false)
   assert.equal(entity.item.parent, '16086.json')
   assert.deepEqual(server.getSnapshot().groundItems, [])
@@ -109,7 +112,7 @@ test('initial authored ground Generic is public, pickup is private and drop pres
   assert.equal(dropped.ok, true)
   assert.equal(server.revision, revision + 1)
   assert.deepEqual(dropped.result, { kind: 'drop', itemId: GROUND_ITEM_ID, ground: groundRow(location),
-    inventory: { ownerId: '16086.json', items: [] } })
+    inventory: inventoryView([]) })
   assert.equal(entity.ground, true)
   assert.equal(entity.item.parent, null)
   assert.equal(server.map.getTile(...location).Generic[entity.id], entity)
@@ -268,7 +271,7 @@ test('ground marker and static artwork are immutable, and malformed initial floo
 })
 
 test('unknown actor ownership remains unknown with a public ground object and cannot pick up or forge its owner', async t => {
-  const { start } = await fixture(t, change => change('16086.json', data => { delete data.Critter.inventory }))
+  const { start } = await fixture(t, change => change('16086.json', data => { delete data.Critter.inventory; delete data.Critter.progressionSupported }))
   const context = await start(), { server, use } = context
   assert.deepEqual(server.getSnapshot().groundItems, [groundRow()])
   use(GROUND_ITEM_ID)
@@ -289,7 +292,7 @@ test('checkpoint schema6 restores ground/held/container ownership, visibility, c
   assert.equal((await first.command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8'), saved = JSON.parse(bytes)
   assert.equal(saved.version, 6)
-  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.deepEqual(saved.ownership.items.find(row => row.id === GROUND_ITEM_ID), { id: GROUND_ITEM_ID, parent: null, groundLocation: [5, 5] })
   assert.equal(transferGround(first, 'pickup').ok, true)
   assert.equal((await first.command('load')).ok, true)

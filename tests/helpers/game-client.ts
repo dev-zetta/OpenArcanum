@@ -1,9 +1,10 @@
+import type { CarryingState } from '../../@openarcanum/agate/src/shared/character/CarryWeight'
 /** Mutable, deliberately partial replicas used to exercise the view in isolation.
  * Events accept unknown payloads so rejection and redaction tests can inject
  * incomplete/untrusted messages without pretending they passed wire validation. */
 export interface FixtureItem {
   id: string; label: string; type: string; slot?: number; prototypeId?: number; quantity?: number
-  canDrop?: boolean; reason?: string; location?: number[]; kind?: string
+  canDrop?: boolean; weight?: number; reason?: string; location?: number[]; kind?: string
 }
 export interface FixtureTarget {
   id: string; label: string; kind?: string; open?: boolean; locked?: boolean; usable?: boolean; reason?: string
@@ -33,7 +34,7 @@ export interface FixtureClient {
   emitUI(): void
   stop(): void
   useTarget(targetId: string): unknown
-  inventoryState?: { status: string; known: boolean; ownerId: string; items: Partial<FixtureItem>[]; message: string }
+  inventoryState?: { status: string; known: boolean; ownerId: string; items: Partial<FixtureItem>[]; message: string; carrying?: CarryingState }
   conversationState?: { status: string; message: string; targetId?: string; revision?: number; speaker?: string; text?: string; options?: { id: string; text: string }[] }
   journalState?: { status: string; message: string; entries: { id?: string; title: string; text?: string; status?: string }[] }
   characterState?: FixtureCharacter

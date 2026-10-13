@@ -13,8 +13,8 @@ const source = path.join(root, '@openarcanum/agate/src')
 const OWNER_ID = '16086.json'
 const ground = location => ({ id: GROUND_ITEM_ID, kind: 'ground', label: GROUND_ITEM_LABEL,
   type: 'Generic', prototypeId: 900007, location })
-const pebble = slot => ({ id: GROUND_ITEM_ID, slot, label: GROUND_ITEM_LABEL, type: 'Generic', prototypeId: 900007, canDrop: true })
-const token = slot => ({ id: TOKEN_ID, slot, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003 })
+const pebble = slot => ({ id: GROUND_ITEM_ID, slot, label: GROUND_ITEM_LABEL, type: 'Generic', prototypeId: 900007, canDrop: true, weight: 1 })
+const token = slot => ({ id: TOKEN_ID, slot, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003, weight: 1 })
 let createAuthorityServer
 
 before(async () => {
@@ -220,7 +220,7 @@ test('socket dialogue keeps lines and journal private while a held-pebble quest 
     assert.equal(saved.ok, true, saved.message)
     const document = JSON.parse(await fs.readFile(context.server.checkpointStore.filename, 'utf8'))
     assert.equal(document.version, 6)
-    assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-v9')
+    assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
     assert.deepEqual(document.quests, [{ id: QUEST_ID, status: 'completed' }])
     const late = await context.connect('observer'); const lateJoin = await join(late)
     publicState(lateJoin.snapshot, [offered.result, active.result, carrying.result, completed.result])

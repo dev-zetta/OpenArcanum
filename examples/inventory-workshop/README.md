@@ -29,6 +29,9 @@ in owner-list slot `3`, with item UI location `0`. The actor still starts with
 an explicitly empty inventory. A loose pebble at `(4, 7)` supplies the separate
 ground-item witness, with no owner, owner-list slot or inventory flag initially.
 The stationary Workshop guide at `(9, 8)` offers the quest **A closer look**.
+The independent crate at `(11, 2)` holds **Workshop ballast**, a 4,000-stone
+whole Generic item with its own procedural floor artwork. It leaves all existing
+crate contents and quest paths unchanged.
 
 ```sh
 node examples/inventory-workshop/generate.cts
@@ -58,8 +61,18 @@ unsupported item or insufficient owner-list capacity rejects the entire batch.
 The server chooses items in sparse slot/ID order and fills the actor's lowest
 free slots, including holes. It creates no items and never skips or partially
 takes contents. Item IDs and contents remain private to the requesting owner.
-The three crates supply token, key and locked-keepsake loops; temporary core/socket
+The first three crates supply token, key and locked-keepsake loops; temporary core/socket
 fixtures exercise multi-item batches, mixed unsupported contents and rollback.
+
+The owner's inventory now displays supported carried weight, capacity and the
+encumbrance band in stone. An empty Strength-8 actor can take the ballast at
+exactly its 4,000-stone capacity. Taking the one-stone token afterward rejects
+without a partial transfer. Buy Strength 9 for one CP and the new 4,500-stone
+capacity permits that token. Put the ballast back, or Drop it and Pickup again,
+to exercise capacity release and rechecking. Take All checks the entire batch
+before changing any ownership. See [Carrying capacity](../../docs/WEIGHT.md)
+for supported weights, evidence and exclusions. The encumbrance band does not
+yet slow movement or cause fatigue.
 
 Inspect the key crate, then **Take** its **Key** or choose **Take All**. Use the
 locked door through native input or the Doors panel. The request names only the
@@ -131,8 +144,9 @@ CP and is capped at 20. Spend the five starting points, complete the guide quest
 to gain one more, then make a sixth purchase. The private panel shows committed
 attributes and ten derived previews. For example, Strength 8 → 9 changes the
 neutral level-1 HP preview 30 → 32, carry capacity 4,000 → 4,500 stone and damage
-bonus −1 → 0. Ten stone is one pound in the manual's glossary. These previews
-do not change the current movement clock, combat or inventory weight limits.
+bonus −1 → 0. Ten stone is one pound in the manual's glossary. Carry capacity
+now limits supported incoming item weight; the remaining previews do not change
+the current movement clock or combat.
 There is no refund/respec, race/effect implementation or legacy stat mirror.
 See [Attribute purchases](../../docs/ATTRIBUTES.md).
 
@@ -166,7 +180,7 @@ including available points and cap behavior, before restoring any state.
 Inconsistent quest/character values or a purchase before its points were earned
 reject the whole load.
 
-This narrow slice does not implement equipment, stacks, weight/capacity,
+This narrow slice does not implement equipment, stacks, original weight effects,
 keyrings, retail ground transfers, barter, complete character creation or
 unrestricted transfers. XP saturates at 1,300,000 / level 50 as an explicit development
 policy; banked CP is bounded at 56. Original cap-edge behavior is unverified. It does not
@@ -177,7 +191,7 @@ loader or a source of executable rules. `Map.json` declares the validated start
 location. The historical actor filename `16086.json` remains an engine adapter;
 its actual owned prototype is `900001`, with an explicitly empty inventory.
 
-The 89 generated files include readable JSON and PNG files alongside three
+The 95 generated files include readable JSON and PNG files alongside three
 deterministic ZIP catalogs. Existing asset enumeration uses these catalogs;
 loose files take precedence when loading their contents. Regenerate all outputs
 after editing the generator so the catalogs and manifest stay consistent.
@@ -189,7 +203,7 @@ Module-specific runtime saves and reports belong under ignored `local-data/`,
 outside this checked-in example. Neither the example source nor generated
 archives should change when a session is played. The default manual slot is
 `local-data/saves/inventory-workshop.json`. Current checkpoints use schema 6
-and rules `movement-doors-ownership-attributes-v9`; only this current contract is
+and rules `movement-doors-ownership-attributes-weight-v10`; only this current contract is
 accepted. Startup does not auto-load the manual slot. Description text remains
 outside simulation identity. This is not complete original-game take-all
-behavior for retail loot, corpses, equipment or weight.
+behavior for retail loot, corpses, equipment or the full original weight rules.

@@ -40,9 +40,9 @@ const uiRoot = path.join(projectRoot, 'dist')
 const appUrl = 'serve://app/'
 const smoke = process.argv.includes('--smoke')
 const uiTest = process.argv.includes('--ui-test')
-// The current suite has 82 application cases plus Ember's onerror validation.
+// The current suite has 85 application cases plus Ember's onerror validation.
 // Missing test discovery must fail even when QUnit's own validation passes.
-const minimumUiTestCount = 83
+const minimumUiTestCount = 86
 const gameSmoke = process.argv.includes('--smoke-game')
 const automated = smoke || uiTest || gameSmoke
 const loadUrl = uiTest ? `${appUrl}tests/index.html` : appUrl

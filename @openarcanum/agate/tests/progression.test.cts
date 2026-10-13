@@ -235,7 +235,7 @@ test('schema6 jointly validates XP, level, points and quest completion before an
   begin(); reply(carry(), 'show')
   const before = state(), document = server.createCheckpoint()
   assert.equal(document.version, 6)
-  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.deepEqual(document.character, stateOf(advanced))
   for (const mutate of [
     value => { value.character.experiencePoints++ }, value => { value.character.level = 3 },
@@ -301,7 +301,7 @@ test('runtime progression marker and state tampering cannot enable or change the
   begin(); const page = carry(), revision = server.revision
   Object.defineProperty(server.player.critter, 'progressionSupported', { value: false, writable: true, configurable: true })
   assert.equal(character().code, 'PROGRESSION_UNAVAILABLE')
-  assert.equal(reply(page, 'show').code, 'PROGRESSION_UNAVAILABLE')
+  assert.equal(reply(page, 'show').code, 'INVENTORY_UNAVAILABLE', 'held-item conditions require a verified carrying profile')
   assert.equal(server.conversations.quests.get(QUEST_ID).status, 'active')
   assert.equal(server.revision, revision)
   Object.defineProperty(server.player.critter, 'progressionSupported', { value: true, writable: true, configurable: true })

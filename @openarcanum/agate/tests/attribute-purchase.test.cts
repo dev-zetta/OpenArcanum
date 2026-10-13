@@ -280,7 +280,7 @@ test('schema6 restores purchases before and after rewards across restart, with d
   assert.equal((await command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8'), document = JSON.parse(bytes)
   assert.equal(document.version, 6)
-  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.deepEqual(document.character.history, [{ kind: 'attribute', statId: 'strength' }, { kind: 'quest', questId: QUEST_ID }, { kind: 'attribute', statId: 'willpower' }])
   assert.equal(Object.hasOwn(document.character, 'derived'), false)
   await server.stop()

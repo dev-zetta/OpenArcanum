@@ -2583,3 +2583,154 @@ test('late purchase ACK after stop cannot restore attributes, balances or recove
   await assert.rejects(buying, /stopped/i)
   assert.equal(client.characterState, null)
 })
+
+const supportedCarrying = (weight: number, capacity = 4000, encumbrance = 'none') => ({ supported: true, weight, capacity, encumbrance })
+
+test('private carrying metadata is preserved and cleared with ownership', async () => {
+  const { client, token } = inventoryReplica()
+  const row = { ...token, slot: 0, weight: 600 }
+  client.authority.inventory = async () => ({ status: 'completed', revision: 1,
+    result: { kind: 'inventory', ownerId: '16086.json', items: [row], carrying: supportedCarrying(600, 4000, 'light') } })
+  await client.refreshInventory()
+  assert.equal(client.inventoryState.items[0].weight, 600)
+  assert.deepEqual(client.inventoryState.carrying, supportedCarrying(600, 4000, 'light'))
+  assert.equal(JSON.stringify(client.authorityState).includes('carrying'), false, 'private carrying never populates public snapshots')
+  client.invalidateInventory()
+  assert.equal(client.inventoryState.carrying, undefined)
+  assert.deepEqual(client.inventoryState.items, [])
+  client.authority.inventory = async () => ({ status: 'completed', revision: 1,
+    result: { kind: 'inventory', ownerId: '16086.json', items: [token], carrying: { supported: false } } })
+  await client.refreshInventory()
+  assert.deepEqual(client.inventoryState.carrying, { supported: false })
+  assert.equal(client.inventoryState.items[0].weight, undefined)
+  client.stop()
+  assert.equal(client.inventoryState, null)
+})
+
+test('malformed private carrying shapes, totals, bands and row weights never enter the replica', async () => {
+  const mutations = [
+    value => { value.carrying.weight = -1 }, value => { value.carrying.weight = 0.5 },
+    value => { value.carrying.capacity = 0 }, value => { value.carrying.capacity = Infinity },
+    value => { value.carrying.encumbrance = 'none' }, value => { value.carrying.weight = 601 },
+    value => { value.carrying.token = 'private' }, value => { delete value.items[0].weight },
+    value => { value.items[0].weight = -600 }, value => { value.items[0].weight = 600.5 },
+    value => { value.carrying = { supported: false } }, value => { delete value.carrying },
+    value => { value.carrying.supported = 'yes' }, value => { value.carrying = { supported: false, capacity: 4000 } }
+  ]
+  for (const mutate of mutations) {
+    const { client, token } = inventoryReplica()
+    const value = mutableFixture({ kind: 'inventory', ownerId: '16086.json', items: [{ ...token, slot: 0, weight: 600 }],
+      carrying: supportedCarrying(600, 4000, 'light') })
+    mutate(value)
+    client.authority.inventory = async () => ({ status: 'completed', revision: 1, result: value })
+    await assert.rejects(client.refreshInventory(), /invalid.*(carrying|inventory)/)
+    assert.equal(client.inventoryState.known, false)
+    assert.equal(client.inventoryState.carrying, undefined)
+    assert.deepEqual(client.inventoryState.items, [])
+  }
+})
+
+test('transfers commit private item weights and carrying bands only after the owner ACK', async () => {
+  const { client, targetId, token } = inventoryReplica()
+  const weighted = { ...token, weight: 600 }
+  client.setInteractionState(targetId, 'completed', 'Inspected.', null, [weighted], 1)
+  client.inventoryState.carrying = supportedCarrying(0)
+  let acknowledge
+  client.authority.take = () => new Promise(resolve => { acknowledge = resolve })
+  const taking = client.takeItem(targetId, token.id)
+  assert.equal(client.inventoryState.carrying.weight, 0)
+  assert.deepEqual(client.inventoryState.items, [])
+  acknowledge({ id: 30, status: 'completed', revision: 2, result: { kind: 'take', targetId, itemId: token.id,
+    items: [], inventory: { ownerId: '16086.json', items: [{ ...weighted, slot: 0 }], carrying: supportedCarrying(600, 4000, 'light') } } })
+  const result = await taking
+  assert.equal(client.inventoryState.items[0].weight, 600)
+  assert.deepEqual(client.inventoryState.carrying, supportedCarrying(600, 4000, 'light'))
+  assert.deepEqual(result.result.inventory.carrying, client.inventoryState.carrying)
+})
+
+test('overweight rejection re-reads the unchanged private ledger without optimistic ownership or weight', async () => {
+  const { client, targetId, token } = inventoryReplica()
+  client.inventoryState.carrying = supportedCarrying(0)
+  client.authority.take = async () => { throw Object.assign(new Error('That item is too heavy to carry.'), { code: 'TOO_HEAVY' }) }
+  client.authority.inventory = async () => ({ status: 'completed', revision: 1,
+    result: { kind: 'inventory', ownerId: '16086.json', items: [], carrying: supportedCarrying(0) } })
+  await assert.rejects(client.takeItem(targetId, token.id), { code: 'TOO_HEAVY' })
+  assert.deepEqual(client.inventoryState.items, [])
+  assert.deepEqual(client.inventoryState.carrying, supportedCarrying(0))
+  assert.equal(client.interactionState.status, 'rejected')
+  assert.match(client.interactionState.message, /too heavy/)
+})
+
+test('ground pickup and drop preserve row weights and refresh carried totals from private results', async () => {
+  const { client, descriptor, row } = groundReplica()
+  client.inventoryState.carrying = supportedCarrying(0)
+  client.authority.pickup = async () => ({ id: 31, status: 'completed', revision: 3,
+    result: { kind: 'pickup', targetId: descriptor.id,
+      inventory: { ownerId: '16086.json', items: [{ ...row, weight: 7 }], carrying: supportedCarrying(7) } } })
+  await client.pickupGroundItem(descriptor.id)
+  assert.equal(client.inventoryState.items[0].weight, 7)
+  assert.equal(client.inventoryState.carrying.weight, 7)
+  client.authority.drop = async () => ({ id: 32, status: 'completed', revision: 4,
+    result: { kind: 'drop', itemId: descriptor.id, ground: { ...descriptor, location: [2, 2] },
+      inventory: { ownerId: '16086.json', items: [], carrying: supportedCarrying(0) } } })
+  await client.dropItem(descriptor.id)
+  assert.deepEqual(client.inventoryState.items, [])
+  assert.equal(client.inventoryState.carrying.weight, 0)
+})
+
+test('Strength purchases update carrying capacity from the committed private ACK without recomputing it', async () => {
+  const { client } = characterReplica()
+  client.player.sourcePath = '16086.json'
+  const item = { id: 'fixture/token.json', slot: 0, label: 'Token', type: 'Generic', prototypeId: 900003, weight: 600 }
+  client.inventoryState = { status: 'ready', known: true, revision: 1, ownerId: '16086.json', items: [item], carrying: supportedCarrying(600, 4000, 'light') }
+  client.authority.inventory = async () => ({ status: 'completed', revision: 1,
+    result: { kind: 'inventory', ownerId: '16086.json', items: [item], carrying: supportedCarrying(600, 4000, 'light') } })
+  await client.refreshCharacter()
+  let acknowledge
+  client.authority.buyAttribute = () => new Promise(resolve => { acknowledge = resolve })
+  const buying = client.spendCharacterPoint('strength')
+  assert.equal(client.inventoryState.carrying.capacity, 4000)
+  acknowledge({ status: 'completed', revision: 2, result: { kind: 'buy-attribute', statId: 'strength', character: boughtStrength(characterView()),
+    inventory: { ownerId: '16086.json', items: [item], carrying: supportedCarrying(600, 4500) } } })
+  await buying
+  assert.equal(client.inventoryState.carrying.capacity, 4500)
+  assert.equal(client.inventoryState.carrying.encumbrance, 'none')
+  assert.equal(client.characterState.derived.carryWeight, 4500)
+  assert.equal(client.inventoryState.items[0].weight, 600)
+})
+
+test('checkpoint load clears carrying metadata and only a fresh private read restores it', async () => {
+  const { client, snapshot, apply, token } = inventoryReplica()
+  client.inventoryState.items = [{ ...token, slot: 0, weight: 600 }]
+  client.inventoryState.carrying = supportedCarrying(600, 4000, 'light')
+  client.authority.load = async () => {
+    assert.equal(client.inventoryState.carrying, undefined)
+    apply(checkpointSnapshot(snapshot, { id: 31, revision: 2 }))
+    return { id: 31, status: 'completed', result: { kind: 'load', savedAt: checkpointDate } }
+  }
+  client.authority.inventory = async () => ({ status: 'completed', revision: 2,
+    result: { kind: 'inventory', ownerId: '16086.json', items: [], carrying: supportedCarrying(0, 4500) } })
+  await client.loadCheckpoint()
+  assert.deepEqual(client.inventoryState.carrying, supportedCarrying(0, 4500))
+})
+
+test('malformed purchase carrying metadata cannot commit a new capacity or replace owned rows', async () => {
+  for (const malformed of ['wrong capacity', 'missing inventory', 'changed item'] as const) {
+    const { client } = characterReplica()
+    client.player.sourcePath = '16086.json'
+    const item = { id: 'fixture/token.json', slot: 0, label: 'Token', type: 'Generic', prototypeId: 900003, weight: 600 }
+    client.inventoryState = { status: 'ready', known: true, revision: 1, ownerId: '16086.json', items: [item], carrying: supportedCarrying(600, 4000, 'light') }
+    client.authority.inventory = async () => ({ status: 'completed', revision: 1,
+      result: { kind: 'inventory', ownerId: '16086.json', items: [item], carrying: supportedCarrying(600, 4000, 'light') } })
+    await client.refreshCharacter()
+    const inventory = { ownerId: '16086.json', items: [malformed === 'changed item' ? { ...item, label: 'Forged item' } : item],
+      carrying: malformed === 'wrong capacity' ? supportedCarrying(600, 4000, 'light') : supportedCarrying(600, 4500) }
+    client.authority.buyAttribute = async () => ({ status: 'completed', revision: 2,
+      result: { kind: 'buy-attribute', statId: 'strength', character: boughtStrength(characterView()),
+        ...(malformed === 'missing inventory' ? {} : { inventory }) } })
+    await assert.rejects(client.spendCharacterPoint('strength'), /carrying capacity|changed inventory/)
+    assert.equal(client.characterState.attributes[0].value, 8)
+    assert.equal(client.inventoryState.carrying.capacity, 4000)
+    assert.deepEqual(client.inventoryState.items, [item])
+  }
+})

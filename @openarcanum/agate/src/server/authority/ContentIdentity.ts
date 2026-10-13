@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 
-export const CHECKPOINT_RULES_VERSION = 'movement-doors-ownership-attributes-v9'
+export const CHECKPOINT_RULES_VERSION = 'movement-doors-ownership-attributes-weight-v10'
 
 interface JsonLoader { loadJsonFile(filename: string, ...args: unknown[]): Promise<unknown> }
 

@@ -120,7 +120,9 @@ export default class CharacterSession {
         if (c.stopped || !c.ready) throw new Error('Client stopped during character request')
         if (c.characterRequest !== request) throw Object.assign(new Error('Character request was superseded'), { code: 'CHARACTER_SUPERSEDED' })
         if (!isRecord(response) || response.status !== 'completed') throw invalid()
-        return this.apply(response.result, response.revision)
+        this.apply(response.result, response.revision)
+        if (c.inventoryState) await c.refreshInventory?.().catch(() => {})
+        return c.characterState
       } catch (error: unknown) {
         if (!c.stopped && c.characterRequest === request) this.set({ status: 'rejected', supported: false, message: errorMessage(error) })
         throw error
@@ -162,7 +164,17 @@ export default class CharacterSession {
             return !changed || changed.label !== row.label || changed.maximum !== row.maximum || changed.pointCost !== row.pointCost ||
               changed.value !== row.value + (row.id === statId ? 1 : 0)
           })) throw new Error('Local server supplied inconsistent attribute purchase balances')
+      const inventory = response.result.inventory !== undefined ? c.readPrivateInventory?.(response.result.inventory, response.revision) : undefined
+      if ((response.result.inventory !== undefined && !inventory) ||
+          (inventory?.carrying?.supported && inventory.carrying.capacity !== after.derived.carryWeight) ||
+          (c.inventoryState?.carrying?.supported && !inventory)) {
+        throw new Error('Local server supplied inconsistent carrying capacity after attribute purchase')
+      }
+      if (inventory && c.inventoryState?.known && JSON.stringify(inventory.items) !== JSON.stringify(c.inventoryState.items)) {
+        throw new Error('Local server changed inventory during attribute purchase')
+      }
       this.apply(after, response.revision)
+      if (inventory) c.setInventoryState?.(inventory)
       if (c.characterState) this.set({ ...c.characterState, message: `${selected.label} increased.` })
       return c.characterState
     } catch (error: unknown) {

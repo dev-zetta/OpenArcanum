@@ -12,9 +12,12 @@ const workshop = path.join(root, 'examples/inventory-workshop/data')
 const { MAP_ID, BOX_ID, TOKEN_ID, DOOR_ID, TOKEN_LABEL, KEY_BOX_ID, KEY_ID,
   LOCKED_DOOR_ID, LOCK_KEY_ID, LOCKED_BOX_ID, PRIZE_ID, PRIZE_LABEL } = require('../../../examples/inventory-workshop/generate.cts')
 const OWNER_ID = '16086.json'
-const itemRow = (slot, id = TOKEN_ID) => ({ id, slot, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003 })
-const keyRow = slot => ({ id: KEY_ID, slot, label: 'Key', type: 'Key', prototypeId: 900005 })
-const prizeRow = slot => ({ id: PRIZE_ID, slot, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006 })
+const itemRow = (slot, id = TOKEN_ID) => ({ id, slot, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003, weight: 1 })
+const keyRow = slot => ({ id: KEY_ID, slot, label: 'Key', type: 'Key', prototypeId: 900005, weight: 1 })
+const prizeRow = slot => ({ id: PRIZE_ID, slot, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006, weight: 1 })
+const inventoryView = (items: Array<{ weight: number } & Record<string, unknown>> = [], capacity = 4000) => ({
+  ownerId: '16086.json', items, carrying: { supported: true, weight: items.reduce((total, item) => total + item.weight, 0),
+    capacity, encumbrance: 'none' } })
 let createAuthorityServer
 
 before(async () => {
@@ -108,7 +111,7 @@ async function snapshotWhere(client, predicate, timeout = 4000) {
     client.socket.on('authority:snapshot', receive)
   })
 }
-async function approachAndInspect(owner, firstId = 1, items = [itemRow(3)]) {
+async function approachAndInspect(owner, firstId = 1, items: import('../dist-types/server/authority/InventoryOwnership').InventoryItem[] = [itemRow(3)]) {
   const accepted = await command(owner, firstId, 'use', { targetId: BOX_ID })
   assert.equal(accepted.ok, true)
   if (accepted.status === 'accepted') await snapshotWhere(owner, snapshot =>
@@ -171,7 +174,7 @@ test('socket transfer commits one whole item with private owner views and a publ
   const publicBefore = actor(context.server.getSnapshot()).lastCommand
   const inventory = await command(owner, 3, 'inventory')
   assert.equal(inventory.ok, true)
-  assert.deepEqual(inventory.result, { kind: 'inventory', ownerId: OWNER_ID, items: [] })
+  assert.deepEqual(inventory.result, { kind: 'inventory', ...inventoryView([]) })
   assert.equal(inventory.revision, inspected.revision)
   assert.equal(context.server.revision, revision, 'a private inventory read does not publish')
   assert.deepEqual(actor(context.server.getSnapshot()).lastCommand, publicBefore)
@@ -179,7 +182,7 @@ test('socket transfer commits one whole item with private owner views and a publ
   assert.equal(taken.ok, true)
   assert.equal(taken.status, 'completed')
   assert.deepEqual(taken.result, { kind: 'take', targetId: BOX_ID, itemId: TOKEN_ID, items: [],
-    inventory: { ownerId: OWNER_ID, items: [itemRow(0)] } })
+    inventory: inventoryView([itemRow(0)]) })
   const committed = await snapshotWhere(observer, snapshot => snapshot.revision === taken.revision)
   assert.deepEqual(await snapshotWhere(owner, snapshot => snapshot.revision === taken.revision), committed)
   assert.deepEqual(actor(committed).lastCommand, { id: 4, type: 'take', targetId: BOX_ID,
@@ -188,7 +191,7 @@ test('socket transfer commits one whole item with private owner views and a publ
   assert.deepEqual(liveOwnership(context.server).snapshot, { box: [], boxCount: 0,
     actor: [{ id: TOKEN_ID, slot: 0 }], actorCount: 1, parent: OWNER_ID, itemLocation: 7 })
   assert.deepEqual((await command(owner, 5, 'inventory')).result,
-    { kind: 'inventory', ownerId: OWNER_ID, items: [itemRow(0)] })
+    { kind: 'inventory', ...inventoryView([itemRow(0)]) })
   assert.deepEqual((await command(owner, 6, 'inspect', { targetId: BOX_ID })).result,
     { kind: 'container', targetId: BOX_ID, items: [] })
   rejection(await take(owner, 4, inspected.revision), 'REPLAYED_COMMAND', 4)
@@ -252,7 +255,7 @@ test('private inventory reads can observe an idle paused actor while take remain
   assert.equal((await command(owner, 3, 'pause')).ok, true)
   const revision = context.server.revision
   const prior = actor(context.server.getSnapshot()).lastCommand
-  assert.deepEqual((await command(owner, 4, 'inventory')).result, { kind: 'inventory', ownerId: OWNER_ID, items: [] })
+  assert.deepEqual((await command(owner, 4, 'inventory')).result, { kind: 'inventory', ...inventoryView([]) })
   assert.equal(context.server.revision, revision)
   assert.deepEqual(actor(context.server.getSnapshot()).lastCommand, prior)
   rejection(await take(owner, 5, inspected.revision), 'PAUSED', 5)
@@ -277,13 +280,14 @@ test('original-style unknown actor ownership never becomes an inferred empty inv
   const context = await setup(t, async directory => {
     const filename = path.join(directory, '16086.json')
     const value = JSON.parse(await fs.readFile(filename, 'utf8'))
-    delete value.Critter.inventory
+    delete value.Critter.inventory; delete value.Critter.progressionSupported
     await fs.writeFile(filename, JSON.stringify(value))
   })
   const owner = await context.connect()
   await join(owner)
   rejection(await command(owner, 1, 'inventory'), 'INVENTORY_UNAVAILABLE', 1)
-  const inspected = await approachAndInspect(owner, 2)
+  const { weight: _weight, ...unknownWeightRow } = itemRow(3)
+  const inspected = await approachAndInspect(owner, 2, [unknownWeightRow])
   rejection(await take(owner, 4, inspected.revision), 'INVENTORY_UNAVAILABLE', 4)
   rejection(await takeAll(owner, 5, inspected.revision), 'INVENTORY_UNAVAILABLE', 5)
   assert.equal(Object.hasOwn(context.server.player.critter, 'inventory'), false)
@@ -371,7 +375,7 @@ test('socket take-put-take roundtrip preserves one identity and exposes put cont
   assert.equal(returned.ok, true)
   assert.equal(returned.status, 'completed')
   assert.deepEqual(returned.result, { kind: 'put', targetId: BOX_ID, itemId: TOKEN_ID, items: [itemRow(0)],
-    inventory: { ownerId: OWNER_ID, items: [] } })
+    inventory: inventoryView([]) })
   const committed = await snapshotWhere(observer, snapshot => snapshot.revision === returned.revision)
   assert.deepEqual(actor(committed).lastCommand, { id: 4, type: 'put', targetId: BOX_ID,
     status: 'completed', result: { kind: 'put', targetId: BOX_ID } })
@@ -380,7 +384,7 @@ test('socket take-put-take roundtrip preserves one identity and exposes put cont
     actor: [], actorCount: 0, parent: BOX_ID, itemLocation: 7 })
   const inventory = await command(owner, 5, 'inventory')
   assert.equal(inventory.revision, returned.revision)
-  assert.deepEqual(inventory.result, { kind: 'inventory', ownerId: OWNER_ID, items: [] })
+  assert.deepEqual(inventory.result, { kind: 'inventory', ...inventoryView([]) })
   const reinspection = await command(owner, 6, 'inspect', { targetId: BOX_ID })
   assert.deepEqual(reinspection.result.items, [itemRow(0)])
   const retaken = await take(owner, 7, reinspection.revision)
@@ -406,7 +410,7 @@ test('two authorized owner sockets racing to put the same item have exactly one 
   const loser = results.find(value => !value.ok), winner = results.find(value => value.ok)
   assert.ok(['STALE_REVISION', 'REPLAYED_COMMAND'].includes(loser.code), loser.code)
   assert.deepEqual(winner.result.items, [itemRow(0)])
-  assert.deepEqual(winner.result.inventory, { ownerId: OWNER_ID, items: [] })
+  assert.deepEqual(winner.result.inventory, inventoryView([]))
   assertPrivate(await snapshotWhere(observer, snapshot => snapshot.revision === winner.revision))
   assert.deepEqual((await command(second, 6, 'inventory')).result.items, [])
   rejection(await put(first, winner.id, winner.revision), 'REPLAYED_COMMAND', winner.id)
@@ -479,7 +483,7 @@ test('a fresh host restores a saved put with an actor sparse hole and permits fu
   const returned = await put(owner, 5, second.revision)
   assert.equal(returned.ok, true)
   assert.deepEqual(returned.result, { kind: 'put', targetId: BOX_ID, itemId: TOKEN_ID, items: [itemRow(0)],
-    inventory: { ownerId: OWNER_ID, items: [itemRow(1, DOOR_ID)] } })
+    inventory: inventoryView([itemRow(1, DOOR_ID)]) })
   assert.equal((await command(owner, 6, 'save')).ok, true)
   const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
   assert.equal(saved.version, 6)
@@ -527,7 +531,7 @@ test('take-all commits the server-ordered whole set privately in one revision an
   assert.equal(taken.status, 'completed')
   assert.equal(taken.revision, inspected.revision + 1, 'the entire batch publishes exactly once')
   assert.deepEqual(taken.result, { kind: 'take-all', targetId: BOX_ID, itemIds: [DOOR_ID, TOKEN_ID], items: [],
-    inventory: { ownerId: OWNER_ID, items: [itemRow(0, DOOR_ID), itemRow(1)] } })
+    inventory: inventoryView([itemRow(0, DOOR_ID), itemRow(1)]) })
   const publicState = await snapshotWhere(observer, snapshot => snapshot.revision === taken.revision)
   assert.deepEqual(actor(publicState).lastCommand, { id: 3, type: 'take-all', targetId: BOX_ID,
     status: 'completed', result: { kind: 'take-all', targetId: BOX_ID } })
@@ -543,7 +547,7 @@ test('take-all commits the server-ordered whole set privately in one revision an
   assert.equal((await command(owner, 4, 'save')).ok, true)
   const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
   assert.equal(saved.version, 6)
-  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.deepEqual(saved.ownership.owners.find(value => value.id === OWNER_ID).items,
     [{ id: DOOR_ID, slot: 0 }, { id: TOKEN_ID, slot: 1 }])
   await context.server.stop()
@@ -777,7 +781,7 @@ test('a private held Key opens a reviewed locked door without unlocking or consu
     const taken = await take(owner, 9, refreshed.revision, { targetId: KEY_BOX_ID, itemId: KEY_ID })
     assert.equal(taken.ok, true, taken.message)
     assert.deepEqual(taken.result, { kind: 'take', targetId: KEY_BOX_ID, itemId: KEY_ID, items: [],
-      inventory: { ownerId: OWNER_ID, items: [keyRow(0)] } })
+      inventory: inventoryView([keyRow(0)]) })
     rejection(await take(owner, 9, refreshed.revision, { targetId: KEY_BOX_ID, itemId: KEY_ID }), 'REPLAYED_COMMAND', 9)
     assert.deepEqual((await command(owner, 10, 'inventory')).result.items, [keyRow(0)])
     const opened = await completedCommand(owner, 11, 'use', { targetId: LOCKED_DOOR_ID })
@@ -795,13 +799,13 @@ test('a private held Key opens a reviewed locked door without unlocking or consu
     const returned = await put(owner, 20, empty.revision, { targetId: KEY_BOX_ID, itemId: KEY_ID })
     assert.equal(returned.ok, true, returned.message)
     assert.deepEqual(returned.result, { kind: 'put', targetId: KEY_BOX_ID, itemId: KEY_ID, items: [keyRow(0)],
-      inventory: { ownerId: OWNER_ID, items: [] } })
+      inventory: inventoryView([]) })
     assert.equal(keyEntity.item.parent, KEY_BOX_ID)
     assert.equal(keyEntity.key.keyId, LOCK_KEY_ID)
     assert.equal(keyEntity.item.invLocation, 0)
     assert.equal((await command(owner, 21, 'save')).ok, true, 'an already open door remains savable after putting away its key')
     const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
-    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-v9')
+    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
     assert.deepEqual(saved.doors.find(value => value.id === LOCKED_DOOR_ID), { id: LOCKED_DOOR_ID, open: true })
     assert.deepEqual(saved.ownership.owners.find(value => value.id === OWNER_ID).items, [])
     assert.deepEqual(saved.ownership.owners.find(value => value.id === KEY_BOX_ID).items, [{ id: KEY_ID, slot: 0 }])
@@ -848,7 +852,7 @@ test('whole standalone Key Take All races have one winner and preserve private i
     const batch = await takeAll(first, 7, returned.revision, { targetId: KEY_BOX_ID })
     assert.equal(batch.ok, true, batch.message)
     assert.deepEqual(batch.result, { kind: 'take-all', targetId: KEY_BOX_ID, itemIds: [KEY_ID], items: [],
-      inventory: { ownerId: OWNER_ID, items: [keyRow(0)] } })
+      inventory: inventoryView([keyRow(0)]) })
     rejection(await takeAll(first, 7, returned.revision, { targetId: KEY_BOX_ID }), 'REPLAYED_COMMAND', 7)
     rejection(await put(first, 8, returned.revision, { targetId: KEY_BOX_ID, itemId: KEY_ID }), 'STALE_REVISION', 8)
     rejection(await put(first, 9, batch.revision, { targetId: KEY_BOX_ID, itemId: KEY_ID, keyId: LOCK_KEY_ID }), 'INVALID_COMMAND', 9)
@@ -915,7 +919,7 @@ test('reviewed locked container access requires a currently held Key for inspect
     const keyAway = await put(owner, 17, refreshed.revision, { targetId: LOCKED_BOX_ID, itemId: KEY_ID })
     assert.equal(keyAway.ok, true, keyAway.message)
     assert.deepEqual(keyAway.result, { kind: 'put', targetId: LOCKED_BOX_ID, itemId: KEY_ID,
-      items: [prizeRow(0), keyRow(1)], inventory: { ownerId: OWNER_ID, items: [] } })
+      items: [prizeRow(0), keyRow(1)], inventory: inventoryView([]) })
     rejection(await put(owner, 17, refreshed.revision, { targetId: LOCKED_BOX_ID, itemId: KEY_ID }), 'REPLAYED_COMMAND', 17)
     rejection(await take(owner, 18, refreshed.revision, { targetId: LOCKED_BOX_ID, itemId: PRIZE_ID }), 'STALE_REVISION', 18)
     rejection(await command(owner, 19, 'inspect', { targetId: LOCKED_BOX_ID }), 'LOCKED', 19)
@@ -934,7 +938,7 @@ test('reviewed locked container access requires a currently held Key for inspect
     assert.equal(context.server.ownership.items.get(PRIZE_ID).entity.item.parent, LOCKED_BOX_ID)
     assert.equal((await command(owner, 24, 'save')).ok, true, 'static eligibility preserves ownership after the authorizing key is put away')
     const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
-    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-v9')
+    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
     assert.deepEqual(saved.ownership.owners.find(value => value.id === LOCKED_BOX_ID).items,
       [{ id: PRIZE_ID, slot: 0 }, { id: KEY_ID, slot: 1 }])
     assert.deepEqual(saved.ownership.owners.find(value => value.id === OWNER_ID).items, [])

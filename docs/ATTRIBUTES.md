@@ -10,7 +10,8 @@ Spend the five starting points, accept [A closer look](DIALOGUE_QUESTS.md) and
 show the held pebble to earn one more point through its level-up. Spend that
 point too. The server commits each purchase and its point deduction together;
 the private character panel shows the resulting attributes and derived
-previews. Save while the quest is active or after completion, change a
+values. Carry capacity now enforces inventory actions; other derived values
+remain previews. Save while the quest is active or after completion, change a
 purchase, then load to restore the saved build and budget.
 
 ## Fixed neutral profile
@@ -61,10 +62,12 @@ defines ten stone as one pound.
 Original inventory code displays its integer weights directly in stone; the
 preview therefore reports 4,000 stone, without an invented conversion factor.
 
-These are **derived previews**, not active combat, movement, healing, poison,
-social, follower or carrying-capacity rules. Purchases do not change the current
-fixed movement clock, inventory transfer limits or legacy health method.
-Binding these values to those systems remains separate implementation work.
+The [carrying-capacity rule](WEIGHT.md) now uses `carryWeight` for Take, Take All
+and Pickup on the supported owned actor. Strength purchases immediately change
+the private load view and incoming weight limit. Checkpoints preflight ownership
+against the saved, replayed Strength. The remaining values are **derived previews**;
+combat, movement, healing, poison, social and follower systems remain ahead.
+The current fixed movement clock and legacy health method are unchanged.
 
 ## Authority and checkpoints
 
@@ -76,7 +79,7 @@ responses and cannot supply a desired value or point cost. Character attributes
 and derived previews stay private to the owner.
 
 Current checkpoints use schema 6 and
-`movement-doors-ownership-attributes-v9`. They persist the purchased attributes
+`movement-doors-ownership-attributes-weight-v10`. They persist the purchased attributes
 and an ordered history of completed-quest rewards and purchases. Loading replays that
 bounded history from the fixed baseline and requires its final attributes,
 budget, XP, level and quest states to match before restoring any world state.

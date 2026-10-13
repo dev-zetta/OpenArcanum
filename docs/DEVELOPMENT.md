@@ -69,15 +69,16 @@ The default authored-GUI script path points to `compiled-scripts/`, populated by
 directly; the Electron host and authored GUI load their compiled `.cjs` output.
 
 The former Flow annotations/configuration and repeated stripping plugins have
-been removed. Protocol 1, checkpoint schema 6 / rules v9 and authored GUI layout
-data remain unchanged. Typing exposed latent dormant helpers, including raw DOM
+been removed. The migration preserved protocol 1, then-current checkpoint
+schema 6 / rules v9 and authored GUI layout data. The later carrying slice uses
+rules v10 as described below. Typing exposed latent dormant helpers, including raw DOM
 cursor positioning, GUI asset descriptor loading, socket disconnect forwarding
 and a nonstandard random-number call. Unsupported old renderer pipelines now
 fail explicitly. The [legacy adapter notes](LEGACY_ADAPTERS.md) describe explicit
 provider requirements; these corrections do not implement those services or add
 campaign features.
 
-The completed October 13 migration passes the production build and compiler
+The October 13 TypeScript migration checkpoint passed the production build and compiler
 checks across 427 authored source/declaration files. The full real-socket Node
 suite passes 526 tests; seven additional renderer-script syntax tests pass,
 checking 125 embedded JavaScript snippets. Native UI testing passes 83 tests /
@@ -95,6 +96,37 @@ Private reports and captures are under ignored
 `local-data/test-results/2026-10-13-typescript7-all/`. Existing build, Electron CSP
 and platform warnings remain. The earlier limited migration's 506 Node / 82 UI
 baseline is retained under `local-data/test-results/2026-10-13-typescript7/`.
+
+## Authoritative carrying capacity
+
+The owned neutral-human actor now uses Strength-based carrying capacity for
+Take, Take All and Pickup. Its private inventory shows whole-item stone weights,
+total/capacity and the seven reviewed encumbrance bands. A separate crate at
+`(11, 2)` contains 4,000-stone Workshop ballast: exactly the empty ST8 limit.
+One more stone rejects atomically; buying ST9 raises the limit to 4,500. Put and
+Drop release capacity. Invalid/mutated weight metadata fails closed; unsupported
+original profiles retain unknown capacity.
+
+Checkpoint schema 6 now uses `movement-doors-ownership-attributes-weight-v10`.
+Totals are derived from immutable item metadata and reciprocal ownership. Loads
+validate the saved ownership against the saved/replayed Strength before any
+world or character writes. Old-rule saves are incompatible. Native and socket
+checks cover exact-capacity, overweight batch rejection, purchase rollback,
+private observer boundaries and saved/live Strength differences.
+
+The completed slice passes **557 Node tests**, **86 native UI tests / 746
+assertions**, all TS7 compiler checks and the production build. The native
+Workshop verifies exact 4,000-stone acceptance, overweight rejection, ST9's
+4,500 capacity, Put/Drop/Pickup and restoration of the pristine saved build and
+ownership. Both Workshop and Bates gameplay/lifecycle checks report zero
+application errors or failed requests; all recorded owned server processes are
+reaped. The owned fixture's 95 files and manifest match its deterministic
+generator. Private evidence is under
+`local-data/test-results/2026-10-13-carrying/`.
+
+[Carrying capacity](WEIGHT.md) documents the supported subset and local evidence.
+The movement clock, encumbrance speed/fatigue effects, stacks, equipment and
+magical weight adjustments remain unfinished.
 
 ## Toolchain and commands
 
@@ -180,7 +212,8 @@ destination or failed write leaves all ownership unchanged. The server chooses
 items in sparse source-slot order and fills the actor's lowest unused slots.
 The original token loop contains one token; multi-item regression fixtures test
 batch conservation, races and rollback. This does not establish original corpse
-looting, equipment, stacking or weight rules. A second crate at `(3, 7)` holds a
+looting, equipment, stacking or complete original weight/effect rules. The
+neutral actor now enforces the supported [carrying-capacity subset](WEIGHT.md). A second crate at `(3, 7)` holds a
 standalone key for the declared supported locked door at `(10, 6)`. Take the key,
 use and traverse that door, then put the key away. The open pose can be saved and
 restored without the key being held; closing succeeds, while opening again
@@ -203,7 +236,7 @@ npm run smoke:workshop -- --show --game-lifecycle
 ```
 
 Generation uses Node built-ins and is deterministic. The owned sources and all
-89 generated data files are redistributable under GPL-3.0-or-later. ZIP catalogs
+95 generated data files are redistributable under GPL-3.0-or-later. ZIP catalogs
 support the current archive enumeration API; loose files supply readable data.
 Regenerate after edits so both representations agree. The startup manifest
 validates known metadata, safe relative filenames and required assets; it is
@@ -264,8 +297,8 @@ carry 4,500 stone, damage 0, armor adjustment −1, speed 9, heal 3, poison reco
 were verified. The complete prior gameplay loops plus purchases took about 102
 seconds before lifecycle checks.
 
-The current contract is progression definition version 2, checkpoint schema 6
-and rules v9. Tests cover capped-stat rejection, all eight purchases, negative
+That attribute-validation checkpoint used progression definition version 2,
+checkpoint schema 6 and rules v9. Tests cover capped-stat rejection, all eight purchases, negative
 integer truncation and extraordinary/clamp boundaries, stale/racing/replayed
 commands, partial-write/page failures, reordered JSON object keys, invalid save
 histories, both bank-overflow orderings and complete checkpoint rollback.
@@ -929,7 +962,7 @@ write failure rejects the entire batch. Empty containers return `EMPTY_CONTAINER
 Success publishes one revision; its private result includes ordered `itemIds`,
 empty container `items` and the resulting actor `inventory`. Destination slots
 are allocated exactly as sequential Take would allocate them. Current checkpoints
-use document schema 6 and ownership rules v9.
+use document schema 6 and ownership rules v10.
 
 Only the owner's acknowledgement carries the resulting container rows and new
 actor inventory. Public Take/Take All/Put summaries contain the container target and outcome,
@@ -938,7 +971,7 @@ disjoint owners and exact item conservation before displaying both lists. Batch
 replies must cover the full inspected set in the server's selection order,
 preserve every item's metadata and allocate the lowest unused actor slots. An
 acknowledgement timeout re-reads ownership instead of retrying the transfer. This does
-not implement equipment, stacking/splitting, capacity/weight, unrestricted ground actions, barter,
+not implement equipment, stacking/splitting, full magical/stack weight rules, unrestricted ground actions, barter,
 keyrings, original item scripts or multiple controlled players.
 
 Private labels now resolve the system `Description` table by the item's permitted
@@ -1006,7 +1039,7 @@ The source flags and item UI location remain immutable authored metadata; runtim
 `entity.ground` and canonical reciprocal ownership determine ground visibility.
 Drop supports ordinary walkable floor only, rejecting portal tiles and another
 loose item on the same tile. Original multiple-item junk piles, decay, item
-scripts, weight, grid packing, equipment and stack/key ground behavior remain
+scripts, complete magical/stack weight, grid packing, equipment and stack/key ground behavior remain
 unimplemented. These are explicit development policies.
 See [Ground items](GROUND_ITEMS.md) for primary-source evidence and exact fields.
 
@@ -1128,7 +1161,7 @@ including the player template and loose-file overlays. ZIP timestamps and
 client texture archives do not affect it. Loaded filenames are relative to the
 data root, so relocating identical data preserves identity. A different map,
 rules version or simulation-content identity is rejected. The current rules
-identity is `movement-doors-ownership-attributes-v9`, using document schema version 6.
+identity is `movement-doors-ownership-attributes-weight-v10`, using document schema version 6.
 Only current development saves are supported; old-rule hashes, compatibility
 branches and migration paths are not maintained.
 

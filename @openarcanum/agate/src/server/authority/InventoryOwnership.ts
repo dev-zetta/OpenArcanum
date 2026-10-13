@@ -1,6 +1,7 @@
 import { failure as error, exactKeys, integer, validPosition, position, samePosition as same, type AuthorityEntity, type ActorEntity, type ItemEntity, type AuthorityMap, type AuthorityTile, type InventoryComponent, type InventoryEntry, type Position, type Outcome, type OwnWrite, type Transaction, type ItemComponent, type VisualComponent } from './AuthorityTypes'
 import type { ContainerPolicy } from './ContainerInteractions'
 import Location from '../../shared/Location'
+import { carryingState, type CarryingState } from '../../shared/character/CarryWeight'
 
 const ITEM_TYPES = new Set(['Weapon', 'Ammo', 'Armor', 'Gold', 'Food', 'Scroll', 'Key', 'KeyRing', 'Keyring', 'Written', 'Generic'])
 const ITEM_LABELS: Record<string, string> = { Generic: 'Item', Written: 'Written item', KeyRing: 'Key ring', Keyring: 'Key ring' }
@@ -23,6 +24,8 @@ const itemIdentity = (entity: ItemEntity) => JSON.stringify({ type: entity.base.
   ...(entity.item.groundTransferSupported === true ? { groundVisual: groundVisualIdentity(entity) } : {}),
   ...(entity.base.type === 'Key' ? { keyId: entity.key?.keyId } : {}),
   quantity: entity.base.type === 'Gold' ? entity.gold?.quantity : entity.base.type === 'Ammo' ? entity.ammo?.quantity : undefined })
+const weightIdentity = (entity: ItemEntity) => JSON.stringify({ weight: entity.item.weight,
+  magicWeightAdj: entity.item.magicWeightAdj })
 
 // arcanum-ce item.c sub_463340 (0x463340): zero never matches, and one on
 // either side is a master key/lock. This slice uses positive signed int IDs.
@@ -103,13 +106,13 @@ export function prepareOwnWrites(values: OwnWrite[]): Transaction {
   }
 }
 
-export interface InventoryItem { id: string; slot: number; label: string; type: string; prototypeId: number; quantity?: number }
+export interface InventoryItem { id: string; slot: number; label: string; type: string; prototypeId: number; quantity?: number; weight?: number }
 interface OwnerRecord { entity: AuthorityEntity; component: InventoryComponent; entries: InventoryEntry[]; usableContainer: boolean; lockedKeyId?: number }
-export interface ItemRecord { entity: ItemEntity; initialOwner: string | null; initialSlot: number | null; type: string; prototypeId: number; invLocation: number; initialLocation: Position | null; identity: string; keyComponent?: AuthorityEntity['key']; quantity?: number; movable?: boolean; groundCapable?: boolean; visualComponent?: VisualComponent; itemComponent?: ItemComponent }
+export interface ItemRecord { entity: ItemEntity; initialOwner: string | null; initialSlot: number | null; type: string; prototypeId: number; invLocation: number; initialLocation: Position | null; identity: string; weightIdentity?: string; keyComponent?: AuthorityEntity['key']; quantity?: number; movable?: boolean; groundCapable?: boolean; visualComponent?: VisualComponent; itemComponent?: ItemComponent }
 export interface GroundItem { id: string; kind: string; label: string; type: string; prototypeId: number; location: Position }
-export interface ActorInventory { ownerId: string; items: InventoryItem[] }
+export interface ActorInventory { ownerId: string; items: InventoryItem[]; carrying?: CarryingState }
 export interface ItemResult { kind: string; itemId?: string | null; itemIds?: string[]; targetId?: string; items?: InventoryItem[]; inventory?: ActorInventory; ground?: GroundItem }
-interface OwnershipOptions { canTakeFrom?: (entity: AuthorityEntity) => boolean; containerPolicy?: (entity: AuthorityEntity) => ContainerPolicy; canAccessContainer?: (entity: AuthorityEntity, actor: AuthorityEntity) => ContainerPolicy }
+interface OwnershipOptions { canTakeFrom?: (entity: AuthorityEntity) => boolean; containerPolicy?: (entity: AuthorityEntity) => ContainerPolicy; canAccessContainer?: (entity: AuthorityEntity, actor: AuthorityEntity) => ContainerPolicy; getCarryCapacity?: () => number | null }
 type Placement = [ItemRecord, Position, boolean]
 /** Immutable content universe plus whole Generic and standalone Key transfers. */
 export default class InventoryOwnership {
@@ -123,8 +126,10 @@ export default class InventoryOwnership {
   declare invalidBaseline: boolean
   declare standaloneKeys: boolean
   declare movableCount: number
-  constructor(map: AuthorityMap, actor: ActorEntity, { canTakeFrom = () => false, containerPolicy, canAccessContainer }: OwnershipOptions = {}) {
+  declare getCarryCapacity: (() => number | null) | undefined
+  constructor(map: AuthorityMap, actor: ActorEntity, { canTakeFrom = () => false, containerPolicy, canAccessContainer, getCarryCapacity }: OwnershipOptions = {}) {
     this.map = map; this.actor = actor
+    this.getCarryCapacity = getCarryCapacity
     // Structural content eligibility never depends on current possession.
     // Actual commands separately recheck access, including a currently held key.
     this.containerPolicy = containerPolicy || (entity => canTakeFrom(entity) ? { locked: false } :
@@ -194,6 +199,9 @@ export default class InventoryOwnership {
     }
     this.movableCount = 0
     for (const record of this.items.values()) {
+      // Capture before the progression service is bound; enforce this separate
+      // identity only when a supported live/saved capacity is supplied.
+      record.weightIdentity = weightIdentity(record.entity)
       record.movable = actorKnown && (this.genericSupported(record.entity) ||
         (this.standaloneKeys && this.keySupported(record.entity))) &&
         (record.initialOwner === actor.sourcePath || this.owners.get(record.initialOwner!)?.usableContainer === true || record.initialOwner === null)
@@ -212,7 +220,67 @@ export default class InventoryOwnership {
       return error('INVENTORY_UNAVAILABLE', 'The controlled actor has no verified inventory ownership')
     }
     const validated = validateOwnership(this.map, this.actor, 'INVENTORY_UNAVAILABLE')
-    return validated.code !== undefined ? validated : { ownerId: this.actor.sourcePath, items: validated.items }
+    if (validated.code !== undefined) return validated
+    try {
+      const capacity = this.carryCapacity()
+      if (capacity === null) return { ownerId: this.actor.sourcePath, items: validated.items,
+        ...(this.getCarryCapacity ? { carrying: { supported: false as const } } : {}) }
+      const items = this.weightedItems(validated.items)
+      return { ownerId: this.actor.sourcePath, items, carrying: carryingState(this.totalWeight(items), capacity) }
+    } catch { return error('INVENTORY_UNAVAILABLE', 'Carrying weight could not be safely verified') }
+  }
+
+  private carryCapacity(): number | null {
+    const capacity = this.getCarryCapacity ? this.getCarryCapacity() : null
+    if (capacity !== null && (!integer(capacity) || capacity < 1)) throw new Error('Invalid carrying capacity')
+    return capacity
+  }
+
+  private weightOf(id: string): number {
+    const record = this.items.get(id), entity = record?.entity
+    if (!record || !entity || !['Generic', 'Key'].includes(entity.base.type) ||
+        record.weightIdentity !== weightIdentity(entity) || itemIdentity(entity) !== record.identity ||
+        !integer(entity.item.weight) || entity.item.weight < 0 ||
+        (entity.item.magicWeightAdj !== undefined && entity.item.magicWeightAdj !== 0)) {
+      throw new Error('Unsupported or changed whole-item weight metadata')
+    }
+    return entity.item.weight
+  }
+
+  private weightedItems(rows: readonly InventoryItem[]): InventoryItem[] {
+    return rows.map(row => ({ ...row, weight: this.weightOf(row.id) }))
+  }
+
+  private totalWeight(rows: readonly { weight?: number }[]): number {
+    let total = 0
+    for (const row of rows) {
+      if (!integer(row.weight) || row.weight < 0 || !Number.isSafeInteger(total + row.weight)) throw new Error('Invalid total carrying weight')
+      total += row.weight
+    }
+    return total
+  }
+
+  /** Enrich only private, authorized rows; public ground descriptors stay lean. */
+  privateItems(rows: readonly InventoryItem[]): InventoryItem[] {
+    let supported = false
+    try { supported = this.carryCapacity() !== null } catch { /* An unavailable profile cannot establish a container item's effective weight. */ }
+    return rows.map(({ weight: _weight, ...row }) => {
+      if (supported) {
+        try { return { ...row, weight: this.weightOf(row.id) } } catch { /* Container-only unknown weight stays unknown. */ }
+      }
+      return row
+    })
+  }
+
+  private checkIncomingWeight(ids: readonly string[]): Outcome<{}> {
+    try {
+      const capacity = this.carryCapacity()
+      if (capacity === null) return {}
+      const entries = this.actor.critter.inventory
+      const total = this.totalWeight([...entries.map(entry => ({ weight: this.weightOf(entry.id) })),
+        ...ids.map(id => ({ weight: this.weightOf(id) }))])
+      return total > capacity ? error('TOO_HEAVY', 'The complete transfer exceeds your carrying capacity.') : {}
+    } catch { return error('INVENTORY_UNAVAILABLE', 'Carrying weight could not be safely verified') }
   }
 
   genericSupported(item: AuthorityEntity | undefined): item is ItemEntity {
@@ -335,6 +403,10 @@ export default class InventoryOwnership {
         while (slots.has(slot)) slot++
         entries.push({ id, slot }); entries.sort((a, b) => a.slot - b.slot || a.id.localeCompare(b.id))
       }
+      if (!dropping) {
+        const weight = this.checkIncomingWeight([id])
+        if (weight.code !== undefined) return weight
+      }
       const values: OwnWrite[] = [[component, 'inventory', entries], [component, 'inventoryIndex', entries.length],
         [record.entity.item, 'parent', dropping ? null : this.actor.sourcePath]]
       this.preparePlacements([[record, location, dropping]], values)
@@ -447,6 +519,10 @@ export default class InventoryOwnership {
       }
       const currentAccess = this.canAccessContainer(container, this.actor)
       if (currentAccess.code) return error(currentAccess.code, currentAccess.message!)
+      if (taking) {
+        const weight = this.checkIncomingWeight(itemIds)
+        if (weight.code !== undefined) return weight
+      }
       transaction = prepareOwnWrites([
         [sourceComponent, 'inventory', remaining], [sourceComponent, 'inventoryIndex', remaining.length],
         [destinationComponent, 'inventory', entries], [destinationComponent, 'inventoryIndex', entries.length],
@@ -465,6 +541,7 @@ export default class InventoryOwnership {
 
   validateCurrent() {
     if (this.invalidBaseline) throw new Error('Ownership content is inconsistent')
+    const checkWeight = this.carryCapacity() !== null
     const assigned = new Set<string>()
     for (const entity of entitiesOf(this.map)) {
       const component = componentOf(entity)
@@ -491,7 +568,8 @@ export default class InventoryOwnership {
           (record.type === 'Key' && entity.key !== record.keyComponent) ||
           (record.groundCapable && (entity.visual !== record.visualComponent || entity.item !== record.itemComponent ||
             !this.groundSupported(entity) || typeof entity.ground !== 'boolean')) ||
-          entity.item.invLocation !== record.invLocation || quantity !== record.quantity || itemIdentity(entity) !== record.identity) {
+          entity.item.invLocation !== record.invLocation || quantity !== record.quantity || itemIdentity(entity) !== record.identity ||
+          (checkWeight && weightIdentity(entity) !== record.weightIdentity)) {
         throw new Error('Item content changed')
       }
       if (record.groundCapable) {
@@ -521,7 +599,22 @@ export default class InventoryOwnership {
     // A save must never bless a reciprocal but unsupported live transition.
     // Reuse the restore validator without applying its prepared transaction.
     this.validateCheckpoint(ownership)
+    this.validateCheckpointWeight(ownership, this.carryCapacity())
     return ownership
+  }
+
+  /** Validate a fully checked ownership candidate against its saved build,
+   * never the live build. Preparing the ownership transaction does not apply it. */
+  validateCheckpointWeight(ownership: unknown, capacity: number | null): void {
+    if (capacity === null) return
+    if (!integer(capacity) || capacity < 1) throw new Error('Invalid saved carrying capacity')
+    this.validateCheckpoint(ownership)
+    // validateCheckpoint establishes this exact structure and complete owner set.
+    const candidate = ownership as { owners: { id: string; items: InventoryEntry[] }[] }
+    const actor = candidate.owners.find(owner => owner.id === this.actor.sourcePath)
+    if (!actor) throw new Error('Saved actor inventory is unknown')
+    const weight = this.totalWeight(actor.items.map(entry => ({ weight: this.weightOf(entry.id) })))
+    if (weight > capacity) throw new Error('Saved actor inventory exceeds saved carrying capacity')
   }
 
   validateCheckpoint(ownership: unknown): Transaction {

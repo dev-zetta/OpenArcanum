@@ -182,15 +182,31 @@ export default class CharacterProgression {
     return this.supported ? copy(this.state!) : null
   }
 
-  checkpointWrites(state: unknown, quests: unknown): OwnWrite[] {
+  /** Capacity is owned by the same verified character ledger as purchases. */
+  carryCapacity(): number | null {
+    const state = this.validateCurrent()
+    return state ? deriveNeutralStats(state.attributes, state.level).carryWeight : null
+  }
+
+  checkpointCandidate(state: unknown, quests: unknown): ProgressionState | null {
     const expected = this.expected(quests, record(state) ? state.history : undefined)
     if (this.supported) {
       this.validateCurrent()
       if (!exactKeys(state, stateKeys) || !validCounters(state) || !validAttributes(state.attributes) || !Array.isArray(state.history) || !expected || !same(state as ProgressionState, expected)) throw failure()
-      return stateKeys.map(key => [this.state!, key, expected![key]])
+      return expected
     }
     if (state !== null || expected !== null) throw failure()
-    return []
+    return null
+  }
+
+  checkpointCarryCapacity(state: unknown, quests: unknown): number | null {
+    const candidate = this.checkpointCandidate(state, quests)
+    return candidate ? deriveNeutralStats(candidate.attributes, candidate.level).carryWeight : null
+  }
+
+  checkpointWrites(state: unknown, quests: unknown): OwnWrite[] {
+    const expected = this.checkpointCandidate(state, quests)
+    return expected ? stateKeys.map(key => [this.state!, key, expected[key]]) : []
   }
 
   clear() { this.state = null; this.rewards = null; this.questStates = null }

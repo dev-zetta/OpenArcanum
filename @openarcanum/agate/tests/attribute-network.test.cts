@@ -13,8 +13,11 @@ const source = path.join(root, '@openarcanum/agate/src')
 const OWNER_ID = '16086.json'
 const ground = location => ({ id: GROUND_ITEM_ID, kind: 'ground', label: GROUND_ITEM_LABEL,
   type: 'Generic', prototypeId: 900007, location })
-const pebble = slot => ({ id: GROUND_ITEM_ID, slot, label: GROUND_ITEM_LABEL, type: 'Generic', prototypeId: 900007, canDrop: true })
-const token = slot => ({ id: TOKEN_ID, slot, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003 })
+const pebble = slot => ({ id: GROUND_ITEM_ID, slot, label: GROUND_ITEM_LABEL, type: 'Generic', prototypeId: 900007, canDrop: true, weight: 1 })
+const token = slot => ({ id: TOKEN_ID, slot, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003, weight: 1 })
+const inventoryView = (items: Array<{ weight: number } & Record<string, unknown>> = [], capacity = 4000) => ({
+  ownerId: '16086.json', items, carrying: { supported: true, weight: items.reduce((total, item) => total + item.weight, 0),
+    capacity, encumbrance: 'none' } })
 let createAuthorityServer
 
 before(async () => {
@@ -212,7 +215,7 @@ test('socket attribute purchases spend one point, preserve eight private attribu
     const strength = { ...baseline(), unspentPoints: 4,
       attributes: rows().map(row => row.id === 'strength' ? { ...row, value: 9 } : row),
       derived: { ...baseDerived(), maxHealth: 32, carryWeight: 4500, damageBonus: 0 } }
-    assert.deepEqual(purchased.result, { kind: 'buy-attribute', statId: 'strength', character: strength })
+    assert.deepEqual(purchased.result, { kind: 'buy-attribute', statId: 'strength', character: strength, inventory: inventoryView([], 4500) })
     assert.equal(purchased.revision, initial.revision + 1)
     assert.deepEqual(actor(context.server.getSnapshot()).lastCommand,
       { id: purchased.id, type: 'buy-attribute', status: 'completed', result: { kind: 'buy-attribute' } })
@@ -241,7 +244,7 @@ test('socket attribute purchases spend one point, preserve eight private attribu
     assert.equal(saved.ok, true, saved.message)
     const document = JSON.parse(await fs.readFile(context.server.checkpointStore.filename, 'utf8'))
     assert.equal(document.version, 6)
-    assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-v9')
+    assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
     assert.deepEqual(document.character.history, wanted.map(statId => ({ kind: 'attribute', statId })))
     assert.deepEqual(document.character.attributes, Object.fromEntries(ATTRIBUTE_IDS.map(id => [id, wanted.includes(id) ? 9 : 8])))
     const late = await context.connect('observer'); publicState((await join(late)).snapshot)

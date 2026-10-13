@@ -143,9 +143,16 @@
       <h2 id="inventory-heading">Your inventory</h2>
       <p role="status" aria-live="polite" aria-atomic="true" data-inventory-status={{this.inventory.status}}>{{this.inventory.message}}</p>
       {{#if this.inventory.known}}
+        {{#if this.carrying}}
+          <div data-carrying-state>
+            <p>Carried weight: <span data-carried-weight>{{this.carrying.weight}}</span> / <span data-carry-capacity>{{this.carrying.capacity}}</span> stone</p>
+            <p>Encumbrance: <span data-encumbrance>{{this.carrying.encumbrance}}</span>. Movement and fatigue effects are in development.</p>
+          </div>
+        {{else}}<p data-carrying-unavailable>Carrying capacity is unavailable for these converted items.</p>{{/if}}
         <div data-inventory-items>
           {{#if this.inventoryItems.length}}<ul>{{#each this.inventoryItems as |item|}}<li>
             <span>{{item.label}}</span>
+            {{#if item.weightAvailable}}<small data-item-weight> — {{item.weight}} stone</small>{{/if}}
             {{#if item.putAvailable}}<button type="button" data-action="put-item" data-item-id={{item.id}} aria-label={{concat "Put " item.label " in selected container"}} disabled={{this.transferControlsBusy}} {{on "click" (fn this.putInventoryItem item.id)}}>Put</button>{{/if}}
             {{#if item.dropAvailable}}<button type="button" data-action="drop-item" data-item-id={{item.id}} aria-label={{concat "Drop " item.label}} disabled={{this.transferControlsBusy}} {{on "click" (fn this.dropInventoryItem item.id)}}>Drop</button>{{/if}}
           </li>{{/each}}</ul>{{else}}<p>Your inventory is empty.</p>{{/if}}
@@ -203,7 +210,7 @@
                   <div><dt>Reaction modifier</dt><dd data-derived-stat="reactionModifier">{{this.character.derived.reactionModifier}}</dd></div>
                   <div><dt>Maximum followers</dt><dd data-derived-stat="maxFollowers">{{this.character.derived.maxFollowers}}</dd></div>
                 </dl>
-                <p>These values are a preview. Effects on combat, movement and carried weight are in development.</p>
+                <p>These values are a preview. Combat, movement and fatigue effects are in development. Carrying capacity is enforced for supported inventory transfers.</p>
               </details>
             {{/if}}
           {{/if}}

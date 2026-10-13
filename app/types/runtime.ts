@@ -1,3 +1,4 @@
+import type { CarryingState } from '../../@openarcanum/agate/src/shared/character/CarryWeight'
 import type { CharacterAttribute, CharacterState, ConversationState, JournalState } from '../../@openarcanum/agate/src/client/SessionTypes'
 import type { DesktopBridge as FullDesktopBridge } from '../../ember-electron/desktop-contracts.cjs'
 export type { CharacterAttribute as AttributeRow, CharacterState, ConversationState, JournalState }
@@ -42,7 +43,7 @@ export type LocalAuthoritySession = Awaited<ReturnType<DesktopBridge['startLocal
 export interface DisplayTarget { id: string; label?: string; reason?: string }
 export interface DoorTarget extends DisplayTarget { open: boolean; locked?: boolean }
 export interface ContainerTarget extends DisplayTarget { locked?: boolean }
-export interface ItemRow extends DisplayTarget { label: string; quantity: number; type: string; canDrop?: boolean }
+export interface ItemRow extends DisplayTarget { label: string; quantity: number; type: string; canDrop?: boolean; weight?: number }
 
 export interface OperationState { status: string; message: string }
 export interface InteractionState extends OperationState {
@@ -53,7 +54,7 @@ export interface InteractionState extends OperationState {
   canPut?: boolean
   items?: ItemRow[]
 }
-export interface InventoryState extends OperationState { known: boolean; items: ItemRow[] }
+export interface InventoryState extends OperationState { known: boolean; items: ItemRow[]; carrying?: CarryingState }
 export interface GroundState extends OperationState { action?: 'drop' | 'pickup'; targetId?: string }
 export interface PauseState extends OperationState { paused?: boolean; supported?: boolean; moving?: boolean }
 export interface CheckpointState extends OperationState { action?: 'save' | 'load'; savedAt?: string }

@@ -85,7 +85,7 @@ test('authored locked container access requires a held key for use, inspection a
   const keyComponent = key().key, keyFlags = [...key().item.flags]
   assert.equal(use(LOCKED_BOX_ID).ok, true)
   const inspected = command('inspect', { targetId: LOCKED_BOX_ID })
-  assert.deepEqual(inspected.result.items, [{ id: PRIZE_ID, slot: 3, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006 }])
+  assert.deepEqual(inspected.result.items, [{ id: PRIZE_ID, slot: 3, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006, weight: 1 }])
   const taken = transfer('take', LOCKED_BOX_ID, PRIZE_ID)
   assert.equal(taken.ok, true)
   assert.equal(taken.result.inventory.items.find(row => row.id === PRIZE_ID).slot, 1)
@@ -125,7 +125,7 @@ test('putting the authorizing key inside the locked container loses access immed
   assert.deepEqual(first.server.ownership.checkpointStates(), before)
   assert.equal((await first.command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8')
-  assert.equal(JSON.parse(bytes).rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(JSON.parse(bytes).rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   await first.server.stop()
   const second = await start()
   assert.equal((await second.command('load')).ok, true)

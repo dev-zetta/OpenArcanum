@@ -22,6 +22,10 @@ const PRIZE_ID = `${PREFIX}/Generic/owned-workshop-prize.json`
 const PRIZE_LABEL = 'Workshop keepsake'
 const GROUND_ITEM_ID = `${PREFIX}/Generic/owned-workshop-pebble.json`
 const GROUND_ITEM_LABEL = 'Workshop pebble'
+const BALLAST_BOX_ID = `${PREFIX}/Container/owned-workshop-ballast-box.json`
+const BALLAST_ID = `${PREFIX}/Generic/owned-workshop-ballast.json`
+const BALLAST_LABEL = 'Workshop ballast'
+const BALLAST_WEIGHT = 4000
 const NPC_ID = `${PREFIX}/Npc/owned-workshop-guide.json`
 const NPC_LABEL = 'Workshop guide'
 const CONVERSATION_ID = 'workshop-guide'
@@ -157,6 +161,18 @@ function makePebble() {
   return png(art)
 }
 
+function makeBallast() {
+  const art = image(40, 32)
+  art.ellipse(20, 25, 17, 5, 1)
+  art.polygon([[5, 13], [18, 6], [35, 12], [21, 21]], 7)
+  art.polygon([[5, 13], [21, 21], [21, 28], [5, 20]], 4)
+  art.polygon([[21, 21], [35, 12], [35, 20], [21, 28]], 3)
+  art.line(6, 13, 18, 7, 15)
+  art.line(12, 12, 27, 17, 9)
+  art.line(15, 10, 30, 15, 8)
+  return png(art)
+}
+
 function makeActor(direction: string, walking: boolean, guide = false) {
   const frames = walking ? 4 : 1
   const art = image(48 * frames, 76)
@@ -246,7 +262,7 @@ function buildFiles() {
     Item: { flags: [], weight: 1, worth: 0, invLocation: 0, magicTechComplexity: 0 } })
   json('mes/Description.json', { Description: [
     { id: '9003', text: TOKEN_LABEL }, { id: '9006', text: PRIZE_LABEL },
-    { id: '9007', text: GROUND_ITEM_LABEL },
+    { id: '9007', text: GROUND_ITEM_LABEL }, { id: '9009', text: BALLAST_LABEL },
   ] })
   json('Prototypes/Portal/900004.json', { Base: base('Portal', 900004),
     Portal: { flags: ['NeverLocked'], keyID: 0, lockDifficulty: 0 },
@@ -265,6 +281,11 @@ function buildFiles() {
     Critter: { flags: [], inventoryIndex: 0, inventorySource: 0 },
     Npc: { flags: [], waypoints: [], conversationSupported: true, conversationId: CONVERSATION_ID },
     Visual: visual({ ...critterVisual, race: 'WorkshopGuide' }) })
+  json('Prototypes/Generic/900009.json', { Base: { ...base('Generic', 900009, ['Inventory', 'NoBlock']), descIndex: 9009 },
+    Item: { flags: [], weight: BALLAST_WEIGHT, worth: 0, invLocation: 0, magicTechComplexity: 0,
+      groundTransferSupported: true },
+    Visual: visual({ type: 'Item', category: 'Workshop', subcat: 'Base', number: 1,
+      display: 'Ground', stage: 'North', frame: 0 }) })
   json('16086.json', { Base: { prototype: 900001, location: [4, 4] },
     Critter: { inventory: [], inventoryIndex: 0, inventorySource: 0, progressionSupported: true } })
   json('rules/Progression.json', { version: 2, actorId: '16086.json', profile: 'neutral-human',
@@ -293,6 +314,10 @@ function buildFiles() {
     Item: { parent: LOCKED_BOX_ID, invLocation: 0 } })
   json(GROUND_ITEM_ID, { Base: { prototype: 900007, location: [4, 7] },
     Item: { parent: null, invLocation: 0 } })
+  json(BALLAST_BOX_ID, { Base: { prototype: 900002, location: [11, 2] },
+    Container: { inventory: [{ id: BALLAST_ID, slot: 3 }], inventoryIndex: 1 } })
+  json(BALLAST_ID, { Base: { prototype: 900009, location: [11, 2] },
+    Item: { parent: BALLAST_BOX_ID, invLocation: 0 } })
   json(NPC_ID, { Base: { prototype: 900008, location: [9, 8] } })
   json('rules/Conversations.json', { version: 1,
     quests: [{ id: QUEST_ID, title: QUEST_TITLE, rewardExperience: QUEST_EXPERIENCE_REWARD,
@@ -324,6 +349,7 @@ function buildFiles() {
   sprite('Container/Workshop/Box', makeBox(), 1, 64, 64, [32, 48])
   sprite('Portal/Door/Workshop/0', makeDoor(), 7, 80, 104, [40, 88])
   sprite('Item/Workshop/Base/0/Ground', makePebble(), 1, 32, 24, [16, 19])
+  sprite('Item/Workshop/Base/1/Ground', makeBallast(), 1, 40, 32, [20, 26])
   for (const animation of ['Stand', 'Walk']) {
     const name = `Critter/Workshop/Male/Coat/None/Unarmed/${animation}`
     json(`Gfx/2D/${name}/Meta.json`, { frameRate: 5, animated: animation === 'Walk', imageExtension: 'png' })
@@ -367,7 +393,7 @@ async function generate(directory = __dirname) {
 module.exports = { buildFiles, manifest, generate, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID,
   KEY_BOX_ID, KEY_ID, LOCKED_DOOR_ID, LOCK_KEY_ID, LOCKED_BOX_ID, PRIZE_ID, PRIZE_LABEL,
   GROUND_ITEM_ID, GROUND_ITEM_LABEL, NPC_ID, NPC_LABEL, CONVERSATION_ID, QUEST_ID, QUEST_TITLE,
-  QUEST_EXPERIENCE_REWARD, PROGRESSION_BASELINE, DIRECTIONS }
+  QUEST_EXPERIENCE_REWARD, PROGRESSION_BASELINE, DIRECTIONS, BALLAST_BOX_ID, BALLAST_ID, BALLAST_LABEL, BALLAST_WEIGHT }
 if (require.main === module) generate().then(result => console.log(JSON.stringify(result)))
   .catch(error => { console.error(error.message); process.exitCode = 1 })
 

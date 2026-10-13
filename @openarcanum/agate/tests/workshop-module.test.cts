@@ -16,7 +16,7 @@ const { buildFiles, manifest, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID,
   KEY_BOX_ID, KEY_ID, LOCKED_DOOR_ID, LOCK_KEY_ID, LOCKED_BOX_ID, PRIZE_ID,
   PRIZE_LABEL, GROUND_ITEM_ID, GROUND_ITEM_LABEL, NPC_ID, NPC_LABEL, CONVERSATION_ID,
   QUEST_ID, QUEST_TITLE, QUEST_EXPERIENCE_REWARD, PROGRESSION_BASELINE,
-  DIRECTIONS } = require('../../../examples/inventory-workshop/generate.cts')
+  DIRECTIONS, BALLAST_BOX_ID, BALLAST_ID, BALLAST_LABEL, BALLAST_WEIGHT } = require('../../../examples/inventory-workshop/generate.cts')
 let engine
 
 function baselineCharacter() {
@@ -78,7 +78,7 @@ test('owned workshop source, metadata and generated archives reproduce exactly w
   assert.equal(recorded.format, 'openarcanum-owned-module')
   assert.equal(recorded.version, 1)
   assert.equal(recorded.mapId, MAP_ID)
-  assert.equal(recorded.files.length, 89)
+  assert.equal(recorded.files.length, 95)
   assert.equal(new Set(recorded.files).size, recorded.files.length)
   for (const [name, expected] of files) {
     assert.equal(path.posix.normalize(name), name)
@@ -102,7 +102,17 @@ test('owned workshop source, metadata and generated archives reproduce exactly w
   assert.equal(tokenPrototype.Item.magicTechComplexity, 0)
   assert.deepEqual(JSON.parse(files.get('mes/Description.json')),
     { Description: [{ id: '9003', text: TOKEN_LABEL }, { id: '9006', text: PRIZE_LABEL },
-      { id: '9007', text: GROUND_ITEM_LABEL }] })
+      { id: '9007', text: GROUND_ITEM_LABEL }, { id: '9009', text: BALLAST_LABEL }] })
+  assert.deepEqual(JSON.parse(files.get(BALLAST_BOX_ID)), { Base: { prototype: 900002, location: [11, 2] },
+    Container: { inventory: [{ id: BALLAST_ID, slot: 3 }], inventoryIndex: 1 } })
+  assert.deepEqual(JSON.parse(files.get(BALLAST_ID)), { Base: { prototype: 900009, location: [11, 2] },
+    Item: { parent: BALLAST_BOX_ID, invLocation: 0 } })
+  const ballastPrototype = JSON.parse(files.get('Prototypes/Generic/900009.json'))
+  assert.equal(ballastPrototype.Base.descIndex, 9009)
+  assert.deepEqual(ballastPrototype.Item, { flags: [], weight: BALLAST_WEIGHT, worth: 0, invLocation: 0,
+    magicTechComplexity: 0, groundTransferSupported: true })
+  assert.deepEqual(ballastPrototype.Visual.classes.current, { type: 'Item', category: 'Workshop',
+    subcat: 'Base', number: 1, display: 'Ground', stage: 'North', frame: 0 })
   assert.deepEqual(JSON.parse(files.get(KEY_BOX_ID)).Base.location, [3, 7])
   assert.deepEqual(JSON.parse(files.get(KEY_BOX_ID)).Container.inventory, [{ id: KEY_ID, slot: 3 }])
   assert.equal(JSON.parse(files.get(KEY_ID)).Item.parent, KEY_BOX_ID)
@@ -197,7 +207,7 @@ test('owned PNG atlases cover every declared frame, direction and animation with
     }
     sheets++
   }
-  assert.equal(sheets, 28)
+  assert.equal(sheets, 29)
   for (const animation of ['Stand', 'Walk'] as const) {
     const prefix = `Gfx/2D/Critter/Workshop/Male/Coat/None/Unarmed/${animation}`
     const metadata = JSON.parse(files.get(`${prefix}/Meta.json`))
@@ -209,7 +219,8 @@ test('owned PNG atlases cover every declared frame, direction and animation with
     }
   }
   for (const filename of ['Prototypes/Pc/900001.json', 'Prototypes/Container/900002.json',
-    'Prototypes/Portal/900004.json', 'Prototypes/Generic/900007.json', 'Prototypes/Npc/900008.json'] as const) {
+    'Prototypes/Portal/900004.json', 'Prototypes/Generic/900007.json', 'Prototypes/Npc/900008.json',
+    'Prototypes/Generic/900009.json'] as const) {
     const visual = JSON.parse(files.get(filename)).Visual.classes.current
     assert.ok(files.has(`Gfx/2D/${engine.GfxPathBuilder.build(visual)}/Meta.json`), filename)
   }
@@ -229,13 +240,14 @@ test('the owned workshop loads headlessly and privately inspects its reciprocal 
   await server.loadWorld()
   assert.equal(server.map.width, 1)
   assert.equal(server.map.height, 1)
-  assert.equal(server.world.entityManager.prototypes.size, 8)
+  assert.equal(server.world.entityManager.prototypes.size, 9)
   assert.equal(server.world.entityManager.systems.size, 0)
   assert.deepEqual([server.player.base.location.x, server.player.base.location.y], [4, 4])
   assert.deepEqual(server.player.critter.inventory, [])
   assert.equal(Object.hasOwn(server.player.critter, 'inventory'), true)
   const initial = server.getSnapshot()
-  assert.deepEqual(initial.containers, [{ id: BOX_ID, kind: 'container', label: 'Container',
+  assert.deepEqual(initial.containers, [{ id: BALLAST_BOX_ID, kind: 'container', label: 'Container',
+    location: [11, 2], locked: false, usable: true }, { id: BOX_ID, kind: 'container', label: 'Container',
     location: [6, 4], locked: false, usable: true },
   { id: KEY_BOX_ID, kind: 'container', label: 'Container', location: [3, 7], locked: false, usable: true },
   { id: LOCKED_BOX_ID, kind: 'container', label: 'Container', location: [6, 8], locked: true, usable: true }])
@@ -253,7 +265,7 @@ test('the owned workshop loads headlessly and privately inspects its reciprocal 
   const inspected = server.command(owner, request(2, 'inspect', { targetId: BOX_ID }))
   assert.equal(inspected.ok, true)
   assert.deepEqual(inspected.result, { kind: 'container', targetId: BOX_ID, items: [
-    { id: TOKEN_ID, slot: 3, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003 },
+    { id: TOKEN_ID, slot: 3, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003, weight: 1 },
   ] })
   const publicState = JSON.stringify(server.getSnapshot())
   assert.equal(publicState.includes(TOKEN_ID), false)
@@ -267,10 +279,12 @@ test('the owned workshop loads headlessly and privately inspects its reciprocal 
   assert.equal(checkpoint.version, 6)
   assert.deepEqual(checkpoint.ownership, { owners: [
     { id: '16086.json', inventoryIndex: 0, items: [] },
+    { id: BALLAST_BOX_ID, inventoryIndex: 1, items: [{ id: BALLAST_ID, slot: 3 }] },
     { id: BOX_ID, inventoryIndex: 1, items: [{ id: TOKEN_ID, slot: 3 }] },
     { id: KEY_BOX_ID, inventoryIndex: 1, items: [{ id: KEY_ID, slot: 3 }] },
     { id: LOCKED_BOX_ID, inventoryIndex: 1, items: [{ id: PRIZE_ID, slot: 3 }] },
-  ], items: [{ id: GROUND_ITEM_ID, parent: null, groundLocation: [4, 7] },
+  ], items: [{ id: BALLAST_ID, parent: BALLAST_BOX_ID, groundLocation: null },
+    { id: GROUND_ITEM_ID, parent: null, groundLocation: [4, 7] },
     { id: PRIZE_ID, parent: LOCKED_BOX_ID, groundLocation: null },
     { id: TOKEN_ID, parent: BOX_ID, groundLocation: null },
     { id: KEY_ID, parent: KEY_BOX_ID, groundLocation: null }] })
@@ -301,11 +315,11 @@ test('the owned key must be taken before opening its authored door and is neithe
   approach(KEY_BOX_ID)
   const inspected = request('inspect', { targetId: KEY_BOX_ID })
   assert.deepEqual(inspected.result.items,
-    [{ id: KEY_ID, slot: 3, label: 'Key', type: 'Key', prototypeId: 900005 }])
+    [{ id: KEY_ID, slot: 3, label: 'Key', type: 'Key', prototypeId: 900005, weight: 1 }])
   const taken = request('take', { targetId: KEY_BOX_ID, itemId: KEY_ID, expectedRevision: server.revision })
   assert.equal(taken.ok, true)
   assert.deepEqual(taken.result.inventory.items,
-    [{ id: KEY_ID, slot: 0, label: 'Key', type: 'Key', prototypeId: 900005 }])
+    [{ id: KEY_ID, slot: 0, label: 'Key', type: 'Key', prototypeId: 900005, weight: 1 }])
   const key = server.ownership.items.get(KEY_ID).entity
   assert.equal(key.item.parent, '16086.json')
   assert.equal(key.key.keyId, LOCK_KEY_ID)
@@ -359,7 +373,7 @@ test('the owned locked crate requires its held key for private access and conser
   assert.equal(first.transfer('take', KEY_BOX_ID, KEY_ID).ok, true)
   first.approach(LOCKED_BOX_ID)
   assert.deepEqual(first.request('inspect', { targetId: LOCKED_BOX_ID }).result.items,
-    [{ id: PRIZE_ID, slot: 3, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006 }])
+    [{ id: PRIZE_ID, slot: 3, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006, weight: 1 }])
   assert.equal(first.transfer('take-all', LOCKED_BOX_ID).ok, true)
   const inventory = first.request('inventory').result.items
   assert.deepEqual(inventory.map(row => [row.id, row.slot]), [[KEY_ID, 0], [PRIZE_ID, 1]])
@@ -367,7 +381,7 @@ test('the owned locked crate requires its held key for private access and conser
   assert.equal(first.request('inspect', { targetId: LOCKED_BOX_ID }).ok, true)
   assert.equal(first.transfer('put', LOCKED_BOX_ID, PRIZE_ID).ok, true)
   assert.deepEqual(first.request('inspect', { targetId: LOCKED_BOX_ID }).result.items,
-    [{ id: PRIZE_ID, slot: 0, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006 }])
+    [{ id: PRIZE_ID, slot: 0, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006, weight: 1 }])
   assert.equal(first.transfer('take', LOCKED_BOX_ID, PRIZE_ID).ok, true)
   first.approach(KEY_BOX_ID)
   assert.equal(first.request('inspect', { targetId: KEY_BOX_ID }).ok, true)
@@ -377,7 +391,7 @@ test('the owned locked crate requires its held key for private access and conser
   assert.equal(first.transfer('put', LOCKED_BOX_ID, PRIZE_ID).code, 'LOCKED',
     'fresh revision cannot replace current possession')
   assert.deepEqual(first.request('inventory').result.items,
-    [{ id: PRIZE_ID, slot: 1, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006 }])
+    [{ id: PRIZE_ID, slot: 1, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006, weight: 1 }])
   const box = first.server.containers.states.get(LOCKED_BOX_ID).entity
   assert.deepEqual([...box.container.flags], ['Locked'])
   assert.equal(box.container.keyId, LOCK_KEY_ID)
@@ -393,11 +407,57 @@ test('the owned locked crate requires its held key for private access and conser
   const second = await start()
   assert.equal((await second.request('load')).ok, true)
   assert.deepEqual(second.request('inventory').result.items,
-    [{ id: PRIZE_ID, slot: 1, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006 }])
+    [{ id: PRIZE_ID, slot: 1, label: PRIZE_LABEL, type: 'Generic', prototypeId: 900006, weight: 1 }])
   assert.equal(second.request('inspect', { targetId: LOCKED_BOX_ID }).code, 'LOCKED')
   assert.equal(second.server.ownership.items.get(KEY_ID).entity.item.parent, KEY_BOX_ID)
   assert.deepEqual([...second.server.containers.states.get(LOCKED_BOX_ID).entity.container.flags], ['Locked'])
   assert.equal(await fs.readFile(checkpointPath, 'utf8'), saved)
+})
+
+test('the ballast advertises Drop and preserves the same weighted identity through its first Drop and Pickup', async t => {
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'agate-owned-workshop-ballast-'))
+  const server = engine.createAuthorityServer({ dataPath, mapId: MAP_ID,
+    checkpointPath: path.join(temporary, 'checkpoint.json') })
+  t.after(async () => { await server.stop(); await fs.rm(temporary, { recursive: true, force: true }) })
+  await server.loadWorld()
+  let id = 0
+  const request = (type, extra = {}) => server.command({ data: { joined: true, role: 'owner' } },
+    { version: 1, id: ++id, actorId: '0', type, ...extra })
+  const ballast = server.ownership.items.get(BALLAST_ID).entity
+  assert.equal(ballast.ground, false, 'the first Drop starts from a contained item that was never on the floor')
+  assert.equal(request('use', { targetId: BALLAST_BOX_ID }).ok, true)
+  server.advanceMovement(performance.now() + 10000)
+  const inspected = request('inspect', { targetId: BALLAST_BOX_ID })
+  assert.equal(inspected.ok, true)
+  assert.deepEqual(inspected.result.items, [{ id: BALLAST_ID, slot: 3, label: BALLAST_LABEL,
+    type: 'Generic', prototypeId: 900009, canDrop: true, weight: BALLAST_WEIGHT }])
+  const taken = request('take', { targetId: BALLAST_BOX_ID, itemId: BALLAST_ID, expectedRevision: server.revision })
+  assert.equal(taken.ok, true)
+  assert.equal(taken.result.inventory.items[0].canDrop, true)
+  assert.deepEqual(taken.result.inventory.carrying,
+    { supported: true, weight: BALLAST_WEIGHT, capacity: BALLAST_WEIGHT, encumbrance: 'severe' })
+  assert.equal(server.ownership.items.get(BALLAST_ID).entity === ballast, true)
+  const location = [server.player.base.location.x, server.player.base.location.y]
+  const dropped = request('drop', { itemId: BALLAST_ID, expectedRevision: server.revision })
+  assert.equal(dropped.ok, true)
+  assert.deepEqual(dropped.result.ground, { id: BALLAST_ID, kind: 'ground', label: BALLAST_LABEL,
+    type: 'Generic', prototypeId: 900009, location })
+  assert.deepEqual(dropped.result.inventory.carrying,
+    { supported: true, weight: 0, capacity: BALLAST_WEIGHT, encumbrance: 'none' })
+  assert.equal(ballast.item.parent, null)
+  assert.equal(ballast.ground, true)
+  assert.equal(server.getSnapshot().groundItems.filter(item => item.id === BALLAST_ID).length, 1)
+  assert.equal(request('use', { targetId: BALLAST_ID }).ok, true)
+  server.advanceMovement(performance.now() + 10000)
+  const pickedUp = request('pickup', { targetId: BALLAST_ID, expectedRevision: server.revision })
+  assert.equal(pickedUp.ok, true)
+  assert.deepEqual(pickedUp.result.inventory.items, [{ id: BALLAST_ID, slot: 0, label: BALLAST_LABEL,
+    type: 'Generic', prototypeId: 900009, canDrop: true, weight: BALLAST_WEIGHT }])
+  assert.equal(server.ownership.items.get(BALLAST_ID).entity === ballast, true)
+  assert.equal(ballast.item.parent, '16086.json')
+  assert.equal(ballast.ground, false)
+  assert.equal(server.getSnapshot().groundItems.some(item => item.id === BALLAST_ID), false)
+  assert.equal(server.ownership.items.size, 5, 'Drop and Pickup do not create another item')
 })
 
 test('the authored ground pebble is conserved through pickup, actor-tile drop and both checkpoint directions', async t => {
@@ -424,7 +484,7 @@ test('the authored ground pebble is conserved through pickup, actor-tile drop an
     return { server, request, pickup, drop, ground, approach }
   }
   const row = { id: GROUND_ITEM_ID, slot: 0, label: GROUND_ITEM_LABEL, type: 'Generic',
-    prototypeId: 900007, canDrop: true }
+    prototypeId: 900007, canDrop: true, weight: 1 }
   const descriptor = location => ({ id: GROUND_ITEM_ID, kind: 'ground', label: GROUND_ITEM_LABEL,
     type: 'Generic', prototypeId: 900007, location })
   const first = await start()
@@ -434,7 +494,7 @@ test('the authored ground pebble is conserved through pickup, actor-tile drop an
   assert.deepEqual(first.request('inventory').result.items, [])
   first.approach()
   assert.deepEqual(first.pickup().result, { kind: 'pickup', targetId: GROUND_ITEM_ID,
-    inventory: { ownerId: '16086.json', items: [row] } })
+    inventory: { ownerId: '16086.json', items: [row], carrying: { supported: true, weight: 1, capacity: 4000, encumbrance: 'none' } } })
   assert.deepEqual(first.ground(), [])
   assert.equal(JSON.stringify(first.server.getSnapshot()).includes(GROUND_ITEM_ID), false,
     'a held item identity leaves public floor state')
@@ -449,14 +509,14 @@ test('the authored ground pebble is conserved through pickup, actor-tile drop an
   assert.equal((await first.request('save')).ok, true)
   const heldCheckpoint = JSON.parse(await fs.readFile(checkpointPath, 'utf8'))
   assert.equal(heldCheckpoint.version, 6)
-  assert.equal(heldCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(heldCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.deepEqual(heldCheckpoint.ownership.items.find(item => item.id === GROUND_ITEM_ID),
     { id: GROUND_ITEM_ID, parent: '16086.json', groundLocation: null })
   const location = [first.server.player.base.location.x, first.server.player.base.location.y]
   const dropped = first.drop()
   assert.equal(dropped.ok, true)
   assert.deepEqual(dropped.result, { kind: 'drop', itemId: GROUND_ITEM_ID, ground: descriptor(location),
-    inventory: { ownerId: '16086.json', items: [] } })
+    inventory: { ownerId: '16086.json', items: [], carrying: { supported: true, weight: 0, capacity: 4000, encumbrance: 'none' } } })
   assert.deepEqual(first.ground(), [descriptor(location)])
   assert.equal(entity.item.parent, null)
   assert.equal(entity.ground, true)
@@ -479,7 +539,7 @@ test('the authored ground pebble is conserved through pickup, actor-tile drop an
   assert.equal(second.pickup().ok, true)
   assert.deepEqual(second.ground(), [])
   assert.deepEqual(second.request('inventory').result.items, [row])
-  assert.equal(second.server.ownership.items.size, 4, 'the fixed four-item universe is conserved')
+  assert.equal(second.server.ownership.items.size, 5, 'the fixed five-item universe is conserved')
   assert.equal(await fs.readFile(checkpointPath, 'utf8'), saved, 'playing does not rewrite the saved document')
 })
 
@@ -543,7 +603,7 @@ test('the owned guide atomically awards its persistent quest experience only onc
   assert.equal((await first.request('save')).ok, true)
   const activeCheckpoint = JSON.parse(await fs.readFile(checkpointPath, 'utf8'))
   assert.equal(activeCheckpoint.version, 6)
-  assert.equal(activeCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(activeCheckpoint.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.deepEqual(activeCheckpoint.quests, [{ id: QUEST_ID, status: 'active' }])
   assert.deepEqual(activeCheckpoint.character, { ...PROGRESSION_BASELINE, history: [] })
   assert.equal((await first.request('load')).ok, true)
@@ -612,7 +672,7 @@ test('the owned guide atomically awards its persistent quest experience only onc
   assert.deepEqual(second.request('inventory').result.items, [])
   assert.equal(second.talk().result.nodeId, 'completed')
   assert.deepEqual(second.character(), rewarded, 'reopening a completed conversation awards nothing')
-  assert.equal(second.server.ownership.items.size, 4)
+  assert.equal(second.server.ownership.items.size, 5)
   assert.equal(await fs.readFile(checkpointPath, 'utf8'), saved)
 })
 

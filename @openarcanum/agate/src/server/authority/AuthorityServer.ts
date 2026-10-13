@@ -1,7 +1,7 @@
 import type { Socket } from 'socket.io'
 import type { AddressInfo } from 'node:net'
 import type { AttributeId } from '../../shared/character/NeutralStats'
-import type { InventoryItem, ItemResult, GroundItem } from './InventoryOwnership'
+import type { InventoryItem, ItemResult, GroundItem, ActorInventory } from './InventoryOwnership'
 import { exactKeys, record, integer, validPosition, errorCode, errorMessage, type AuthorityEntity, type ActorEntity, type AuthorityMap, type Position, type PendingUse, type OwnWrite, type Transaction } from './AuthorityTypes'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -263,7 +263,9 @@ export class AuthorityServer {
       return state && this.containers.present(state) ? this.containers.policy(state) :
         { code: 'UNSUPPORTED_CONTAINER', message: 'Container was not verified for item transfers' }
     }
-    this.ownership = new InventoryOwnership(this.map, this.player, { containerPolicy, canAccessContainer: (entity, actor) => {
+    this.ownership = new InventoryOwnership(this.map, this.player, { containerPolicy,
+      ...(this.player.critter?.progressionSupported === true ? { getCarryCapacity: () => this.progression?.carryCapacity() ?? null } : {}),
+      canAccessContainer: (entity, actor) => {
       const state = this.containers.states.get(entity.sourcePath)
       return state && this.containers.present(state) ? this.containers.access(state, actor) :
         { code: 'UNSUPPORTED_CONTAINER', message: 'Container was not verified for item transfers' }
@@ -511,23 +513,28 @@ export class AuthorityServer {
       return this.reject(command.id, 'STALE_REVISION', 'The character view changed; refresh it before purchasing')
     }
     let transaction: Transaction | undefined, character: ReturnType<CharacterProgression['view']>
+    let inventory: ActorInventory
     try {
       transaction = prepareOwnWrites(this.progression.purchaseWrites(command.statId))
       transaction.apply()
       character = this.progression.view()
+      const owned = this.ownership.actorInventory()
+      if (owned.code !== undefined) throw Object.assign(new Error(owned.message), { code: owned.code })
+      inventory = this.privateItemResult({ kind: 'buy-attribute', inventory: owned }).inventory!
     } catch (failure) {
       transaction?.rollback()
-      const code = ['INSUFFICIENT_POINTS', 'ATTRIBUTE_AT_MAX', 'PROGRESSION_UNAVAILABLE'].includes(String(errorCode(failure))) ?
+      const code = ['INSUFFICIENT_POINTS', 'ATTRIBUTE_AT_MAX', 'PROGRESSION_UNAVAILABLE', 'INVENTORY_UNAVAILABLE'].includes(String(errorCode(failure))) ?
         String(errorCode(failure)) : 'PROGRESSION_UNAVAILABLE'
       return this.reject(command.id, code, code === 'INSUFFICIENT_POINTS' ? 'Not enough Character Points.' :
-        code === 'ATTRIBUTE_AT_MAX' ? 'Attribute is at its maximum.' : 'Character progression could not be safely updated')
+        code === 'ATTRIBUTE_AT_MAX' ? 'Attribute is at its maximum.' : code === 'INVENTORY_UNAVAILABLE' ?
+          'Carried item weights could not be safely verified.' : 'Character progression could not be safely updated')
     }
     this.conversations.invalidate()
     // Attribute choices, balances and derived values stay in the owner's ACK.
     this.lastCommand = { id: command.id, type: 'buy-attribute', status: 'completed', result: { kind: 'buy-attribute' } }
     this.publish()
     return { ok: true, version: PROTOCOL_VERSION, id: command.id, actorId: ACTOR_ID, status: 'completed',
-      result: { kind: 'buy-attribute', statId: command.statId, character }, revision: this.revision }
+      result: { kind: 'buy-attribute', statId: command.statId, character, inventory }, revision: this.revision }
   }
 
   converse(socket: CommandSocket, command: TargetCommand | ReplyCommand) {
@@ -556,7 +563,7 @@ export class AuthorityServer {
   privateItemResult<T extends ItemResult>(result: T): T {
     // Ownership validation, approach signatures and the immutable ledger retain
     // their generic rows. Only the requesting owner's ACK receives these names.
-    const rows = (items: InventoryItem[]) => items.map(row => ({ ...row,
+    const rows = (items: InventoryItem[]) => this.ownership.privateItems(items).map(row => ({ ...row,
       label: this.itemDisplay?.labelFor(this.ownership.items.get(row.id)?.entity, row.label) || row.label,
       ...(this.ownership.canDrop(row.id) ? { canDrop: true } : {}) }))
     return { ...result, ...(Array.isArray(result.items) ? { items: rows(result.items) } : {}),
@@ -632,6 +639,7 @@ export class AuthorityServer {
       ownership = this.ownership.checkpointStates()
       quests = this.conversations.checkpointStates()
       character = this.progression.checkpointState()
+      this.ownership.validateCheckpointWeight(ownership, this.progression.carryCapacity())
     }
     catch (_) { throw checkpointError('CHECKPOINT_INVALID') }
     return { format: CHECKPOINT_FORMAT, version: 6, rulesVersion: RULES_VERSION,
@@ -661,6 +669,8 @@ export class AuthorityServer {
       ownership = this.ownership.validateCheckpoint(document.ownership)
       quests = this.conversations.validateCheckpoint(document.quests)
       progression = prepareOwnWrites(this.progression.checkpointWrites(document.character, document.quests))
+      this.ownership.validateCheckpointWeight(document.ownership,
+        this.progression.checkpointCarryCapacity(document.character, document.quests))
     }
     catch (_) { throw checkpointError('CHECKPOINT_INVALID') }
     const [x, y] = document.actor.location

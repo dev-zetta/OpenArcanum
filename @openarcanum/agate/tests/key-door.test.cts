@@ -95,7 +95,7 @@ test('a reviewed locked door requires a held key, opens without unlocking or con
   assert.equal(server.revision, revision)
   const taken = takeKey()
   assert.equal(taken.ok, true)
-  assert.deepEqual(taken.result.inventory.items, [{ id: KEY_ID, slot: 0, label: 'Key', type: 'Key', prototypeId: 900005 }])
+  assert.deepEqual(taken.result.inventory.items, [{ id: KEY_ID, slot: 0, label: 'Key', type: 'Key', prototypeId: 900005, weight: 1 }])
   const inventory = structuredClone(server.player.critter.inventory)
   const flags = [...door().entity.portal.flags]
   assert.equal(use(LOCKED_DOOR_ID).ok, true)
@@ -192,7 +192,7 @@ test('unknown actor inventory and either keyring spelling forbid standalone key 
     await t.test(type, async sub => {
       const { start } = await fixture(sub, async (change, dataPath) => {
         if (type === 'unknown') {
-          await change('16086.json', data => { delete data.Critter.inventory })
+          await change('16086.json', data => { delete data.Critter.inventory; delete data.Critter.progressionSupported })
           return
         }
         // Reuse a catalogued entity/prototype, because the loader discovers
@@ -202,6 +202,7 @@ test('unknown actor inventory and either keyring spelling forbid standalone key 
         await change(BOX_ID, data => { data.Container.inventory = []; data.Container.inventoryIndex = 0 })
         await change('16086.json', data => {
           data.Critter.inventory = [{ id: TOKEN_ID, slot: 4 }]; data.Critter.inventoryIndex = 1
+          delete data.Critter.progressionSupported // Isolate the legacy keyring prohibition from owned capacity support.
         })
       })
       const { server, use, transfer } = await start()
@@ -316,7 +317,7 @@ test('open locked pose survives save and fresh-host load after putting the attai
   assert.equal((await first.command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8')
   const saved = JSON.parse(bytes)
-  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.equal(saved.version, 6)
   assert.equal(saved.doors.find(row => row.id === LOCKED_DOOR_ID).open, true)
   assert.equal(saved.ownership.items.find(row => row.id === KEY_ID).parent, KEY_BOX_ID)

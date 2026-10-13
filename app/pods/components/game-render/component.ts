@@ -140,11 +140,17 @@ class GameRender extends Component {
       this.containerInteraction?.canPut === true && this.containerInteraction.targetId === this.selectedContainerId
   }
 
-  @computed('inventory.items', 'inventory.known', 'canPutInSelectedContainer')
+  @computed('inventory.status', 'inventory.known', 'inventory.carrying')
+  get carrying() {
+    return this.inventory?.known && this.inventory.status === 'ready' && this.inventory.carrying?.supported ? this.inventory.carrying : null
+  }
+
+  @computed('inventory.items', 'inventory.known', 'canPutInSelectedContainer', 'carrying')
   get inventoryItems() {
     return this.inventory?.known === true ? (this.inventory.items || []).map(item => ({ ...item,
       putAvailable: this.canPutInSelectedContainer && ['Generic', 'Key'].includes(item.type),
-      dropAvailable: item.canDrop === true && item.type === 'Generic' })) : []
+      dropAvailable: item.canDrop === true && item.type === 'Generic',
+      weightAvailable: !!this.carrying && item.weight !== undefined })) : []
   }
 
   @computed('inventory.status', 'transferPending', 'groundPending')

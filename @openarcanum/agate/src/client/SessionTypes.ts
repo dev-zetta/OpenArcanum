@@ -1,3 +1,4 @@
+import type { InventoryState } from './PrivateInventoryTypes'
 import type { AttributeId, DerivedNeutralStats } from '../shared/character/NeutralStats'
 
 export interface CharacterAttribute {
@@ -88,6 +89,11 @@ export interface SessionClient {
   authority: SessionAuthority
   authorityState: { revision: number; conversationTargets?: ConversationTarget[] }
   events: { emit(event: string, value: unknown): unknown }
+  inventoryState?: InventoryState | null
+  readPrivateInventory?(value: unknown, revision: number): InventoryState
+  setInventoryState?(state: InventoryState): void
+  refreshInventory?(): Promise<InventoryState | null | undefined>
+  invalidateInventory?(message?: string): void
   characterState: CharacterState | null
   conversationState: ConversationState | null
   journalState: JournalState | null

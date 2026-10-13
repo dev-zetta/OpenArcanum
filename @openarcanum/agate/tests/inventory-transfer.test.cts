@@ -7,6 +7,9 @@ const Module = require('node:module') as typeof import('node:module')
 const { generate, MAP_ID, BOX_ID, TOKEN_ID, TOKEN_LABEL, DOOR_ID, LOCKED_DOOR_ID } = require('../../../examples/inventory-workshop/generate.cts')
 const root = path.resolve(__dirname, '../../..')
 const source = path.join(root, '@openarcanum/agate/src')
+const inventoryView = (items: Array<{ weight: number } & Record<string, unknown>> = [], capacity = 4000) => ({
+  ownerId: '16086.json', items, carrying: { supported: true, weight: items.reduce((total, item) => total + item.weight, 0),
+    capacity, encumbrance: 'none' } })
 let engine
 
 before(async () => {
@@ -85,13 +88,13 @@ test('whole Generic transfer preserves instance ownership, sparse placement and 
   const originalPrototype = { count: prototype.inventoryIndex, inventory: prototype.inventory }
   approach()
   const revision = server.revision, lastCommand = server.lastCommand
-  assert.deepEqual(command('inventory').result, { kind: 'inventory', ownerId: '16086.json', items: [] })
+  assert.deepEqual(command('inventory').result, { kind: 'inventory', ...inventoryView([]) })
   assert.equal(server.revision, revision)
   assert.equal(server.lastCommand, lastCommand)
   const result = take()
   assert.equal(result.ok, true)
   assert.deepEqual(result.result, { kind: 'take', targetId: BOX_ID, itemId: TOKEN_ID, items: [],
-    inventory: { ownerId: '16086.json', items: [{ id: TOKEN_ID, slot: 0, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003 }] } })
+    inventory: inventoryView([{ id: TOKEN_ID, slot: 0, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003, weight: 1 }]) })
   assert.equal(server.revision, revision + 1)
   assert.equal(item().item.parent, '16086.json')
   assert.equal(item().item.invLocation, 7, 'original inventory placement is independent of sparse owner slot')
@@ -135,8 +138,8 @@ test('repeated take and put conserve identity and allocate the lowest unused con
     assert.equal(returned.ok, true)
     assert.equal(server.revision, revision + 1)
     assert.deepEqual(returned.result, { kind: 'put', targetId: BOX_ID, itemId: TOKEN_ID,
-      items: [{ id: TOKEN_ID, slot: 0, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003 }],
-      inventory: { ownerId: '16086.json', items: [] } })
+      items: [{ id: TOKEN_ID, slot: 0, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003, weight: 1 }],
+      inventory: inventoryView([]) })
     assert.equal(item().item.parent, BOX_ID)
     assert.equal(item().item.invLocation, 7)
     assert.deepEqual(server.lastCommand.result, { kind: 'put', targetId: BOX_ID })
@@ -199,7 +202,7 @@ test('checkpoint v3 restores ownership, position and doors together and rejects 
   assert.equal(saved.ok, true)
   const transferred = await server.checkpointStore.read()
   assert.equal(transferred.version, 6)
-  assert.equal(transferred.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(transferred.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.equal(transferred.ownership.items.find(row => row.id === TOKEN_ID).parent, '16086.json')
   const restoredOriginal = server.validateCheckpoint(original)
   server.applyCheckpoint(restoredOriginal)
@@ -226,7 +229,7 @@ test('tampered ownership checkpoints cannot change any actor, door or inventory 
     value => { value.ownership.owners.find(owner => owner.id === BOX_ID).inventoryIndex = 0 },
     value => { value.ownership.owners.find(owner => owner.id === BOX_ID).items[0].slot = -1 },
     value => { value.ownership.owners.find(owner => owner.id === BOX_ID).items[0].slot = 1.5 },
-    value => { value.ownership.owners.find(owner => owner.id === BOX_ID).items[0].slot = 4 },
+    value => { value.ownership.owners.find(owner => owner.id === BOX_ID).items[0].slot = 999 },
     value => { value.ownership.owners.find(owner => owner.id === BOX_ID).items[0].id = 'fabricated-item' },
     value => { value.ownership.items = [] },
     value => { value.ownership.items.push({ id: 'fabricated-item', parent: BOX_ID }) },
@@ -292,7 +295,7 @@ test('checkpoint cannot fabricate a transfer from a locked source container', as
 
 test('unknown original actor inventory remains absent through save/load and cannot receive items', async t => {
   const { server, command, approach, take } = await fixture(t, change => change('16086.json',
-    data => { delete data.Critter.inventory }))
+    data => { delete data.Critter.inventory; delete data.Critter.progressionSupported }))
   approach()
   assert.equal(command('inventory').code, 'INVENTORY_UNAVAILABLE')
   assert.equal(take().code, 'INVENTORY_UNAVAILABLE')

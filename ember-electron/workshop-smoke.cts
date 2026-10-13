@@ -5,7 +5,7 @@ const { setTimeout: delay } = require('node:timers/promises') as typeof import('
 const { io } = require('socket.io-client') as typeof import('socket.io-client')
 const { TOKEN_LABEL, KEY_BOX_ID, KEY_ID, LOCKED_DOOR_ID, LOCKED_BOX_ID, PRIZE_ID, PRIZE_LABEL,
   GROUND_ITEM_ID, GROUND_ITEM_LABEL, NPC_ID, QUEST_ID, QUEST_TITLE,
-  QUEST_EXPERIENCE_REWARD } = require('../examples/inventory-workshop/generate.cts')
+  QUEST_EXPERIENCE_REWARD, BALLAST_BOX_ID, BALLAST_ID, BALLAST_LABEL, BALLAST_WEIGHT } = require('../examples/inventory-workshop/generate.cts')
 const MAP = 'Inventory workshop'
 const BOX = `${MAP}/Sector/0/0/Container/owned-workshop-box.json`
 const TOKEN = `${MAP}/Sector/0/0/Generic/owned-workshop-token.json`
@@ -54,6 +54,11 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
       takeAllAvailable: !!document.querySelector('[data-action="take-all-items"]:not(:disabled)'),
       putAvailable: !!document.querySelector('[data-action="put-item"]:not(:disabled)'),
       visibleInventory: [...document.querySelectorAll('[data-inventory-items] li')].map(item => item.textContent.trim()),
+      visibleCarrying: {
+        weight: document.querySelector('[data-carried-weight]')?.textContent,
+        capacity: document.querySelector('[data-carry-capacity]')?.textContent,
+        encumbrance: document.querySelector('[data-encumbrance]')?.textContent,
+        text: document.querySelector('[data-carrying-state]')?.textContent },
       groundRendered: (client?.ready && client?.world ? client.authorityState?.groundItems || [] : []).map(item => {
         const entity = [...client.world.entityManager.entities.values()].find(entity => entity.sourcePath === item.id);
         return { id: item.id, location: [entity.base.location.x,entity.base.location.y],
@@ -111,7 +116,7 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
       !JSON.stringify(snapshot).includes(KEY_ID) && !JSON.stringify(snapshot).includes(PRIZE_ID) &&
       !JSON.stringify(snapshot).includes(PRIZE_LABEL) &&
       !JSON.stringify(snapshot).includes(QUEST_ID) && !JSON.stringify(snapshot).includes(QUEST_TITLE) &&
-      !/"(?:items|itemIds|inventory|parent|quantity|keyId|keyID|keyUseSupported|journal|quests|options|conversationId|nodeId|character|experiencePoints|level|unspentPoints|nextLevelExperience|attributes|derived|history|statId|maxHealth|maxFatigue|strength|dexterity|constitution|beauty|intelligence|perception|willpower|charisma)"\s*:/.test(JSON.stringify(snapshot)),
+      !/"(?:items|itemIds|inventory|parent|quantity|weight|capacity|encumbrance|carrying|keyId|keyID|keyUseSupported|journal|quests|options|conversationId|nodeId|character|experiencePoints|level|unspentPoints|nextLevelExperience|attributes|derived|history|statId|maxHealth|maxFatigue|strength|dexterity|constitution|beauty|intelligence|perception|willpower|charisma)"\s*:/.test(JSON.stringify(snapshot)),
       'Workshop observer received private inventory information')
   }
   async function matchObserver(state) {
@@ -177,6 +182,92 @@ async function runWorkshopSmoke(contents, { timeout = 60000, testInput = false }
         'Native Character refresh did not read the private progression')
     } else { await evaluate('globalThis.AGate._engine.client.refreshCharacter()'); report.characterRead = await read() }
     await progression(report.characterRead)
+
+    // Keep weight validation independent of every existing quest/key scenario.
+    // Loading this pristine save restores both the initial build and ownership.
+    report.weight = { savedBaseline: await evaluate('globalThis.AGate._engine.client.saveCheckpoint()') }
+    const carried = (weight, capacity) => waitFor(state => state.game.inventory?.status === 'ready' &&
+      state.game.inventory.carrying?.supported === true && state.game.inventory.carrying.weight === weight &&
+      state.game.inventory.carrying.capacity === capacity && Number(state.visibleCarrying.weight) === weight &&
+      Number(state.visibleCarrying.capacity) === capacity,
+    'The inventory panel did not show the committed private carrying state')
+    const transferWeightItem = async (action, targetId, itemId, weight, capacity) => {
+      await use(targetId)
+      if (testInput) await button(action === 'take' ? 'take-item' : 'put-item', itemId)
+      else await evaluate(`globalThis.AGate._engine.client.${action === 'take' ? 'takeItem' : 'putItem'}(${JSON.stringify(targetId)},${JSON.stringify(itemId)})`)
+      return carried(weight, capacity)
+    }
+    report.weight.initial = await carried(0, BALLAST_WEIGHT)
+    report.weight.exact = await transferWeightItem('take', BALLAST_BOX_ID, BALLAST_ID, BALLAST_WEIGHT, BALLAST_WEIGHT)
+    check(report.weight.exact.game.inventory.items.length === 1 &&
+      report.weight.exact.game.inventory.items[0].id === BALLAST_ID &&
+      report.weight.exact.game.inventory.items[0].weight === BALLAST_WEIGHT &&
+      report.weight.exact.game.inventory.items[0].canDrop === true &&
+      report.weight.exact.game.inventory.carrying.encumbrance === 'severe',
+    'Exact-capacity Take did not retain ballast identity, weight, Drop capability and severe encumbrance band')
+    await use(BOX)
+    const beforeWeightReject = await read()
+    if (testInput) {
+      report.weight.rejectedButton = await button('take-item', TOKEN)
+      report.weight.nativeRejected = await waitFor(state => state.game.interaction?.status === 'rejected' &&
+        state.game.inventory?.status === 'ready', 'Native Take did not report the overweight rejection')
+      check(JSON.stringify(report.weight.nativeRejected.game.inventory.items) === JSON.stringify(beforeWeightReject.game.inventory.items) &&
+        report.weight.nativeRejected.game.authority.revision === beforeWeightReject.game.authority.revision,
+      'Rejected native Take changed item ownership or world revision')
+      await use(BOX)
+    }
+    report.weight.rejection = await evaluate(`(async () => {
+      const client = globalThis.AGate._engine.client;
+      try { await client.takeItem(${JSON.stringify(BOX)},${JSON.stringify(TOKEN)}); return {rejected:false}; }
+      catch(error) {return {rejected:true,code:error.code};}
+    })()`)
+    check(report.weight.rejection.rejected && report.weight.rejection.code === 'TOO_HEAVY',
+      'A fresh one-stone Take above capacity did not reject with TOO_HEAVY')
+    report.weight.afterRejected = await carried(BALLAST_WEIGHT, BALLAST_WEIGHT)
+    await use(BOX)
+    check((await read()).game.interaction.items.length === 1 && (await read()).game.interaction.items[0].id === TOKEN,
+      'Overweight Take removed the token from its original container')
+    if (testInput) await button('increase-attribute', 'strength', 'statId')
+    else await evaluate('globalThis.AGate._engine.client.spendCharacterPoint("strength")')
+    report.weight.stronger = await carried(BALLAST_WEIGHT, 4500)
+    check(report.weight.stronger.game.character.attributes.find(row => row.id === 'strength').value === 9 &&
+      report.weight.stronger.game.character.unspentPoints === 4,
+    'Strength did not spend one point while increasing live carrying capacity')
+    report.weight.accepted = await transferWeightItem('take', BOX, TOKEN, BALLAST_WEIGHT + 1, 4500)
+    check(report.weight.accepted.game.inventory.items.some(item => item.id === TOKEN) &&
+      report.weight.accepted.game.inventory.carrying.encumbrance === 'heavy',
+    'Increasing Strength did not permit the previously rejected item')
+    report.weight.put = await transferWeightItem('put', BALLAST_BOX_ID, BALLAST_ID, 1, 4500)
+    report.weight.retaken = await transferWeightItem('take', BALLAST_BOX_ID, BALLAST_ID, BALLAST_WEIGHT + 1, 4500)
+    if (testInput) await button('drop-item', BALLAST_ID)
+    else await evaluate(`globalThis.AGate._engine.client.dropItem(${JSON.stringify(BALLAST_ID)})`)
+    report.weight.dropped = await carried(1, 4500)
+    await waitFor(state => state.game.ground?.status === 'completed' &&
+      state.game.authority.groundItems.some(item => item.id === BALLAST_ID) &&
+      state.groundRendered.some(item => item.id === BALLAST_ID && item.visible),
+    'Dropping ballast did not release capacity and render the same floor item')
+    if (testInput) { await select('ground-target', BALLAST_ID); await button('pickup-ground-item') }
+    else await evaluate(`globalThis.AGate._engine.client.pickupGroundItem(${JSON.stringify(BALLAST_ID)})`)
+    report.weight.pickedUp = await carried(BALLAST_WEIGHT + 1, 4500)
+    await evaluate('globalThis.AGate._engine.client.loadCheckpoint()')
+    report.weight.restored = await carried(0, BALLAST_WEIGHT)
+    check(report.weight.restored.game.character.attributes.every(row => row.value === 8) &&
+      report.weight.restored.game.character.unspentPoints === 5 && report.weight.restored.game.inventory.items.length === 0 &&
+      report.weight.restored.game.authority.groundItems.length === 1 &&
+      report.weight.restored.game.authority.groundItems[0].id === GROUND_ITEM_ID &&
+      JSON.stringify(report.weight.restored.game.player.location) === '[4,4]',
+    'Checkpoint did not restore the pristine capacity, build, ownership and floor baseline')
+    await use(BALLAST_BOX_ID)
+    const restoredBallast = await read()
+    check(restoredBallast.game.interaction.items.length === 1 && restoredBallast.game.interaction.items[0].id === BALLAST_ID,
+      'Checkpoint did not return ballast to its independent original crate')
+    await use(BOX)
+    const restoredToken = await read()
+    check(restoredToken.game.interaction.items.length === 1 && restoredToken.game.interaction.items[0].id === TOKEN,
+      'Checkpoint did not return the token to its original crate')
+    await evaluate('globalThis.AGate._engine.client.loadCheckpoint()')
+    report.weight.baseline = await carried(0, BALLAST_WEIGHT)
+    report.weight.baseline.observer = await matchObserver(report.weight.baseline)
 
     check(initial.game.authority.groundItems.length === 1 && initial.game.authority.groundItems[0].id === GROUND_ITEM_ID &&
       initial.game.authority.groundItems[0].label === GROUND_ITEM_LABEL && initial.groundRendered[0]?.visible,

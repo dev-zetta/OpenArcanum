@@ -7,7 +7,7 @@ export interface InventoryComponent { inventory: InventoryEntry[]; inventoryInde
 export interface CritterComponent extends InventoryComponent { progressionSupported?: boolean }
 export interface ContainerComponent extends InventoryComponent { flags: Flags; keyId: number; keyUseSupported?: boolean }
 export interface PortalComponent { flags: Flags; keyID: number; keyUseSupported?: boolean }
-export interface ItemComponent { parent: string | null; invLocation: number; flags: Flags; groundTransferSupported?: boolean; magicTechComplexity?: number; descriptionUnknown?: number }
+export interface ItemComponent { parent: string | null; invLocation: number; flags: Flags; groundTransferSupported?: boolean; magicTechComplexity?: number; descriptionUnknown?: number; weight?: number; magicWeightAdj?: number }
 export interface VisualFrame { type?: string; category?: string; subcat?: string; number?: number; display?: string; stage?: string | number; side?: number; frame?: number }
 export interface VisualComponent { getCurrent(): VisualFrame }
 export interface NpcComponent { conversationSupported?: boolean; conversationId?: string }

@@ -1,0 +1,43 @@
+{
+  "Base": {
+    "type": "Generic",
+    "prototype": 900009,
+    "flags": [
+      "Inventory",
+      "NoBlock"
+    ],
+    "location": [
+      0,
+      0
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "descIndex": 9009
+  },
+  "Item": {
+    "flags": [],
+    "weight": 4000,
+    "worth": 0,
+    "invLocation": 0,
+    "magicTechComplexity": 0,
+    "groundTransferSupported": true
+  },
+  "Visual": {
+    "classes": {
+      "current": {
+        "type": "Item",
+        "category": "Workshop",
+        "subcat": "Base",
+        "number": 1,
+        "display": "Ground",
+        "stage": "North",
+        "frame": 0
+      }
+    },
+    "render": {
+      "flags": []
+    }
+  }
+}

@@ -650,7 +650,7 @@ test('owner saves and restores actor occupancy and open door collision while obs
   const document = JSON.parse(bytes)
   assert.equal(document.format, 'openarcanum-local-checkpoint')
   assert.equal(document.version, 6)
-  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.match(document.contentIdentity, /^[a-f0-9]{64}$/)
   assert.deepEqual(document.actor, { id: '0', location: [94, 99] })
   assert.deepEqual(document.doors, [{ id: doorId('front'), open: true }])

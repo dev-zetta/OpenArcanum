@@ -1,0 +1,18 @@
+{
+  "Base": {
+    "prototype": 900002,
+    "location": [
+      11,
+      2
+    ]
+  },
+  "Container": {
+    "inventory": [
+      {
+        "id": "Inventory workshop/Sector/0/0/Generic/owned-workshop-ballast.json",
+        "slot": 3
+      }
+    ],
+    "inventoryIndex": 1
+  }
+}

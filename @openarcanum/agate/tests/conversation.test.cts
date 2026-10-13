@@ -295,7 +295,7 @@ test('checkpoint stores fixed quest states without dialogue tokens and restores 
   assert.equal((await command('save')).ok, true)
   const bytes = await fs.readFile(checkpointPath, 'utf8'), document = JSON.parse(bytes)
   assert.equal(document.version, 6)
-  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-v9')
+  assert.equal(document.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
   assert.deepEqual(document.quests, [{ id: QUEST_ID, status: 'completed' }])
   for (const value of ['conversationId', 'options', 'speaker', QUEST_TITLE] as const) assert.equal(bytes.includes(value), false, value)
   await server.stop()
@@ -352,7 +352,7 @@ test('quest writes preflight immutable fields and rollback a failing checkpoint 
 })
 
 test('unknown original actor ownership cannot satisfy held-item completion or fabricate a completed quest checkpoint', async t => {
-  const { start } = await fixture(t, change => change('16086.json', data => { delete data.Critter.inventory }))
+  const { start } = await fixture(t, change => change('16086.json', data => { delete data.Critter.inventory; delete data.Critter.progressionSupported }))
   const context = await start(), { server, use, talk, reply, command } = context
   use(NPC_ID)
   const accepted = reply(talk().result, 'accept')

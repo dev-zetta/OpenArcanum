@@ -7,6 +7,7 @@ import type Entity from '../shared/entity/Entity'
 import type { AuthoritySession, AuthoritySnapshot, PrivateItem, GroundItem, MovementCompletion, PendingMovement, OfflineMovement, InteractionState, ResponsePayload, InventoryState, ActionRequest, InventoryRequest, CheckpointPending, PausePending, ActionState, PauseState, CheckpointCompletion, PauseCompletion, InteractionTarget } from './ClientTypes'
 import type { CharacterState, CharacterRequest, ConversationState, ConversationRequest, JournalState, JournalRequest, SessionClient } from './SessionTypes'
 import { errorCode } from './ClientTypes'
+import { privateItems, readCarryingState } from './PrivateInventory'
 import { isRecord, isInteger, errorMessage } from './SessionTypes'
 import type GameEngine from '../shared/GameEngine'
 import type GameMap from '../shared/map/GameMap'
@@ -32,25 +33,6 @@ import * as PlayerLogic from './logic/player'
 
 type RenderedPlayer = Entity & { visual: Visual & { classes: Record<string, VisualClass> & { current: VisualClass & { sprite: Sprite } } } }
 
-function privateItems(rows: unknown): PrivateItem[] {
-  const ids = new Set(), slots = new Set()
-  if (!Array.isArray(rows) || rows.length > 1024) throw new Error('Local server supplied invalid private inventory contents')
-  return rows.map(item => {
-    if (!item || typeof item.id !== 'string' || !item.id || item.id.length > 1024 || ids.has(item.id) ||
-        !Number.isSafeInteger(item.slot) || item.slot < 0 || slots.has(item.slot) ||
-        typeof item.label !== 'string' || !item.label || item.label.length > 128 ||
-        typeof item.type !== 'string' || !item.type || item.type.length > 32 ||
-        !Number.isSafeInteger(item.prototypeId) || item.prototypeId < 1 ||
-                                        (item.quantity!==undefined&&(!Number.isSafeInteger(item.quantity)||item.quantity<1))||
-                                       (item.canDrop!==undefined&&(item.canDrop!==true||item.type!=='Generic'))){
-      throw new Error('Local server supplied invalid private inventory contents')
-    }
-    ids.add(item.id); slots.add(item.slot)
-    const { id, slot, label, type, prototypeId, quantity, canDrop } = item
-    return { id, slot, label, type, prototypeId, ...(quantity === undefined ? {} : { quantity }),
-      ...(canDrop === true ? { canDrop: true } : {}) }
-  })
-}
 
 function groundItems(rows: unknown): GroundItem[] {
   const ids = new Set()
@@ -343,6 +325,7 @@ export default class ClientEngine extends ClientNetwork {
         ...('attributes' in this.characterState ? { attributes: this.characterState.attributes.map( (row)=>({...row}))}:{}),
         ...('derived' in this.characterState ? { derived: { ...this.characterState.derived } } : {}) } : null,
       inventory: this.inventoryState ? { ...this.inventoryState,
+        ...(this.inventoryState.carrying ? { carrying: { ...this.inventoryState.carrying } } : {}),
         items: this.inventoryState.items?.map( (item)=>({...item}))}:null,
       pause: this.pauseState ? { ...this.pauseState } : null,
       player: this.player ? { id: this.player.id, type: this.player.base.type,
@@ -562,6 +545,17 @@ export default class ClientEngine extends ClientNetwork {
     } finally { if (preparing) this.preparingMovement = false }
   }
 
+  readPrivateInventory(value: unknown, revision: number): InventoryState {
+    if (!isRecord(value) || value.ownerId !== this.player.sourcePath ||
+        !Number.isSafeInteger(revision) || revision < (this.ownershipRevision || 0)) {
+      throw new Error('Local server supplied invalid private inventory')
+    }
+    const items = privateItems(value.items)
+    const carrying = readCarryingState(value.carrying, items)
+    return { status: 'ready', known: true, ownerId: value.ownerId, items, carrying, revision,
+      message: items.length ? 'Inventory loaded.' : 'Your inventory is empty.' }
+  }
+
   setInventoryState(state: InventoryState) {
     if (this.stopped) return
     this.inventoryState = state
@@ -591,9 +585,8 @@ export default class ClientEngine extends ClientNetwork {
         if (response.status !== 'completed' || !Number.isSafeInteger(response.revision) || response.revision < 0 ||
             result?.kind !== 'inventory' || typeof result.ownerId !== 'string' || !result.ownerId || result.ownerId !== this.player.sourcePath ||
             response.revision <( this.ownershipRevision || 0)) throw new Error('Local server supplied invalid private inventory')
-        const items = privateItems(result.items)
-        this.setInventoryState({ status: 'ready', known: true, ownerId: result.ownerId, items,
-          revision: response.revision, message: items.length ? 'Inventory loaded.' : 'Your inventory is empty.' })
+        const inventory = this.readPrivateInventory(result, response.revision)
+        this.setInventoryState(inventory)
         if (this.interactionState?.inspected && this.interactionState.revision === this.authorityState?.revision) {
           this.interactionState = { ...this.interactionState, canTake: true, canPut: true }
           this.events.emit('Player:InteractionUpdated', this.interactionState)
@@ -660,7 +653,8 @@ export default class ClientEngine extends ClientNetwork {
       if (response.status !== 'completed' || !Number.isSafeInteger(response.revision) || response.revision <= revision ||
           result?.kind !== action || result[action === 'pickup' ? 'targetId' : 'itemId'] !== itemId ||
           result.inventory?.ownerId !== this.player.sourcePath) throw new Error('Local server supplied an invalid ground transfer')
-      const inventory = privateItems(result.inventory!.items)
+      const inventoryView = this.readPrivateInventory(result.inventory, response.revision)
+      const inventory = inventoryView.items
       const unchanged = before.filter(item => item.id !== itemId)
       if (unchanged.some(item => JSON.stringify(inventory.find(row => row.id === item.id)) !== JSON.stringify(item)) ||
           inventory.length !== before.length +( action === 'pickup' ? 1 : -1)) throw new Error('Local server supplied inconsistent ground ownership')
@@ -681,13 +675,12 @@ export default class ClientEngine extends ClientNetwork {
       }
       this.ownershipRevision = response.revision
       const message = action === 'pickup' ? 'Item picked up.' : 'Item dropped.'
-      this.setInventoryState({ status: 'ready', known: true, ownerId: result.inventory!.ownerId, items: inventory,
-        revision: response.revision, message: inventory.length ? message : `${message} Your inventory is empty.` })
+      this.setInventoryState({ ...inventoryView, message: inventory.length ? message : `${message} Your inventory is empty.` })
       await this.groundVisualReady
       if (this.stopped || request.epoch !==( this.inventoryEpoch || 0)) throw new Error('Ground action was superseded')
       this.setGroundState(action, 'completed', message)
       return { commandId: response.id, revision: response.revision, result: { ...result,
-        inventory: { ownerId: result.inventory!.ownerId, items: inventory } } }
+        inventory: { ownerId: result.inventory!.ownerId, items: inventory, carrying: inventoryView.carrying } } }
     } catch (error) {
       if (request?.commandId && !this.stopped && request.epoch ===( this.inventoryEpoch || 0)) {
         this.invalidateInventory('Checking item ownership…')
@@ -746,7 +739,8 @@ export default class ClientEngine extends ClientNetwork {
            batch ? selected.some(item => !['Generic', 'Key'].includes(item.type)) || !Array.isArray(result.itemIds) ||
             JSON.stringify(result.itemIds) !== JSON.stringify(selected.map(item => item.id)) : result.itemId !== itemId) ||
           result.inventory?.ownerId !== this.player.sourcePath) throw new Error('Local server supplied an invalid item transfer')
-      const remaining = privateItems(result.items), inventory = privateItems(result.inventory!.items)
+      const remaining = privateItems(result.items), inventoryView = this.readPrivateInventory(result.inventory, response.revision)
+      const inventory = inventoryView.items
       const sourceAfter = taking ? remaining : inventory
       const destinationAfter = taking ? inventory : remaining
       const selectedIds = new Set(selected.map(item => item.id))
@@ -768,11 +762,10 @@ export default class ClientEngine extends ClientNetwork {
           remaining.some(entry => inventory.some(other => other.id === entry.id))) throw new Error('Local server supplied inconsistent item ownership')
       this.ownershipRevision = response.revision
       const message = batch ? 'All items taken.' : taking ? 'Item taken.' : 'Item put in container.'
-      this.setInventoryState({ status: 'ready', known: true, ownerId: result.inventory!.ownerId, items: inventory,
-        revision: response.revision, message: inventory.length ? message : `${message} Your inventory is empty.` })
+      this.setInventoryState({ ...inventoryView, message: inventory.length ? message : `${message} Your inventory is empty.` })
       this.setInteractionState(targetId, 'completed', remaining.length ? message : `${message} This container is empty.`, null, remaining, response.revision)
       return { commandId: response.id, revision: response.revision, result: { ...result, items: remaining,
-        inventory: { ownerId: result.inventory!.ownerId, items: inventory } } }
+        inventory: { ownerId: result.inventory!.ownerId, items: inventory, carrying: inventoryView.carrying } } }
     } catch (error) {
       if (request && !this.stopped && request.epoch ===( this.inventoryEpoch || 0)) {
         // A timeout may hide a committed transfer. Re-read; never retry it.
@@ -1083,14 +1076,14 @@ export default class ClientEngine extends ClientNetwork {
     }
     if (actor.movement && this.interactionState?.inspected) this.clearContainerInspection()
     const ownershipCommand = actor.lastCommand
-    if (ownershipCommand?.status === 'completed' && ['load', 'take', 'take-all', 'put', 'pickup', 'drop'].includes(ownershipCommand.type || '') &&
+    if (ownershipCommand?.status === 'completed' && ['load', 'take', 'take-all', 'put', 'pickup', 'drop', 'buy-attribute'].includes(ownershipCommand.type || '') &&
         ownershipCommand.result?.kind === ownershipCommand.type) {
       const signature = `${ownershipCommand.type}:${ownershipCommand.id}`
       if (signature !== this.ownershipCommandSignature) {
         this.ownershipCommandSignature = signature
         this.ownershipRevision = snapshot.revision
         if (this.interactionState?.inspected && (this.interactionState.revision ?? -1) < snapshot.revision) this.clearContainerInspection()
-        const ownTransfer = this.transferRequest?.commandId === ownershipCommand.id
+        const ownTransfer = this.transferRequest?.commandId === ownershipCommand.id || this.characterRequest?.commandId === ownershipCommand.id
         const ownLoad = this.checkpointRequest?.action === 'load'
         if (this.inventoryState && !ownTransfer && !ownLoad && (this.inventoryState.revision ?? -1) < snapshot.revision) {
           this.invalidateInventory()

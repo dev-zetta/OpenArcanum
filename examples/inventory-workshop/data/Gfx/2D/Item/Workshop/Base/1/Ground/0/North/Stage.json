@@ -1,0 +1,21 @@
+{
+  "frames": {
+    "Item/Workshop/Base/1/Ground/0/North/0": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 32
+      },
+      "center": {
+        "x": 20,
+        "y": 26
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 32
+      },
+      "trimmed": false
+    }
+  }
+}

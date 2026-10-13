@@ -1788,7 +1788,7 @@ module('Integration | Component | game-render', function(hooks) {
     await click('[data-action="start-game"]')
     assert.false(this.element.querySelector<HTMLDetailsElement>('[data-character-derived]')!.open)
     assert.dom('[data-character-derived]').includesText('Carry capacity (stone)')
-    assert.dom('[data-character-derived]').includesText('Effects on combat, movement and carried weight are in development.')
+    assert.dom('[data-character-derived]').includesText('Combat, movement and fatigue effects are in development. Carrying capacity is enforced for supported inventory transfers.')
     assert.dom('[data-character-derived] [data-derived-stat]').exists({ count: 10 })
     client.events.emit('Player:PauseUpdated', { supported: true, paused: true, moving: false, status: 'completed', message: 'Paused.' })
     await waitUntil(() => this.element.querySelector<HTMLButtonElement>('[data-stat-id="strength"]')!.disabled)
@@ -1978,4 +1978,70 @@ module('Integration | Component | game-render', function(hooks) {
     assert.strictEqual(listeners.get('Player:PauseUpdated')!.size, 0)
     assert.dom('[data-runtime-state]').hasAttribute('data-runtime-state', 'error')
   })
+
+  test('inventory shows only supported private stone weights and hides stale or unsupported capacity', async function(this: RenderingTestContext, assert) {
+    const item = { id: 'held-token', label: 'Token', type: 'Generic', weight: 600 }
+    const { client } = provideInventoryClient(async () => {}, { items: [item] })
+    client.inventoryState!.carrying = { supported: true, weight: 600, capacity: 4000, encumbrance: 'light' }
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    assert.dom('[data-carried-weight]').hasText('600')
+    assert.dom('[data-carry-capacity]').hasText('4000')
+    assert.dom('[data-encumbrance]').hasText('light')
+    assert.dom('[data-item-weight]').includesText('600 stone')
+    assert.dom('[data-carrying-state]').includesText('Movement and fatigue effects are in development.')
+    client.events.emit('Player:InventoryUpdated', { ...client.inventoryState, status: 'pending', known: false, items: [] })
+    await waitUntil(() => !this.element.querySelector('[data-carrying-state]'))
+    assert.dom('[data-item-weight]').doesNotExist('pending ownership cannot retain old row weights')
+    client.events.emit('Player:InventoryUpdated', { ...client.inventoryState, carrying: { supported: false } })
+    await waitUntil(() => this.element.querySelector('[data-carrying-unavailable]'))
+    assert.dom('[data-carrying-state], [data-item-weight]').doesNotExist('unsupported views never imply a valid capacity or display weight')
+  })
+
+  test('Strength purchase changes carried capacity only when the committed private inventory event arrives', async function(this: RenderingTestContext, assert) {
+    let finish!: () => void
+    const item = { id: 'held-token', label: 'Token', type: 'Generic', weight: 600 }
+    const { client } = provideAttributeClient({ purchase(replica) {
+      return new Promise<void>(resolve => { finish = () => {
+        replica.events.emit('Player:CharacterUpdated', { ...replica.characterState, status: 'ready',
+          attributes: attributeRows().map(row => row.id === 'strength' ? { ...row, value: 9 } : row),
+          unspentPoints: 4, derived: { ...derivedPreview(), carryWeight: 4500 }, message: 'Strength increased.' })
+        replica.events.emit('Player:InventoryUpdated', { ...replica.inventoryState,
+          carrying: { supported: true, weight: 600, capacity: 4500, encumbrance: 'none' } })
+        resolve()
+      } })
+    } })
+    client.inventoryState = { status: 'ready', known: true, ownerId: '16086.json', items: [item], message: 'Inventory ready.',
+      carrying: { supported: true, weight: 600, capacity: 4000, encumbrance: 'light' } }
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    await click('[data-stat-id="strength"]')
+    assert.dom('[data-carry-capacity]').hasText('4000', 'the view never computes a proposed Strength capacity')
+    assert.dom('[data-carried-weight]').hasText('600')
+    finish()
+    await waitUntil(() => this.element.querySelector('[data-carry-capacity]')?.textContent === '4500')
+    assert.dom('[data-carry-capacity]').hasText('4500')
+    assert.dom('[data-encumbrance]').hasText('none')
+    assert.dom('[data-carried-weight]').hasText('600')
+    assert.dom('[data-derived-stat="carryWeight"]').hasText('4500')
+  })
+
+  test('an overweight transfer explains the rejection without changing the private inventory or carried weight', async function(this: RenderingTestContext, assert) {
+    const message = 'That item is too heavy to carry.'
+    const item = { id: 'held-token', label: 'Held token', type: 'Generic', weight: 600 }
+    const { client } = provideInventoryClient(async () => { throw Object.assign(new Error(message), { code: 'TOO_HEAVY' }) }, { items: [item] })
+    client.inventoryState!.carrying = { supported: true, weight: 600, capacity: 4000, encumbrance: 'light' }
+    await render(hbs`<GameRender />`)
+    await click('[data-action="start-game"]')
+    await click('[data-action="inspect-container"]')
+    await click('[data-action="take-item"]')
+    assert.dom('[data-container-status]').hasAttribute('data-container-status', 'rejected')
+    assert.dom('[data-container-status]').hasText(message)
+    assert.dom('[data-inventory-items] li').exists({ count: 1 })
+    assert.dom('[data-inventory-items] li span').hasText('Held token')
+    assert.dom('[data-carried-weight]').hasText('600')
+    assert.dom('[data-carry-capacity]').hasText('4000')
+    assert.deepEqual(client.inventoryState!.items, [item])
+  })
+
 })

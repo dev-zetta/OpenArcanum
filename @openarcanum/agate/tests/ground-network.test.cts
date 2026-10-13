@@ -13,8 +13,11 @@ const source = path.join(root, '@openarcanum/agate/src')
 const OWNER_ID = '16086.json'
 const ground = location => ({ id: GROUND_ITEM_ID, kind: 'ground', label: GROUND_ITEM_LABEL,
   type: 'Generic', prototypeId: 900007, location })
-const pebble = slot => ({ id: GROUND_ITEM_ID, slot, label: GROUND_ITEM_LABEL, type: 'Generic', prototypeId: 900007, canDrop: true })
-const token = slot => ({ id: TOKEN_ID, slot, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003 })
+const pebble = slot => ({ id: GROUND_ITEM_ID, slot, label: GROUND_ITEM_LABEL, type: 'Generic', prototypeId: 900007, canDrop: true, weight: 1 })
+const token = slot => ({ id: TOKEN_ID, slot, label: TOKEN_LABEL, type: 'Generic', prototypeId: 900003, weight: 1 })
+const inventoryView = (items: Array<{ weight: number } & Record<string, unknown>> = [], capacity = 4000) => ({
+  ownerId: '16086.json', items, carrying: { supported: true, weight: items.reduce((total, item) => total + item.weight, 0),
+    capacity, encumbrance: 'none' } })
 let createAuthorityServer
 
 before(async () => {
@@ -132,7 +135,7 @@ test('socket ground pickup and drop conserve one identity across public floors, 
     const picked = await pickup(owner, 4, approached.revision)
     assert.equal(picked.ok, true, picked.message)
     assert.deepEqual(picked.result, { kind: 'pickup', targetId: GROUND_ITEM_ID,
-      inventory: { ownerId: OWNER_ID, items: [pebble(0)] } })
+      inventory: inventoryView([pebble(0)]) })
     const held = await snapshotWhere(observer, snapshot => snapshot.revision === picked.revision)
     assert.deepEqual(held.groundItems, [])
     assert.deepEqual(actor(held).lastCommand, { id: 4, type: 'pickup', status: 'completed', result: { kind: 'pickup' } })
@@ -143,7 +146,7 @@ test('socket ground pickup and drop conserve one identity across public floors, 
     assert.equal(dropped.ok, true, dropped.message)
     const droppedLocation = actor(context.server.getSnapshot()).location
     assert.deepEqual(dropped.result, { kind: 'drop', itemId: GROUND_ITEM_ID, ground: ground(droppedLocation),
-      inventory: { ownerId: OWNER_ID, items: [] } })
+      inventory: inventoryView([]) })
     assert.deepEqual((await snapshotWhere(observer, snapshot => snapshot.revision === dropped.revision)).groundItems,
       [ground(droppedLocation)])
     rejection(await drop(owner, 5, picked.revision), 'REPLAYED_COMMAND', 5)
@@ -169,7 +172,7 @@ test('socket ground pickup and drop conserve one identity across public floors, 
     assert.equal((await command(owner, 15, 'save')).ok, true)
     const saved = JSON.parse(await fs.readFile(path.join(context.dataPath, 'saves/local-checkpoint.json'), 'utf8'))
     assert.equal(saved.version, 6)
-    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-v9')
+    assert.equal(saved.rulesVersion, 'movement-doors-ownership-attributes-weight-v10')
     assert.deepEqual(saved.ownership.items.find(item => item.id === GROUND_ITEM_ID),
       { id: GROUND_ITEM_ID, parent: null, groundLocation: savedLocation })
     assert.deepEqual(await fs.readFile(path.join(context.dataPath, GROUND_ITEM_ID)), bytes, 'world transfers do not rewrite authored assets')
